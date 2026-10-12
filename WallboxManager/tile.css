@@ -1,6 +1,6 @@
 :root {
     color-scheme: light;
-    --wb-default-text: #24262b;
+    --wb-default-text: #202124;
     --wb-default-surface: #ffffff;
     --wb-default-error: #b3261e;
     --wb-default-warning: #805b00;
@@ -25,98 +25,133 @@ body#wbm-page {
     --wb-text: var(--content-color, var(--wb-host-text, var(--wb-default-text)));
     --wb-surface: var(--card-color, var(--wb-host-surface, var(--wb-default-surface)));
     --wb-line: color-mix(in srgb, var(--wb-text) 16%, transparent);
-    --wb-muted: color-mix(in srgb, var(--wb-text) 70%, var(--wb-surface));
+    --wb-muted: color-mix(in srgb, var(--wb-text) 65%, var(--wb-surface));
     --wb-panel: color-mix(in srgb, var(--wb-text) 4%, var(--wb-surface));
     --wb-gap: clamp(6px, 1.6vmin, 14px);
-    box-sizing: border-box; flex: 1; width: 100%; height: 100%; max-width: none; margin: 0;
-    padding: clamp(8px, 2vmin, 18px); display: flex; flex-direction: column;
-    gap: var(--wb-gap); min-width: 0; min-height: 0;
-    font-size: clamp(12px, 1.8vmin, 15px); line-height: 1.4; color: var(--wb-text);
+    box-sizing: border-box; position: relative; flex: 1; width: 100%; height: 100%; min-height: 0; min-width: 0;
+    margin: 0; font-size: clamp(12px, 1.8vmin, 16px); line-height: 1.45; color: var(--wb-text);
 }
 #wbm *, #wbm *::before, #wbm *::after { box-sizing: border-box; }
 #wbm [hidden] { display: none !important; }
+#wbm .tile-view { height: 100%; display: flex; flex-direction: column; gap: var(--wb-gap); padding: clamp(8px, 2vmin, 24px); }
 #wbm .wb-header, #wbm .toolbar, #wbm .card-heading, #wbm .device-controls, #wbm footer {
     position: static; display: flex; align-items: center; justify-content: space-between;
-    gap: 8px; flex-wrap: wrap; flex-shrink: 0; min-width: 0;
+    gap: 8px; flex-wrap: wrap; flex-shrink: 0; min-width: 0; margin: 0; padding: 0; background: transparent;
 }
-#wbm .wb-header { padding: 0; margin: 0; background: transparent; }
-#wbm .wb-title { font-size: 1.1em; font-weight: 600; color: var(--wb-text); }
-#wbm .toolbar { padding: 0; margin: 0; border: 0; }
 #wbm .toolbar > label { display: flex; align-items: center; gap: 8px; min-width: 0; }
 #wbm input, #wbm select, #wbm button { font: inherit; color: var(--wb-text); }
 #wbm select, #wbm input[type="number"] {
-    border: 1px solid var(--wb-line); border-radius: 6px; background: var(--wb-panel);
-    padding: 5px 8px; min-height: 32px; max-width: 100%;
+    border: 1px solid var(--wb-line); border-radius: 3px; background: var(--wb-surface);
+    padding: 4px 8px; min-height: 32px; max-width: 100%;
 }
 #wbm select { width: 150px; min-width: 0; }
 #wbm input[type="number"] { width: 62px; }
-#wbm input[type="checkbox"] { width: 19px; height: 19px; accent-color: var(--wb-accent); margin: 0; flex-shrink: 0; }
-#wbm .switch { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; min-height: 32px; color: var(--wb-text); }
+#wbm .wb-button {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 34px;
+    border: 1px solid color-mix(in srgb, var(--wb-accent) 60%, transparent); border-radius: 3px;
+    background: transparent; color: var(--wb-accent); padding: 5px 10px; cursor: pointer;
+}
+#wbm .wb-button:hover { background: color-mix(in srgb, var(--wb-accent) 8%, transparent); }
+#wbm .icon-button { width: 34px; padding: 0; font-size: 24px; line-height: 1; }
+#wbm input[type="checkbox"] {
+    appearance: none; width: 32px; height: 32px; border: 1px solid var(--wb-accent); border-radius: 3px;
+    margin: 0; flex-shrink: 0; cursor: pointer; background: var(--wb-surface);
+    display: grid; place-content: center; color: var(--wb-accent);
+}
+#wbm input[type="checkbox"]::after { content: '×'; font-size: 24px; line-height: 1; }
+#wbm input[type="checkbox"]:checked { background: var(--wb-accent); color: #fff; }
+#wbm input[type="checkbox"]:checked::after { content: '✓'; font-size: 22px; }
+#wbm input[type="checkbox"]:disabled { opacity: .5; cursor: default; }
+#wbm .switch { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; min-height: 32px; }
 #wbm .muted, #wbm .priority-label { color: var(--wb-muted); font-size: .85em; }
-#wbm .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--wb-gap); flex-shrink: 0; }
+#wbm .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--wb-line); }
 #wbm .metrics:has(#support-metric:not([hidden])) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-#wbm .metric, #wbm .box, #wbm .battery {
-    background: var(--wb-panel); color: var(--wb-text); border: 1px solid var(--wb-line);
-    border-radius: 8px; padding: clamp(8px, 1.8vmin, 16px); min-width: 0;
-}
+#wbm .metric { min-width: 0; background: transparent; border: 0; }
 #wbm .metric span, #wbm .metric small, #wbm .device-metrics span, #wbm .device-secondary span, #wbm .battery-metrics span {
-    display: block; color: var(--wb-muted); font-size: .83em; overflow-wrap: anywhere;
+    display: block; color: var(--wb-muted); font-size: .85em; overflow-wrap: anywhere;
 }
-#wbm .metric strong { display: block; font-size: clamp(17px, 3.4vmin, 28px); line-height: 1.2; font-weight: 600; margin: 5px 0; overflow-wrap: anywhere; }
+#wbm strong { font-weight: 400; font-variant-numeric: tabular-nums; }
+#wbm .metric strong { display: block; font-size: 1.15em; margin: 4px 0 0; overflow-wrap: anywhere; }
 #wbm .metric small { font-size: .75em; }
 #wbm .wb-content { flex: 1; min-height: 0; min-width: 0; overflow: auto; display: flex; flex-direction: column; gap: var(--wb-gap); scrollbar-width: thin; scrollbar-color: var(--wb-line) transparent; }
-#wbm #status { flex-shrink: 0; margin: 0; color: var(--wb-muted); font-size: .85em; overflow-wrap: anywhere; }
-#wbm .notice { flex-shrink: 0; padding: 8px 10px; margin: 0; border: 1px solid var(--wb-default-warning); border-radius: 6px; color: var(--wb-default-warning); font-size: .85em; overflow-wrap: anywhere; }
-#wbm .error { border-color: var(--wb-default-error); color: var(--wb-default-error); white-space: pre-line; }
-#wbm .boxes { flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(min-content, 1fr); gap: var(--wb-gap); }
-#wbm .boxes[data-count="1"] { grid-template-columns: 1fr; }
-#wbm .box { display: flex; flex-direction: column; gap: 10px; border-top: 3px solid var(--wb-line); }
-#wbm .box[data-state="Laden"] { border-top-color: var(--wb-accent); }
-#wbm .box[data-state="Fehler"] { border-top-color: var(--wb-default-error); }
-#wbm h2 { position: static; font-size: 1.05em; line-height: 1.3; font-weight: 600; margin: 0; color: var(--wb-text); }
-#wbm .box-title { min-width: 0; overflow-wrap: anywhere; }
-#wbm .badge { border-radius: 20px; background: color-mix(in srgb, var(--wb-accent) 12%, var(--wb-surface)); color: var(--wb-text); padding: 3px 8px; font-size: .75em; max-width: 100%; overflow-wrap: anywhere; }
-#wbm .box[data-state="Fehler"] .badge { color: var(--wb-default-error); background: transparent; }
-#wbm .lock, #wbm .gap { margin: 0; color: var(--wb-default-warning); font-size: .8em; overflow-wrap: anywhere; }
-#wbm .device-metrics, #wbm .device-secondary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-#wbm .device-metrics { flex: 1; align-content: center; }
-#wbm .device-metrics strong { display: block; font-size: clamp(16px, 2.8vmin, 24px); font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
-#wbm .device-secondary strong, #wbm .battery-metrics strong { display: block; font-size: 1em; font-weight: 500; overflow-wrap: anywhere; }
+#wbm #status { flex-shrink: 0; margin: 0; color: var(--wb-muted); font-size: .8em; overflow-wrap: anywhere; }
+#wbm .notice { flex-shrink: 0; padding: 8px 0; margin: 0; color: var(--wb-default-warning); font-size: .85em; overflow-wrap: anywhere; }
+#wbm .error { color: var(--wb-default-error); white-space: pre-line; }
+#wbm .boxes { display: flex; flex-direction: column; }
+#wbm .box { padding: 12px 0; border-bottom: 1px solid var(--wb-line); min-width: 0; background: transparent; }
+#wbm .box-top { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 16px; }
+#wbm .box-heading { min-width: 0; }
+#wbm h2 { position: static; font-size: 1.05em; line-height: 1.4; font-weight: 400; margin: 0; color: var(--wb-text); }
+#wbm .box-title { overflow-wrap: anywhere; }
+#wbm .badge { display: block; color: var(--wb-muted); font-size: .78em; overflow-wrap: anywhere; }
+#wbm .box[data-state="Fehler"] .badge { color: var(--wb-default-error); }
+#wbm .box-measured { font-size: 1.1em; white-space: nowrap; text-align: right; }
+#wbm .box .switch span { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); overflow: hidden; }
+#wbm .lock, #wbm .gap { margin: 4px 0; color: var(--wb-default-warning); font-size: .8em; overflow-wrap: anywhere; }
+#wbm .device-metrics, #wbm .device-secondary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; margin: 8px 0; }
+#wbm .device-metrics strong, #wbm .device-secondary strong, #wbm .battery-metrics strong { display: block; font-size: 1em; overflow-wrap: anywhere; }
 #wbm .device-details { margin: 0; min-width: 0; }
-#wbm .device-details summary { color: var(--wb-muted); cursor: pointer; font-size: .85em; min-height: 28px; padding: 4px 0; }
-#wbm:not([data-compact="true"]) .device-details summary { display: none; }
-#wbm .device-controls { border-top: 1px solid var(--wb-line); padding-top: 7px; margin: 0; }
+#wbm .device-details summary { color: var(--wb-muted); cursor: pointer; font-size: .8em; min-height: 28px; padding: 5px 0 0; width: fit-content; }
+#wbm .device-controls { justify-content: flex-start; padding: 4px 0; }
 #wbm .priority-label { display: flex; align-items: center; gap: 6px; }
-#wbm .reason { margin: 0; color: var(--wb-muted); font-size: .8em; overflow-wrap: anywhere; }
-#wbm .battery { flex-shrink: 0; margin: 0; }
+#wbm .reason { margin: 4px 0 0; color: var(--wb-muted); font-size: .8em; overflow-wrap: anywhere; }
+#wbm .battery { flex-shrink: 0; margin: 0; padding: 12px 0; border-bottom: 1px solid var(--wb-line); }
 #wbm .battery-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
 #wbm #battery-state { font-size: .8em; color: var(--wb-muted); margin: 8px 0 0; overflow-wrap: anywhere; }
-#wbm footer { font-size: .75em; color: var(--wb-muted); margin: 0; }
-#wbm #simulation { color: var(--wb-default-warning); font-weight: 600; }
-#wbm :focus-visible { outline: 2px solid var(--wb-accent); outline-offset: 2px; }
-@media (max-width: 540px) {
-    #wbm .boxes { grid-template-columns: 1fr; }
-    #wbm .metrics { gap: 6px; }
-    #wbm .metric { padding: 8px; }
-    #wbm .metric strong { font-size: clamp(16px, 4.8vw, 22px); }
+#wbm footer { font-size: .75em; color: var(--wb-muted); }
+#wbm #simulation { color: var(--wb-default-warning); }
+#wbm :focus-visible { outline: 2px solid var(--wb-accent); outline-offset: 3px; }
+#wbm .energy-dashboard { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; background: var(--wb-surface); padding: clamp(8px, 2vmin, 24px); gap: 12px; }
+#wbm .dashboard-header { position: static; display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; background: transparent; padding: 0; flex-shrink: 0; }
+#wbm .dashboard-header h2 { font-size: 1.25em; }
+#wbm .dashboard-header p { color: var(--wb-muted); font-size: .8em; margin: 3px 0 0; }
+#wbm .dashboard-actions { display: flex; gap: 8px; }
+#wbm .dashboard-scroll { overflow: auto; min-height: 0; scrollbar-width: thin; }
+#wbm .energy-layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: clamp(12px, 4vw, 48px); align-items: center; }
+#wbm .chart-column, #wbm .energy-summary { min-width: 0; }
+#wbm .energy-chart-wrap { position: relative; width: 100%; max-width: 560px; margin: 0 auto; aspect-ratio: 1; }
+#wbm #energy-chart { display: block; width: 100%; height: 100%; overflow: visible; }
+#wbm .energy-track { stroke: var(--wb-panel); }
+#wbm .energy-segment { cursor: pointer; transition: opacity .15s, stroke-width .15s; }
+#wbm .energy-segment.is-muted { opacity: .35; }
+#wbm .energy-segment.is-active { stroke-width: 62px; }
+#wbm .chart-center { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; pointer-events: none; }
+#wbm .chart-center span { font-size: clamp(17px, 2.4vw, 24px); font-variant-numeric: tabular-nums; }
+#wbm .chart-center small { color: var(--wb-muted); font-size: .8em; }
+#wbm .energy-tooltip { position: absolute; z-index: 3; pointer-events: none; white-space: pre-line; width: max-content; max-width: calc(100% - 16px); overflow-wrap: anywhere; background: #12171c; color: #fff; border-radius: 3px; padding: 7px 10px; box-shadow: 0 2px 5px #0003; font-size: .9em; }
+#wbm .energy-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; }
+#wbm .legend-button, #wbm .energy-row { border: 0; background: transparent; color: var(--wb-text); cursor: pointer; padding: 6px 0; text-align: left; min-width: 0; }
+#wbm .legend-button { display: inline-flex; align-items: center; gap: 6px; font-size: .85em; }
+#wbm .energy-dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; background: var(--segment-color); }
+#wbm .legend-label { overflow-wrap: anywhere; }
+#wbm .energy-summary-heading, #wbm .energy-total-row { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--wb-line); }
+#wbm .energy-summary-heading { color: var(--wb-muted); font-size: .8em; }
+#wbm .energy-row { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--wb-line); }
+#wbm .energy-row-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+#wbm .energy-row-name span:last-child { overflow-wrap: anywhere; }
+#wbm .energy-row-values { text-align: right; font-variant-numeric: tabular-nums; }
+#wbm .energy-row-values small { display: block; color: var(--wb-muted); font-size: .8em; }
+#wbm .energy-row.is-active, #wbm .legend-button.is-active { color: var(--wb-accent); }
+#wbm .energy-note { font-size: .8em; color: var(--wb-muted); overflow-wrap: anywhere; margin: 12px 0 0; }
+#wbm #energy-empty { text-align: center; }
+#wbm:fullscreen { background: var(--wb-surface); width: 100vw; height: 100vh; }
+@media (max-width: 600px) {
+    #wbm .energy-layout { grid-template-columns: 1fr; gap: 16px; }
+    #wbm .energy-chart-wrap { max-width: 380px; }
     #wbm .metrics:has(#support-metric:not([hidden])) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     #wbm .battery-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (max-height: 460px) {
-    #wbm { --wb-gap: 6px; padding: 8px; }
-    #wbm .metric { padding: 6px 8px; }
-    #wbm .metric small { display: none; }
-    #wbm .metric strong { font-size: 18px; margin: 2px 0; }
-    #wbm .box { padding: 8px; gap: 6px; }
-    #wbm .device-metrics strong { font-size: 17px; }
+@media (max-height: 400px) {
+    #wbm .tile-view { padding: 8px; gap: 6px; }
+    #wbm .metrics { padding: 6px 0; }
+    #wbm .box { padding: 8px 0; }
 }
-@media (max-width: 300px) {
-    #wbm .wb-title { font-size: 1em; }
-    #wbm .toolbar > label { width: 100%; justify-content: space-between; }
-    #wbm .toolbar select { flex: 1; max-width: 155px; }
-    #wbm .device-controls { gap: 5px; }
-    #wbm .priority-label { gap: 4px; }
-    #wbm .battery-metrics { grid-template-columns: 1fr; }
-    #wbm .metric span { font-size: .75em; }
-    #wbm .metric small, #wbm #policy { display: none; }
+@media (max-width: 340px) {
+    #wbm #policy, #wbm .metric small { display: none; }
+    #wbm .wb-header { gap: 5px; }
+    #wbm .wb-button { padding: 4px 6px; }
+    #wbm .box-top { gap: 8px; }
+    #wbm .metrics { gap: 6px; }
+    #wbm .metric strong { font-size: 1em; }
+    #wbm .dashboard-actions { gap: 4px; }
 }

@@ -14,7 +14,7 @@ $plan = Engine::plan($cfg, $in, $state, $time);
 $plan['managerEnabled'] = true; $plan['measured'] = 11000.0; $plan['energy'] = 124.312;
 $plan['status'] = 'Automatische Regelung aktiv'; $plan['strict'] = true; $plan['batteryEnabled'] = true; $plan['batteryConfigured'] = true;
 $plan['battery']['capacity'] = 10.0; $plan['battery']['commanded'] = 4000.0; $plan['simulation'] = true;
-foreach ($plan['boxes'] as $id => &$row) { $row['energy'] = $id === 1 ? 82.183 : 42.129; $row['energyMethod'] = 'berechnet'; $row['gap'] = ''; }
+foreach ($plan['boxes'] as $id => &$row) { $row['energy'] = $id === 1 ? 82.183 : ($id === 2 ? 42.129 : 0.0); $row['archivedEnergy'] = 0.0; $row['energyMethod'] = 'berechnet'; $row['gap'] = ''; }
 unset($row);
 $html = file_get_contents(__DIR__ . '/../WallboxManager/tile.html');
 $mock = <<<'JS'

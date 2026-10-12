@@ -96,6 +96,8 @@ async function palette(page) {
         await page.locator('.device-details summary').first().click();
         assert.equal(await page.locator('[data-field="energy"]').first().isVisible(), true);
         await page.setViewportSize({width: 1280, height: 720});
+        // Resizing preserves the user's detail selection; other wallboxes stay concise.
+        assert.equal(await page.locator('.device-details').last().getAttribute('open'), null);
         assert.equal(await page.locator('[data-field="energy"]').first().isVisible(), true);
         await page.locator('#manager').uncheck();
         await page.locator('#mode').selectOption('1');
@@ -131,6 +133,112 @@ async function palette(page) {
         assert.equal((await palette(page)).theme, 'light');
         console.log('OK  Symcon light mode overrides a dark browser preference');
         if (process.env.WBM_SCREENSHOT_DIR) await page.screenshot({path: path.join(process.env.WBM_SCREENSHOT_DIR, 'wallbox-light.png')});
+        const actionCount = await page.evaluate(() => actions.length);
+        await page.locator('#energy-open').click();
+        assert.equal(await page.locator('#energy-dashboard').isVisible(), true);
+        assert.equal(await page.locator('#tile-view').isVisible(), false);
+        assert.equal(await page.locator('#dashboard-total').textContent(), '2,41 kWh');
+        assert.equal(await page.locator('.energy-segment:visible').count(), 2);
+        assert.equal(await page.locator('.energy-row').first().innerText(), 'Wallbox 1\n1,68 kWh\n69,54 % · berechnet');
+        await page.evaluate(() => window.firstEnergySegment = document.querySelector('.energy-segment'));
+        const chart = await page.locator('#energy-chart').boundingBox();
+        const angle = data.boxes[1].energy / data.energy * Math.PI;
+        await page.mouse.move(chart.x + (200 + 145 * Math.sin(angle)) / 400 * chart.width,
+            chart.y + (200 - 145 * Math.cos(angle)) / 400 * chart.height);
+        assert.equal(await page.locator('#energy-tooltip').isVisible(), true);
+        assert.equal(await page.locator('#energy-tooltip').innerText(), 'Wallbox 1: 1,68 kWh\n69,54 %');
+        assert.equal(await page.locator('.energy-segment.is-active').getAttribute('data-energy-key'), '1');
+        if (process.env.WBM_SCREENSHOT_DIR) await page.screenshot({path: path.join(process.env.WBM_SCREENSHOT_DIR, 'energy-dashboard-light.png')});
+        await page.locator('.legend-button').last().hover();
+        assert.equal(await page.locator('#energy-tooltip').innerText(), 'Wallbox 2: 0,73 kWh\n30,46 %');
+        await page.locator('.energy-row').first().focus();
+        assert.equal(await page.locator('.energy-segment.is-active').getAttribute('data-energy-key'), '1');
+        const live = structuredClone(data);
+        live.energy = 2.6; live.boxes[1].energy = 1.8; live.boxes[2].energy = .8;
+        await page.evaluate(value => window.handleMessage(value), live);
+        assert.equal(await page.locator('#dashboard-total').textContent(), '2,60 kWh');
+        assert.equal(await page.locator('#energy-tooltip').innerText(), 'Wallbox 1: 1,80 kWh\n69,23 %');
+        assert.equal(await page.evaluate(() => firstEnergySegment === document.querySelector('.energy-segment')), true);
+        assert.equal(await page.locator('.energy-row').first().evaluate(node => document.activeElement === node), true);
+        console.log('OK  Dashboard mouse hover, legend, keyboard focus and live energy updates');
+        for (const [width, height] of [[1280, 720], [800, 600], [960, 320], [360, 740], [240, 260]]) {
+            await page.setViewportSize({width, height});
+            // ResizeObserver repositions an already visible tooltip before the next paint.
+            await page.waitForFunction(() => {
+                const scroller = document.querySelector('.dashboard-scroll');
+                return scroller.scrollWidth <= scroller.clientWidth + 1;
+            });
+            const bounds = await page.locator('#energy-dashboard').evaluate(node => {
+                const scroller = node.querySelector('.dashboard-scroll');
+                return {width: node.clientWidth, height: node.clientHeight, scrollWidth: scroller.scrollWidth, contentWidth: scroller.clientWidth,
+                    documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight};
+            });
+            assert.ok(bounds.scrollWidth <= bounds.contentWidth + 1, JSON.stringify(bounds));
+            assert.equal(bounds.width, width); assert.equal(bounds.height, height);
+            assert.equal(bounds.documentWidth, width); assert.equal(bounds.documentHeight, height);
+            await page.locator('.energy-row').last().scrollIntoViewIfNeeded();
+            assert.equal(await page.locator('.energy-row').last().isVisible(), true);
+            await page.locator('.energy-row').last().click();
+            assert.equal(await page.locator('#energy-tooltip').isVisible(), true);
+        }
+        await page.keyboard.press('Escape');
+        assert.equal(await page.locator('#energy-dashboard').isVisible(), false);
+        assert.equal(await page.locator('#energy-open').evaluate(node => document.activeElement === node), true);
+        assert.equal(await page.evaluate(() => actions.length), actionCount);
+        console.log('OK  Responsive dashboard, touch-style selection, Escape and no device actions');
+        await page.setViewportSize({width: 1280, height: 720});
+        const historic = structuredClone(data);
+        historic.boxes[1].archivedEnergy = 2; historic.boxes[2].enabled = false; historic.energy = 4.41;
+        await page.evaluate(value => window.handleMessage(value), historic);
+        await page.locator('#energy-open').click();
+        assert.ok((await page.locator('.energy-row').first().innerText()).includes('3,68 kWh'));
+        assert.ok((await page.locator('.energy-row').last().innerText()).includes('deaktiviert'));
+        assert.ok((await page.locator('#energy-note').innerText()).includes('Frühere Geräte'));
+        const old = structuredClone(data); old.energy = 3.41;
+        await page.evaluate(value => window.handleMessage(value), old);
+        assert.equal(await page.locator('.energy-row').count(), 3);
+        assert.ok((await page.locator('.energy-row').last().innerText()).includes('Weitere / archivierte Energie'));
+        const zero = structuredClone(data);
+        zero.energy = 0; zero.boxes[1].energy = 0; zero.boxes[2].energy = 0;
+        await page.evaluate(value => window.handleMessage(value), zero);
+        assert.equal(await page.locator('#dashboard-total').textContent(), '0,00 kWh');
+        assert.equal(await page.locator('.energy-segment:visible').count(), 0);
+        assert.equal(await page.locator('#energy-empty').isVisible(), true);
+        await page.locator('.energy-row').first().click();
+        assert.ok((await page.locator('#energy-tooltip').innerText()).includes('0 %'));
+        const single = structuredClone(data);
+        single.boxes[2].enabled = false; single.boxes[2].energy = 0; single.energy = single.boxes[1].energy;
+        await page.evaluate(value => window.handleMessage(value), single);
+        assert.equal(await page.locator('.energy-segment:visible').count(), 1);
+        assert.ok((await page.locator('.energy-row').innerText()).includes('100 %'));
+        console.log('OK  Archived and disabled devices, older telemetry, zero energy and a full ring');
+        const unsafe = structuredClone(data);
+        unsafe.boxes[1].name = '<img src=x onerror="throw new Error(\'Unsafe name\')">';
+        await page.evaluate(value => window.handleMessage(value), unsafe);
+        assert.equal(await page.locator('.energy-row img').count(), 0);
+        assert.ok((await page.locator('.energy-row').first().innerText()).includes('<img src=x'));
+        await page.evaluate(value => window.handleMessage(value), data);
+        await page.evaluate(() => {
+            document.documentElement.style.setProperty('--content-color', '#f0f0f3');
+            document.documentElement.style.setProperty('--card-color', '#1c1c21');
+        });
+        await page.waitForFunction(() => document.documentElement.dataset.wbTheme === 'dark');
+        assert.equal(await page.locator('#energy-dashboard').evaluate(node => getComputedStyle(node).backgroundColor), 'rgb(28, 28, 33)');
+        if (process.env.WBM_SCREENSHOT_DIR) await page.screenshot({path: path.join(process.env.WBM_SCREENSHOT_DIR, 'energy-dashboard-dark.png')});
+        // Trap keyboard focus within the open dashboard.
+        await page.locator('#energy-close').focus();
+        if (await page.locator('#energy-fullscreen').isVisible()) await page.locator('#energy-fullscreen').focus();
+        await page.keyboard.press('Shift+Tab');
+        assert.equal(await page.locator('.energy-row').last().evaluate(node => document.activeElement === node), true);
+        await page.keyboard.press('Tab');
+        assert.equal(await page.evaluate(() => document.activeElement.id), await page.locator('#energy-fullscreen').isVisible() ? 'energy-fullscreen' : 'energy-close');
+        if (await page.locator('#energy-fullscreen').isVisible()) {
+            await page.locator('#energy-fullscreen').click();
+            await page.waitForFunction(() => document.fullscreenElement === document.getElementById('wbm'));
+        }
+        await page.locator('#energy-close').click();
+        await page.waitForFunction(() => !document.fullscreenElement);
+        console.log('OK  Dashboard dark mode, safe names, focus trap and fullscreen');
         await page.setContent(html());
         assert.equal((await palette(page)).theme, 'dark');
         await page.emulateMedia({colorScheme: 'light'});
@@ -148,8 +256,33 @@ async function palette(page) {
         }
         assert.equal(await page.locator('#battery').isVisible(), true);
         assert.equal(await page.locator('#errors').isVisible(), true);
+        extended.energy = Object.values(extended.boxes).reduce((sum, box) => sum + box.energy, 0);
+        await page.evaluate(value => window.handleMessage(value), extended);
+        await page.locator('#energy-open').click();
+        assert.equal(await page.locator('.energy-segment:visible').count(), 4);
+        assert.equal(await page.locator('.energy-row').count(), 4);
+        assert.equal(await page.locator('#dashboard-total').textContent(), '4,82 kWh');
+        assert.equal(await page.locator('.energy-row').nth(2).locator('.energy-row-name').innerText(), extended.boxes[3].name);
+        assert.equal(await page.locator('.dashboard-scroll').evaluate(node => node.scrollWidth <= node.clientWidth + 1), true);
+        await page.locator('#energy-close').click();
         assert.equal(errors.length, 0, errors.join('\n'));
         console.log('OK  Four wallboxes, storage and long error messages');
+        const touchContext = await browser.newContext({hasTouch: true, viewport: {width: 390, height: 844}});
+        const touchPage = await touchContext.newPage();
+        await touchPage.setContent(html());
+        await touchPage.locator('#energy-open').tap();
+        const touchChart = await touchPage.locator('#energy-chart').boundingBox();
+        await touchPage.touchscreen.tap(touchChart.x + (200 + 145 * Math.sin(angle)) / 400 * touchChart.width,
+            touchChart.y + (200 - 145 * Math.cos(angle)) / 400 * touchChart.height);
+        assert.equal(await touchPage.locator('#energy-tooltip').innerText(), 'Wallbox 1: 1,68 kWh\n69,54 %');
+        assert.equal(await touchPage.locator('#energy-tooltip').isVisible(), true);
+        await touchPage.locator('.energy-row').last().tap();
+        assert.ok((await touchPage.locator('#energy-tooltip').innerText()).startsWith('Wallbox 2:'));
+        await touchPage.locator('#energy-close').tap();
+        assert.equal(await touchPage.locator('#tile-view').isVisible(), true);
+        assert.equal(await touchPage.evaluate(() => actions.length), 1); // Initial Refresh only.
+        await touchContext.close();
+        console.log('OK  Touch events select ring segments and energy rows without device actions');
         await page.setViewportSize({width: 800, height: 600});
         await page.setContent(html());
         await page.evaluate(() => {

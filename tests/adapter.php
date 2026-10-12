@@ -27,6 +27,33 @@ function telemetryOf(WallboxManager $m): array { return json_decode($m->attribut
 function setRuntime(WallboxManager $m, array $state): void { $m->attributes['Runtime'] = json_encode($state, JSON_PRESERVE_ZERO_FRACTION); }
 function callsTo(int $target): array { return array_values(array_filter(Kernel::$calls, fn($c) => $c['target'] === $target)); }
 
+test('Adapter: Dashboard erhält archivierte Platzenergie auch bei deaktivierter Wallbox', function () {
+    [$m] = fixture(2); $m->ApplyChanges();
+    $s = runtimeOf($m);
+    $s['energy'][1]['energy'] = 2.0;
+    $s['energy'][1]['archive'] = [['identity' => 'old-a', 'energy' => 1.5], ['identity' => 'old-b', 'energy' => 3.0]];
+    $s['energy'][2]['energy'] = 4.0;
+    $s['energy'][2]['archive'] = [['identity' => 'old-c', 'energy' => 5.0]];
+    $s['totalEnergy'] = 15.5;
+    setRuntime($m, $s);
+    $m->properties['W2Enabled'] = false;
+    $m->ApplyChanges();
+    $data = telemetryOf($m);
+    closeTo($data['boxes'][1]['archivedEnergy'], 4.5);
+    closeTo($data['boxes'][2]['archivedEnergy'], 5.0);
+    closeTo($data['boxes'][2]['energy'], 4.0);
+    check(!$data['boxes'][2]['enabled']);
+    closeTo($data['energy'], 15.5);
+    // Publishing the allocation does not modify the persistent energy counters.
+    closeTo(runtimeOf($m)['energy'][1]['energy'], 2.0);
+    closeTo($m->GetValue('W1Energy'), 2.0);
+    $m->ResetEnergy('ENERGIE ZURÜCKSETZEN');
+    $data = telemetryOf($m);
+    closeTo($data['energy'], 0.0);
+    closeTo($data['boxes'][1]['archivedEnergy'], 0.0);
+    closeTo($data['boxes'][2]['archivedEnergy'], 0.0);
+});
+
 class VisualizationFailureModule extends WallboxManager
 {
     public bool $failNextVisualization = false;

@@ -13,6 +13,7 @@ class Element {
     }
     append(...elements) { this.children.push(...elements); }
     addEventListener(name, callback) { this.listeners[name] = callback; }
+    setAttribute(name, value) { this[name] = value; }
     querySelectorAll(selector) {
         assert.equal(selector, '[data-field]');
         const result = [];
@@ -23,7 +24,8 @@ class Element {
     change() { this.listeners.change.call(this); }
 }
 const ids = ['wbm', 'manager', 'mode', 'policy', 'base', 'support-metric', 'support', 'confirmed', 'measured', 'assigned', 'energy', 'overrun', 'status', 'errors', 'boxes', 'battery',
-    'battery-enable', 'battery-lock', 'soc', 'capacity', 'reserve-energy', 'battery-request', 'battery-power', 'battery-state', 'updated', 'simulation'];
+    'battery-enable', 'battery-lock', 'soc', 'capacity', 'reserve-energy', 'battery-request', 'battery-power', 'battery-state', 'updated', 'simulation',
+    'energy-open', 'energy-close', 'energy-fullscreen'];
 const elements = Object.fromEntries(ids.map(id => [id, new Element()]));
 const document = {getElementById: id => {assert.ok(elements[id], id); return elements[id];}, createElement: tag => new Element(tag), activeElement: null};
 const actions = [];
@@ -49,7 +51,7 @@ let count = 0;
 function test(name, fn) { fn(); count++; console.log('OK  ' + name); }
 test('Echte JavaScript-Datei ist syntaktisch gültig und baut zwei Karten', () => assert.equal(elements.boxes.children.length, 2));
 test('Initialzustand, deutsche Einheiten und Gesamtenergie', () => {
-    assert.equal(elements.base.textContent, '12 kW'); assert.equal(elements.energy.textContent, '124,31 kWh');
+    assert.equal(elements.base.textContent, '12000,0 W'); assert.equal(elements.energy.textContent, '124,31 kWh');
     assert.ok(fields1.energy.textContent.includes('(berechnet)')); assert.equal(fields2.measured.textContent, 'Keine Messung');
     assert.ok(fields1.command.textContent.startsWith('7,0 A'));
     assert.ok(fields1.energy.textContent.startsWith('12,12 kWh'));
@@ -70,7 +72,7 @@ test('Ungültige Priorität sendet keine Geräteaktion', () => {
 });
 test('handleMessage aktualisiert Karten ohne Neuerzeugung', () => {
     const before = elements.boxes.children[0]; data.boxes[1].measured = 4100;
-    context.window.handleMessage(JSON.stringify(data)); assert.equal(elements.boxes.children[0],before); assert.equal(fields1.measured.textContent,'4,1 kW');
+    context.window.handleMessage(JSON.stringify(data)); assert.equal(elements.boxes.children[0],before); assert.equal(fields1.measured.textContent,'4100,0 W');
 });
 test('Zeitbedingung und Messlücke erscheinen als Text', () => {
     assert.ok(fields2.reason.textContent.includes('Start in 20 s')); assert.equal(fields2.gap.textContent,'Messlücke');

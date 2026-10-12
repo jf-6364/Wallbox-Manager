@@ -3,12 +3,16 @@
     var cards = new Map();
     var latest = null;
     var receivedAt = 0;
-    var number = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
-    var energyFormat = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    var ampereFormat = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    var number = new Intl.NumberFormat('de-DE', { useGrouping: false, maximumFractionDigits: 2 });
+    var energyFormat = new Intl.NumberFormat('de-DE', { useGrouping: false, minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var ampereFormat = new Intl.NumberFormat('de-DE', { useGrouping: false, minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    var dashboardOpen = false;
+    var energyItems = new Map();
+    var selectedEnergy = null;
+    var tooltipPoint = {x: .6, y: .4};
     function el(id) { return document.getElementById(id); }
     function text(id, value) { el(id).textContent = value; }
-    function power(value) { return value === null || value === undefined ? 'Keine Messung' : number.format(value / 1000) + ' kW'; }
+    function power(value) { return value === null || value === undefined ? 'Keine Messung' : ampereFormat.format(value) + ' W'; }
     function energy(value) { return energyFormat.format(value || 0) + ' kWh'; }
     function compactLayout() {
         var root = document.getElementById('wbm');
@@ -17,12 +21,12 @@
         return typeof height === 'number' && (height < 480 || width < 440);
     }
     function updateLayout() {
+        if (dashboardOpen) highlightEnergy();
         var root = document.getElementById('wbm');
         if (!root) return;
         var compact = compactLayout();
         if (root.dataset.compact === String(compact)) return;
         root.dataset.compact = String(compact);
-        cards.forEach(function (item) { item.details.open = !compact; });
     }
     function themeParameter(names) {
         var parameters = typeof queryParameters !== 'undefined' ? queryParameters : null;
@@ -92,36 +96,40 @@
         var card = document.createElement('article');
         card.className = 'box';
         var head = document.createElement('div');
-        head.className = 'card-heading';
+        head.className = 'box-top';
+        var heading = document.createElement('div');
+        heading.className = 'box-heading';
         var title = document.createElement('h2');
         title.className = 'box-title';
         title.dataset.field = 'name';
         var badge = document.createElement('span');
         badge.className = 'badge';
         badge.dataset.field = 'status';
-        head.append(title, badge);
+        heading.append(title, badge);
+        var measured = document.createElement('strong');
+        measured.className = 'box-measured'; measured.dataset.field = 'measured';
         var lock = document.createElement('p');
         lock.className = 'lock';
         lock.dataset.field = 'lock';
         lock.textContent = 'Extern gesperrt – manuelle Freigabe hebt die Sperre nicht auf';
         var metrics = document.createElement('div');
         metrics.className = 'device-metrics';
-        metrics.append(metric('Tatsächlich laden', 'measured'), metric('Sollwert / Anforderung', 'command'));
+        metrics.append(metric('Sollwert', 'command'), metric('Aktive Phasen', 'phases'));
         var details = document.createElement('details');
         details.className = 'device-details';
-        details.open = !compactLayout();
+        details.open = false;
         var summary = document.createElement('summary');
-        summary.textContent = 'Energie und Phasen';
+        summary.textContent = 'Details';
         var secondary = document.createElement('div');
         secondary.className = 'device-secondary';
-        secondary.append(metric('Geladene Energie', 'energy'), metric('Aktive Phasen', 'phases'));
-        details.append(summary, secondary);
+        secondary.append(metric('Geladene Energie', 'energy'));
         var controls = document.createElement('div');
         controls.className = 'device-controls';
         var manualLabel = document.createElement('label');
         manualLabel.className = 'switch';
         var manual = document.createElement('input');
         manual.type = 'checkbox';
+        manual.setAttribute('aria-label', 'Wallbox ' + id + ' freigeben');
         manual.dataset.field = 'manual';
         manual.addEventListener('change', function () { action('W' + id + 'Manual', manual.checked); });
         var manualText = document.createElement('span');
@@ -140,12 +148,14 @@
             else showError(new Error('Priorität muss zwischen 1 und 999 liegen'));
         });
         priorityLabel.append(priority);
-        controls.append(manualLabel, priorityLabel);
+        head.append(heading, measured, manualLabel);
+        controls.append(priorityLabel);
+        details.append(summary, metrics, secondary, controls);
         var reason = document.createElement('p');
         reason.className = 'reason'; reason.dataset.field = 'reason';
         var gap = document.createElement('p');
         gap.className = 'gap'; gap.dataset.field = 'gap';
-        card.append(head, lock, metrics, details, reason, gap, controls);
+        card.append(head, lock, reason, gap, details);
         var fields = {};
         card.querySelectorAll('[data-field]').forEach(function (node) { fields[node.dataset.field] = node; });
         cards.set(id, { node: card, fields: fields, details: details });
@@ -184,7 +194,8 @@
             f.manual.disabled = !box.enabled;
             if (document.activeElement !== f.priority) f.priority.value = box.priority;
             f.measured.textContent = power(box.measured);
-            f.command.textContent = (box.unit === 'A' ? ampereFormat : number).format(box.command) + ' ' + box.unit + ' / ' + power(box.power);
+            f.command.textContent = (box.unit === 'kW' ? number : ampereFormat).format(box.command) + ' ' + box.unit;
+            f.manual.setAttribute('aria-label', box.name + ' freigeben');
             f.energy.textContent = energy(box.energy) + (box.energyMethod === 'berechnet' ? ' (berechnet)' : '');
             f.phases.textContent = box.phases ? String(box.phases) : 'Unbestätigt';
             f.reason.textContent = box.reason;
@@ -205,6 +216,133 @@
         el('simulation').hidden = !data.simulation;
         countdown();
         updateLayout();
+        if (dashboardOpen) renderEnergyDashboard();
+    }
+    function nonnegative(value) { return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0; }
+    function dashboardData() {
+        var colors = ['#e4ab00', '#b58b00', '#826800', '#ffbf00'];
+        var rows = Object.values(latest.boxes).map(function (box) {
+            var archived = nonnegative(box.archivedEnergy);
+            return {key: String(box.id), name: box.name, value: nonnegative(box.energy) + archived,
+                enabled: box.enabled, archived: archived, method: box.energyMethod,
+                color: colors[(Number(box.id) - 1) % colors.length] || colors[0]};
+        }).filter(function (row) { return row.enabled || row.value > 0; });
+        var sum = rows.reduce(function (total, row) { return total + row.value; }, 0);
+        var total = nonnegative(latest.energy);
+        // Older telemetry may include archived devices only in the global counter.
+        if (total - sum > .000001) rows.push({key: 'previous', name: 'Weitere / archivierte Energie', value: total - sum, color: '#bfbab0', method: ''});
+        var denominator = Math.max(total, sum);
+        rows.forEach(function (row) { row.percent = denominator > 0 ? row.value / denominator * 100 : 0; });
+        return {rows: rows, total: total, denominator: denominator, inconsistent: sum - total > .000001};
+    }
+    function segmentPath(start, end) {
+        // A tiny separator keeps neighbouring segments readable, including a full ring.
+        var gap = Math.min(.012, (end - start) / 4);
+        start += gap; end -= gap;
+        function point(angle) { return [200 + 145 * Math.sin(angle), 200 - 145 * Math.cos(angle)]; }
+        var a = point(start), b = point(end);
+        return 'M ' + a.join(' ') + ' A 145 145 0 ' + (end - start > Math.PI ? '1' : '0') + ' 1 ' + b.join(' ');
+    }
+    function selectEnergy(key, event) {
+        selectedEnergy = energyItems.has(key) ? key : null;
+        if (event && typeof event.clientX === 'number') {
+            var bounds = el('energy-chart-wrap').getBoundingClientRect();
+            tooltipPoint = {x: (event.clientX - bounds.left) / bounds.width, y: (event.clientY - bounds.top) / bounds.height};
+        } else tooltipPoint = {x: .55, y: .3};
+        highlightEnergy();
+    }
+    function highlightEnergy() {
+        energyItems.forEach(function (item, key) {
+            item.segment.classList.toggle('is-active', key === selectedEnergy);
+            item.segment.classList.toggle('is-muted', selectedEnergy !== null && key !== selectedEnergy);
+            item.legend.classList.toggle('is-active', key === selectedEnergy);
+            item.row.classList.toggle('is-active', key === selectedEnergy);
+        });
+        var tooltip = el('energy-tooltip');
+        var item = energyItems.get(selectedEnergy);
+        tooltip.hidden = !item;
+        if (!item) return;
+        tooltip.textContent = item.data.name + ': ' + energy(item.data.value) + '\n' + number.format(item.data.percent) + ' %';
+        var bounds = el('energy-chart-wrap').getBoundingClientRect();
+        var left = Math.min(Math.max(8, tooltipPoint.x * bounds.width + 12), Math.max(8, bounds.width - tooltip.offsetWidth - 8));
+        var top = Math.min(Math.max(8, tooltipPoint.y * bounds.height + 12), Math.max(8, bounds.height - tooltip.offsetHeight - 8));
+        tooltip.style.left = left + 'px'; tooltip.style.top = top + 'px';
+    }
+    function makeEnergyItem(row) {
+        var segment = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        segment.setAttribute('class', 'energy-segment');
+        segment.setAttribute('fill', 'none'); segment.setAttribute('stroke-width', '56');
+        segment.setAttribute('tabindex', '0'); segment.setAttribute('role', 'img');
+        segment.dataset.energyKey = row.key;
+        var legend = document.createElement('button');
+        legend.type = 'button'; legend.className = 'legend-button';
+        var dot = document.createElement('span'); dot.className = 'energy-dot'; dot.setAttribute('aria-hidden', 'true');
+        var name = document.createElement('span'); name.className = 'legend-label';
+        legend.append(dot, name);
+        var line = document.createElement('button');
+        line.type = 'button'; line.className = 'energy-row';
+        var rowName = document.createElement('span'); rowName.className = 'energy-row-name';
+        var rowDot = document.createElement('span'); rowDot.className = 'energy-dot'; rowDot.setAttribute('aria-hidden', 'true');
+        var label = document.createElement('span'); rowName.append(rowDot, label);
+        var values = document.createElement('span'); values.className = 'energy-row-values';
+        var amount = document.createElement('span'); var detail = document.createElement('small');
+        values.append(amount, detail); line.append(rowName, values);
+        [segment, legend, line].forEach(function (node) {
+            node.addEventListener('pointerenter', function (event) { selectEnergy(row.key, node === segment ? event : null); });
+            node.addEventListener('pointermove', function (event) { if (node === segment) selectEnergy(row.key, event); });
+            node.addEventListener('pointerleave', function () { if (selectedEnergy === row.key && document.activeElement !== node) selectEnergy(null); });
+            node.addEventListener('focus', function () { selectEnergy(row.key); });
+            node.addEventListener('blur', function () { if (selectedEnergy === row.key) selectEnergy(null); });
+            node.addEventListener('click', function () { selectEnergy(row.key); });
+        });
+        el('energy-segments').append(segment); el('energy-legend').append(legend); el('energy-rows').append(line);
+        var item = {segment: segment, legend: legend, row: line, name: name, label: label, amount: amount, detail: detail, data: row};
+        energyItems.set(row.key, item);
+        return item;
+    }
+    function renderEnergyDashboard() {
+        if (!latest) return;
+        var data = dashboardData();
+        text('dashboard-total', energy(data.total)); text('dashboard-summary-total', energy(data.total));
+        el('energy-empty').hidden = data.denominator > 0;
+        var keys = data.rows.map(function (row) { return row.key; });
+        energyItems.forEach(function (item, key) {
+            if (keys.indexOf(key) !== -1) return;
+            item.segment.remove(); item.legend.remove(); item.row.remove(); energyItems.delete(key);
+            if (selectedEnergy === key) selectedEnergy = null;
+        });
+        var start = 0;
+        data.rows.forEach(function (row) {
+            var item = energyItems.get(row.key) || makeEnergyItem(row);
+            item.data = row;
+            var angle = row.percent / 100 * Math.PI * 2;
+            item.segment.setAttribute('d', segmentPath(start, start + angle)); start += angle;
+            item.segment.style.display = row.value > 0 ? '' : 'none';
+            item.segment.setAttribute('stroke', row.color);
+            var description = row.name + ': ' + energy(row.value) + ', ' + number.format(row.percent) + ' %';
+            item.segment.setAttribute('aria-label', description);
+            item.legend.setAttribute('aria-label', description); item.row.setAttribute('aria-label', description);
+            item.legend.style.setProperty('--segment-color', row.color); item.row.style.setProperty('--segment-color', row.color);
+            item.name.textContent = row.name; item.label.textContent = row.name;
+            item.amount.textContent = energy(row.value);
+            item.detail.textContent = number.format(row.percent) + ' %' + (row.method === 'berechnet' ? ' · berechnet' : '') + (row.enabled === false ? ' · deaktiviert' : '');
+        });
+        var note = 'Fortlaufende Zählerstände bis zur letzten Aktualisierung. Ein Energie-Reset beginnt den Zählzeitraum neu.';
+        if (data.rows.some(function (row) { return row.archived > 0; })) note += ' Frühere Geräte am selben Wallbox-Platz sind enthalten.';
+        if (data.inconsistent) note += ' Die Wallbox-Summe weicht vom Gesamtzähler ab; die Anteile beziehen sich auf die Wallbox-Summe.';
+        text('energy-note', note);
+        highlightEnergy();
+    }
+    function openDashboard() {
+        dashboardOpen = true;
+        el('tile-view').hidden = true; el('energy-dashboard').hidden = false;
+        renderEnergyDashboard(); el('energy-close').focus();
+    }
+    function closeDashboard() {
+        dashboardOpen = false; selectEnergy(null);
+        el('energy-dashboard').hidden = true; el('tile-view').hidden = false;
+        if (document.fullscreenElement === el('wbm') && document.exitFullscreen) document.exitFullscreen().catch(function () {});
+        el('energy-open').focus();
     }
     function countdown() {
         if (!latest) return;
@@ -226,6 +364,31 @@
     el('manager').addEventListener('change', function () { action('ManagerEnabled', this.checked); });
     el('mode').addEventListener('change', function () { action('DistributionMode', Number(this.value)); });
     el('battery-enable').addEventListener('change', function () { action('BatteryEnabled', this.checked); });
+    el('energy-open').addEventListener('click', openDashboard);
+    el('energy-close').addEventListener('click', closeDashboard);
+    el('energy-fullscreen').hidden = !(el('wbm').requestFullscreen && document.fullscreenEnabled);
+    el('energy-fullscreen').addEventListener('click', function () {
+        var pending = document.fullscreenElement === el('wbm') ? document.exitFullscreen() : el('wbm').requestFullscreen();
+        // Some Symcon iframe hosts do not grant fullscreen; the dashboard remains usable.
+        pending.catch(function () { el('energy-fullscreen').hidden = true; });
+    });
+    if (typeof document.addEventListener === 'function') {
+        document.addEventListener('keydown', function (event) {
+            if (!dashboardOpen) return;
+            if (event.key === 'Escape') { event.preventDefault(); closeDashboard(); }
+            if (event.key === 'Tab') {
+                var nodes = Array.from(el('energy-dashboard').querySelectorAll('button, [tabindex="0"]')).filter(function (node) { return node.getClientRects().length > 0; });
+                var first = nodes[0], last = nodes[nodes.length - 1];
+                if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+                else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+            }
+        });
+        document.addEventListener('fullscreenchange', function () {
+            var active = document.fullscreenElement === el('wbm');
+            el('energy-fullscreen').setAttribute('aria-label', active ? 'Vollbild beenden' : 'Dashboard im Vollbild anzeigen');
+            if (dashboardOpen) highlightEnergy();
+        });
+    }
     syncTheme();
     if (typeof ResizeObserver === 'function' && document.getElementById('wbm')) {
         new ResizeObserver(updateLayout).observe(document.getElementById('wbm'));

@@ -2,7 +2,7 @@
 
 ## Ausgeführt
 
-- **75 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- **76 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
 - **10 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
@@ -16,6 +16,15 @@
 - Helle/dunkle Symcon-Farbparameter und CSS-Variablen als Testvorgaben,
   Wechsel ohne Neuladen und Browser-Fallback geprüft; zusätzlich vier Wallboxen,
   optionaler Speicher und lange Fehlertexte.
+- Energie-Dashboard in Chromium geprüft: Ringsegmente und Verbrauchsliste für
+  eine bis vier Wallboxen, Gesamtenergie und Prozentanteile, Maus-Hover,
+  Touch-Ereignisse, Tastaturfokus, Escape, Fokusbegrenzung und Vollbild.
+  Live-Aktualisierungen erhalten vorhandene Diagrammelemente und den Fokus.
+  Nullverbrauch, archivierte Energie, deaktivierte Plätze und ältere Telemetrie
+  sind abgedeckt. Die Dashboard-Bedienung löst keine Gerätebefehle aus.
+- Die zusätzliche archivierte Platzenergie verändert weder persistente
+  Zählerstände noch Geräte-Sollwerte. Übertragung und bestätigter Reset sind
+  durch einen Adaptertest geprüft.
 - Alle **16 PHP-Dateien** syntaktisch geprüft; alle **7 vorhandenen JSON-Dateien**
   syntaktisch geprüft (einschließlich lokalem Testergebnis).
 - Metadaten, unterschiedliche gültige GUIDs, Präfix, Modulstruktur,

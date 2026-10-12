@@ -723,6 +723,7 @@ class WallboxManager extends IPSModule
         foreach ($plan['boxes'] as $id => &$row) {
             $e = $state['energy'][$id] ?? [];
             $row['energy'] = $e['energy'] ?? 0.0;
+            $row['archivedEnergy'] = array_sum(array_column($e['archive'] ?? [], 'energy'));
             $row['energyMethod'] = $e['method'] ?? ($cfg['boxes'][$id]['EnergyVar'] ? 'Gerätezähler' : 'berechnet');
             $row['gap'] = $e['gap'] ?? '';
             $row['phaseStage'] = $state['boxes'][$id]['phase']['stage'] ?? '';

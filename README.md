@@ -112,14 +112,30 @@ explizite Bestätigung.
 
 ## Kachelvisualisierung
 
-Die eigene Symcon-Kachel zeigt Budget, Soll- und Istleistung, Energie, Zustände und
-Wartezeiten. Freigaben, Verteilungsmodus und Prioritäten sind direkt bedienbar.
-Das Layout passt sich der verfügbaren Breite und Höhe an. In kleinen Kacheln sind
-zusätzliche Werte aufklappbar; umfangreiche Inhalte scrollen innerhalb der Kachel.
+Die eigene Symcon-Kachel zeigt Budget, aktuelle Ladeleistung und Gesamtenergie
+ohne zusätzliche Unterkacheln. Jede aktive Wallbox erscheint als schlichte Zeile
+mit Ladeleistung, Status und Freigabe. Unter „Details“ stehen Sollwert, Energie,
+Phasen und die bedienbare Priorität. Der Verteilungsmodus ist direkt wählbar.
+Das Layout passt sich der verfügbaren Breite und Höhe an; umfangreiche Inhalte
+scrollen innerhalb der Kachel.
+
+Der Button **„Energie-Dashboard“** öffnet ein Ringdiagramm mit der Gesamtenergie
+und den Anteilen der einzelnen Wallboxen. Beim Bewegen des Mauszeigers über
+Diagramm, Legende oder Verbrauchsliste werden Wallbox, kWh und Prozentanteil
+hervorgehoben. Auch Berührung und Tastaturbedienung sind möglich. Live-Werte
+aktualisieren das geöffnete Dashboard. Ein Vollbild-Button erscheint, wenn die
+Umgebung diese Browserfunktion erlaubt.
+
+Die Verteilung zeigt den **gesamten Zählzeitraum**, keine Tagesauswertung.
+Deaktivierte Plätze mit bereits erfasster Energie bleiben enthalten. Bei einem
+Gerätewechsel wird archivierte Energie demselben Wallbox-Platz zugeordnet;
+der Gesamtverbrauch bleibt erhalten. Ein bestätigter Energie-Reset setzt die
+Zähler zurück. Berechnete Energie ist in der Verbrauchsliste gekennzeichnet.
 
 Die Darstellung übernimmt Symcon-Farben für Hell- und Dunkelmodus. Ohne übergebene
 Symcon-Farben gilt die Browser-Einstellung. Zahlen werden mit Dezimalkomma und
-höchstens zwei Nachkommastellen angezeigt, Amperewerte mit einer Nachkommastelle.
+höchstens zwei Nachkommastellen angezeigt, Ampere- und Wattwerte in der Kachel
+mit einer Nachkommastelle.
 
 ## Weitere Informationen
 
