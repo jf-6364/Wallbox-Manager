@@ -103,6 +103,39 @@ test('Adapter: RequestAction-Geräteweg und kein wiederholter identischer Befehl
     closeTo((float)GetValue($ids[1]['setpoint']), 11000);
     $count = count(Kernel::$calls); $m->Control(); check(count(Kernel::$calls) === $count);
 });
+test('Adapter: objektgeschützte Sollwerte bleiben per Geräteaktion steuerbar', function () {
+    [$m, $ids] = fixture(2);
+    foreach ([1, 2] as $id) Kernel::$objects[$ids[$id]['setpoint']]['ObjectIsReadOnly'] = true;
+    $m->ApplyChanges();
+    foreach ([1, 2] as $id) Kernel::update($ids[$id]['power'], 0.0, microtime(true));
+    $m->Control();
+    check($m->status === 102, $m->GetValue('Status'));
+    foreach ([1, 2] as $id) {
+        closeTo(GetValue($ids[$id]['setpoint']), 6000);
+        check(count(callsTo($ids[$id]['setpoint'])) > 0);
+        check(Kernel::$objects[$ids[$id]['setpoint']]['ObjectIsReadOnly']);
+    }
+    $m->RequestAction('W1Manual', false);
+    closeTo(GetValue($ids[1]['setpoint']), 0);
+    check($m->status === 102, $m->GetValue('Status'));
+});
+test('Adapter: gesperrte Variablenwerte bleiben trotz Geräteaktion gesperrt', function () {
+    [$m, $ids] = fixture();
+    Kernel::$variables[$ids[1]['setpoint']]['VariableIsLocked'] = true;
+    $m->ApplyChanges();
+    check($m->status === 200);
+    check(str_contains($m->Diagnose(), 'Variable nicht beschreibbar'));
+    check(callsTo($ids[1]['setpoint']) === []);
+});
+test('Adapter: Objektschutz ersetzt keine Geräteaktion', function () {
+    [$m, $ids] = fixture();
+    Kernel::$objects[$ids[1]['setpoint']]['ObjectIsReadOnly'] = true;
+    Kernel::$variables[$ids[1]['setpoint']]['VariableAction'] = 0;
+    $m->ApplyChanges();
+    check($m->status === 200);
+    check(str_contains($m->Diagnose(), 'keine Geräteaktion vorhanden'));
+    check(callsTo($ids[1]['setpoint']) === []);
+});
 test('Adapter: individuelle 1-A-Stoppwerte ohne separate Freigabe', function () {
     [$m, $ids] = fixture(1, ['W1SetpointUnit' => 'A', 'W1MinA' => 6.0, 'W1MaxA' => 16.0, 'W1Stop' => 1.0]);
     $m->ApplyChanges(); $m->RequestAction('W1Manual', false);

@@ -292,7 +292,8 @@ class WallboxManager extends IPSModule
             if ($parent['ObjectType'] === 1) break;
             $owner = $parent['ParentID'];
         }
-        return ['type' => $v['VariableType'], 'action' => HasAction($id), 'locked' => ($v['VariableIsLocked'] ?? false) || ($obj['ObjectIsReadOnly'] ?? false),
+        // ObjectIsReadOnly protects object configuration, not RequestAction.
+        return ['type' => $v['VariableType'], 'action' => HasAction($id), 'locked' => ($v['VariableIsLocked'] ?? false),
             'owner' => $owner, 'updated' => $v['VariableUpdated'], 'value' => GetValue($id)];
     }
 

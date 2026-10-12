@@ -3,6 +3,8 @@
 Die Definitionen werden aus libs/Schema.php erzeugt. Wn steht für W1 bis W4.
 Die Sollwertziele müssen im Normalbetrieb Geräteaktionen besitzen. Alle externen Freigaben sind ausschließlich Lesebedingungen.
 
+Von Gerätemodulen angelegte Sollwertvariablen können als Objekt schreibgeschützt sein und trotzdem eine Geräteaktion besitzen. Dieser Objektschutz muss für die Steuerung nicht entfernt werden. Gesperrte Variablenwerte und fehlende Geräteaktionen werden weiterhin abgelehnt.
+
 ## Variablenverknüpfungen
 
 | Eigenschaft | Zweck | Datentyp | Einheit | Pflicht | Zugriff |
