@@ -1,0 +1,19 @@
+{
+    "Enabled": false,
+    "BudgetVar": 12345,
+    "BudgetUnit": "W",
+    "W1Enabled": true,
+    "W1Name": "Wallbox mit individuellem 1-A-Stopp",
+    "W1DeviceKey": "wb-1A-2026",
+    "W1SetpointVar": 23451,
+    "W1SetpointUnit": "A",
+    "W1PowerVar": 23452,
+    "W1PowerUnit": "W",
+    "W1MinA": 6.0,
+    "W1MaxA": 16.0,
+    "W1MinKW": 4.14,
+    "W1MaxKW": 11.04,
+    "W1Step": 1.0,
+    "W1Stop": 1.0,
+    "W1PhaseMode": "3"
+}

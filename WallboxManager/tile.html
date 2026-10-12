@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wallbox Manager</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<main>
+  <header>
+    <div><div class="eyebrow">LADEMANAGEMENT</div><h1>Wallbox Manager</h1></div>
+    <label class="switch"><input id="manager" type="checkbox"><span>Manager aktiv</span></label>
+  </header>
+  <div class="toolbar"><label>Verteilung <select id="mode"><option value="0">Gleichmäßig</option><option value="1">Priorität</option></select></label><span id="policy" class="muted"></span></div>
+  <section class="metrics" aria-label="Gesamtübersicht">
+    <div class="metric"><span>Grundbudget</span><strong id="base">–</strong><small>absolut, ohne Speicher</small></div>
+    <div class="metric"><span>Speicher verfügbar</span><strong id="support">–</strong><small id="confirmed">–</small></div>
+    <div class="metric"><span>Aktuell laden</span><strong id="measured">–</strong><small id="assigned">–</small></div>
+    <div class="metric"><span>Gesamtenergie</span><strong id="energy">–</strong><small>an Fahrzeuge abgegeben</small></div>
+  </section>
+  <p id="overrun" class="notice" hidden></p>
+  <p id="status" role="status" aria-live="polite">Status wird geladen …</p>
+  <div id="errors" class="notice error" role="alert" hidden></div>
+  <section id="boxes" class="boxes" aria-label="Wallboxen"></section>
+  <section id="battery" class="battery" hidden>
+    <div class="card-heading"><h2>Batteriespeicher</h2><label class="switch"><input id="battery-enable" type="checkbox"><span>Freigabe</span></label></div>
+    <p id="battery-lock" class="lock" hidden>Extern gesperrt</p>
+    <div class="battery-metrics">
+      <div><span>Ladestand</span><strong id="soc">–</strong></div>
+      <div><span>Nutzbare Kapazität</span><strong id="capacity">–</strong></div>
+      <div><span>Über der Reserve</span><strong id="reserve-energy">–</strong></div>
+      <div><span>Entladung angefordert</span><strong id="battery-request">–</strong></div>
+      <div><span>Entladung gemessen</span><strong id="battery-power">–</strong></div>
+    </div>
+    <p id="battery-state"></p>
+  </section>
+  <footer><span id="updated">–</span><span id="simulation" hidden>SIMULATION</span></footer>
+</main>
+<script>window.WBM_INITIAL = /*__DATA__*/;</script>
+<script>/*__JS__*/</script>
+</body>
+</html>

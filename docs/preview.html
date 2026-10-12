@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wallbox Manager</title>
+<style>:root{color-scheme:light dark;--wb-accent:var(--accent-color,#14a998);--wb-text:var(--content-color,#203544);--wb-card:var(--card-color,#fff);--wb-bg:#f2f6f7;--wb-line:#dbe4e7;--wb-muted:#637984}
+*{box-sizing:border-box}body{margin:0;font:14px/1.5 "Segoe UI",Arial,sans-serif;color:var(--wb-text);background:transparent}main{max-width:1100px;margin:auto;padding:16px}
+header,.card-heading,.toolbar,footer{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}header{margin-bottom:16px}h1{font-size:24px;line-height:1.2;margin:4px 0;font-weight:650}h2{font-size:17px;margin:0}.eyebrow{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--wb-accent)}
+.toolbar{padding:12px 0;border-top:1px solid var(--wb-line);margin-bottom:10px}.toolbar label{display:flex;align-items:center;gap:10px}input,select,button{font:inherit;color:inherit}select,input[type=number]{border:1px solid var(--wb-line);border-radius:7px;background:var(--wb-card);padding:9px;min-height:44px}select{min-width:155px}input[type=number]{width:76px}input[type=checkbox]{width:22px;height:22px;accent-color:var(--wb-accent);margin:0}.switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;min-height:44px}.muted{color:var(--wb-muted);font-size:12px}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.metric,.box,.battery{background:var(--wb-card);border:1px solid var(--wb-line);border-radius:12px;padding:16px}.metric span,.metric small,.battery-metrics span{display:block;color:var(--wb-muted);font-size:12px}.metric strong{display:block;font-size:25px;font-weight:650;margin:5px 0}.metric small{font-size:11px}
+#status{color:var(--wb-muted);margin:14px 0}.notice{padding:12px;border:1px solid #b97811;background:#b9781110;border-radius:8px;font-size:13px}.error{border-color:#ce4c4c;color:#b63c3c;white-space:pre-line;overflow-wrap:anywhere}
+.boxes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.box{min-width:0;position:relative}.box[data-state="Laden"]{border-left:4px solid var(--wb-accent)}.box[data-state="Fehler"]{border-left:4px solid #ce4c4c}.box-title{min-width:0;overflow-wrap:anywhere}.badge{font-size:12px;color:var(--wb-accent);margin:6px 0 14px}.lock{color:#b97811;font-size:12px;font-weight:650}.device-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.device-metrics span{display:block;font-size:12px;color:var(--wb-muted)}.device-metrics strong{font-size:19px;font-weight:600}.device-controls{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;padding-top:10px;border-top:1px solid var(--wb-line)}.priority-label{display:flex;align-items:center;gap:8px;color:var(--wb-muted);font-size:12px}.reason{font-size:12px;color:var(--wb-muted);min-height:18px;overflow-wrap:anywhere}.gap{font-size:11px;color:#b97811}.battery{margin-top:12px}.battery-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:14px}.battery-metrics strong{font-size:19px}#battery-state{font-size:12px;color:var(--wb-muted)}footer{font-size:11px;color:var(--wb-muted);margin-top:14px}#simulation{font-weight:700;letter-spacing:1px;color:#b97811}[hidden]{display:none!important}:focus-visible{outline:3px solid var(--wb-accent);outline-offset:3px}
+@media(prefers-color-scheme:dark){:root{--wb-text:var(--content-color,#e0eaf0);--wb-card:var(--card-color,#203039);--wb-bg:#16252e;--wb-line:#3a4c55;--wb-muted:#a5b6c0}.error{color:#ff9393}.lock,.gap{color:#edba68}}
+@media(max-width:650px){main{padding:10px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.boxes{grid-template-columns:1fr}.metric{padding:12px}.metric strong{font-size:22px}.battery-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}h1{font-size:21px}}
+@media(max-width:340px){.metric strong{font-size:18px}.device-controls{flex-wrap:wrap}.battery-metrics{grid-template-columns:1fr}}</style>
+</head>
+<body>
+<main>
+  <header>
+    <div><div class="eyebrow">LADEMANAGEMENT</div><h1>Wallbox Manager</h1></div>
+    <label class="switch"><input id="manager" type="checkbox"><span>Manager aktiv</span></label>
+  </header>
+  <div class="toolbar"><label>Verteilung <select id="mode"><option value="0">Gleichmäßig</option><option value="1">Priorität</option></select></label><span id="policy" class="muted"></span></div>
+  <section class="metrics" aria-label="Gesamtübersicht">
+    <div class="metric"><span>Grundbudget</span><strong id="base">–</strong><small>absolut, ohne Speicher</small></div>
+    <div class="metric"><span>Speicher verfügbar</span><strong id="support">–</strong><small id="confirmed">–</small></div>
+    <div class="metric"><span>Aktuell laden</span><strong id="measured">–</strong><small id="assigned">–</small></div>
+    <div class="metric"><span>Gesamtenergie</span><strong id="energy">–</strong><small>an Fahrzeuge abgegeben</small></div>
+  </section>
+  <p id="overrun" class="notice" hidden></p>
+  <p id="status" role="status" aria-live="polite">Status wird geladen …</p>
+  <div id="errors" class="notice error" role="alert" hidden></div>
+  <section id="boxes" class="boxes" aria-label="Wallboxen"></section>
+  <section id="battery" class="battery" hidden>
+    <div class="card-heading"><h2>Batteriespeicher</h2><label class="switch"><input id="battery-enable" type="checkbox"><span>Freigabe</span></label></div>
+    <p id="battery-lock" class="lock" hidden>Extern gesperrt</p>
+    <div class="battery-metrics">
+      <div><span>Ladestand</span><strong id="soc">–</strong></div>
+      <div><span>Nutzbare Kapazität</span><strong id="capacity">–</strong></div>
+      <div><span>Über der Reserve</span><strong id="reserve-energy">–</strong></div>
+      <div><span>Entladung angefordert</span><strong id="battery-request">–</strong></div>
+      <div><span>Entladung gemessen</span><strong id="battery-power">–</strong></div>
+    </div>
+    <p id="battery-state"></p>
+  </section>
+  <footer><span id="updated">–</span><span id="simulation" hidden>SIMULATION</span></footer>
+</main>
+<script>window.WBM_INITIAL = {"manager":true,"mode":0,"base":12000,"normalBudget":16000,"budget":16000,"assigned":15870,"overrun":0,"battery":{"theoretical":4000,"confirmed":4000,"energy":5.6,"soc":76,"reason":"Unterst\u00fctzung verf\u00fcgbar","external":true,"measured":4000,"requested":3870,"capacity":10,"commanded":4000},"boxes":{"1":{"id":1,"name":"Garage","enabled":true,"manual":true,"external":true,"priority":1,"measured":5500,"phases":3,"power":8280,"command":12,"unit":"A","status":"Laden","reason":"Laden","remaining":0,"phaseCommand":null,"fault":"","energy":82.183,"energyMethod":"berechnet","gap":""},"2":{"id":2,"name":"Stellplatz","enabled":true,"manual":true,"external":true,"priority":2,"measured":5500,"phases":3,"power":7590,"command":11,"unit":"A","status":"Laden","reason":"Laden","remaining":0,"phaseCommand":null,"fault":"","energy":42.129,"energyMethod":"berechnet","gap":""},"3":{"id":3,"name":"Wallbox 3","enabled":false,"manual":true,"external":true,"priority":3,"measured":null,"phases":3,"power":0,"command":0,"unit":"A","status":"Deaktiviert","reason":"Deaktiviert","remaining":0,"phaseCommand":null,"fault":"","energy":42.129,"energyMethod":"berechnet","gap":""},"4":{"id":4,"name":"Wallbox 4","enabled":false,"manual":true,"external":true,"priority":4,"measured":null,"phases":3,"power":0,"command":0,"unit":"A","status":"Deaktiviert","reason":"Deaktiviert","remaining":0,"phaseCommand":null,"fault":"","energy":42.129,"energyMethod":"berechnet","gap":""}},"errors":[],"time":1791834291,"managerEnabled":true,"measured":11000,"energy":124.312,"status":"Automatische Regelung aktiv","strict":true,"batteryEnabled":true,"batteryConfigured":true,"simulation":true};</script>
+<script>window.WBM_PREVIEW_ACTIONS = [];
+window.requestAction = function (ident, value) {
+    window.WBM_PREVIEW_ACTIONS.push({ident: ident, value: value});
+    if (ident === 'ManagerEnabled') window.WBM_INITIAL.managerEnabled = value;
+    if (ident === 'DistributionMode') window.WBM_INITIAL.mode = value;
+    if (ident === 'BatteryEnabled') window.WBM_INITIAL.batteryEnabled = value;
+    var match = ident.match(/^W([1-4])(Manual|Priority)$/);
+    if (match) window.WBM_INITIAL.boxes[match[1]][match[2] === 'Manual' ? 'manual' : 'priority'] = value;
+    if (typeof window.handleMessage === 'function') window.handleMessage(window.WBM_INITIAL);
+};
+(function () {
+    'use strict';
+    var cards = new Map();
+    var latest = null;
+    var receivedAt = 0;
+    var number = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
+    var energyFormat = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+    function el(id) { return document.getElementById(id); }
+    function text(id, value) { el(id).textContent = value; }
+    function power(value) { return value === null || value === undefined ? 'Keine Messung' : number.format(value / 1000) + ' kW'; }
+    function energy(value) { return energyFormat.format(value || 0) + ' kWh'; }
+    function action(ident, value) {
+        try {
+            if (typeof requestAction !== 'function') throw new Error('Keine Verbindung zur Symcon-Kachel');
+            var pending = requestAction(ident, value);
+            if (pending && typeof pending.catch === 'function') pending.catch(showError);
+        } catch (error) { showError(error); }
+    }
+    function showError(error) {
+        text('errors', 'Bedienaktion fehlgeschlagen: ' + (error.message || error));
+        el('errors').hidden = false;
+    }
+    function metric(label, key) {
+        var div = document.createElement('div');
+        var span = document.createElement('span');
+        span.textContent = label;
+        var strong = document.createElement('strong');
+        strong.dataset.field = key;
+        div.append(span, strong);
+        return div;
+    }
+    function createCard(id) {
+        var card = document.createElement('article');
+        card.className = 'box';
+        var head = document.createElement('div');
+        head.className = 'card-heading';
+        var title = document.createElement('h2');
+        title.className = 'box-title';
+        title.dataset.field = 'name';
+        var badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.dataset.field = 'status';
+        head.append(title, badge);
+        var lock = document.createElement('p');
+        lock.className = 'lock';
+        lock.dataset.field = 'lock';
+        lock.textContent = 'Extern gesperrt – manuelle Freigabe hebt die Sperre nicht auf';
+        var metrics = document.createElement('div');
+        metrics.className = 'device-metrics';
+        metrics.append(metric('Tatsächlich laden', 'measured'), metric('Sollwert / Anforderung', 'command'), metric('Geladene Energie', 'energy'), metric('Aktive Phasen', 'phases'));
+        var controls = document.createElement('div');
+        controls.className = 'device-controls';
+        var manualLabel = document.createElement('label');
+        manualLabel.className = 'switch';
+        var manual = document.createElement('input');
+        manual.type = 'checkbox';
+        manual.dataset.field = 'manual';
+        manual.addEventListener('change', function () { action('W' + id + 'Manual', manual.checked); });
+        var manualText = document.createElement('span');
+        manualText.textContent = 'Freigabe';
+        manualLabel.append(manual, manualText);
+        var priorityLabel = document.createElement('label');
+        priorityLabel.className = 'priority-label';
+        priorityLabel.textContent = 'Priorität';
+        var priority = document.createElement('input');
+        priority.type = 'number';
+        priority.min = '1'; priority.max = '999'; priority.step = '1';
+        priority.dataset.field = 'priority';
+        priority.addEventListener('change', function () {
+            var v = Number(priority.value);
+            if (Number.isInteger(v) && v >= 1 && v <= 999) action('W' + id + 'Priority', v);
+            else showError(new Error('Priorität muss zwischen 1 und 999 liegen'));
+        });
+        priorityLabel.append(priority);
+        controls.append(manualLabel, priorityLabel);
+        var reason = document.createElement('p');
+        reason.className = 'reason'; reason.dataset.field = 'reason';
+        var gap = document.createElement('p');
+        gap.className = 'gap'; gap.dataset.field = 'gap';
+        card.append(head, lock, metrics, controls, reason, gap);
+        var fields = {};
+        card.querySelectorAll('[data-field]').forEach(function (node) { fields[node.dataset.field] = node; });
+        cards.set(id, { node: card, fields: fields });
+        el('boxes').append(card);
+        return cards.get(id);
+    }
+    function render(data) {
+        if (!data || !data.boxes) return;
+        latest = data;
+        receivedAt = Date.now();
+        el('manager').checked = !!data.managerEnabled;
+        if (data.managerEnabled === undefined) el('manager').checked = !!data.manager;
+        el('mode').value = String(data.mode);
+        text('policy', data.strict ? 'Budget strikt' : 'Zeitweise Überschreitung zugelassen');
+        text('base', power(data.base));
+        text('support', power(data.battery.theoretical));
+        text('confirmed', 'davon bestätigt: ' + power(data.battery.confirmed));
+        text('measured', power(data.measured));
+        text('assigned', 'zugewiesen: ' + power(data.assigned));
+        text('energy', energy(data.energy));
+        text('status', data.status);
+        el('errors').hidden = !data.errors || data.errors.length === 0;
+        text('errors', (data.errors || []).join('\n'));
+        el('overrun').hidden = !(data.overrun > 0);
+        text('overrun', 'Zeitweilige Budgetüberschreitung: ' + power(data.overrun));
+        Object.values(data.boxes).forEach(function (box) {
+            var item = cards.get(box.id) || createCard(box.id);
+            item.node.hidden = !box.enabled;
+            item.node.dataset.state = box.status;
+            var f = item.fields;
+            f.name.textContent = box.name;
+            f.status.textContent = box.status;
+            f.lock.hidden = box.external;
+            f.manual.checked = box.manual;
+            f.manual.disabled = !box.enabled;
+            if (document.activeElement !== f.priority) f.priority.value = box.priority;
+            f.measured.textContent = power(box.measured);
+            f.command.textContent = number.format(box.command) + ' ' + box.unit + ' / ' + power(box.power);
+            f.energy.textContent = energy(box.energy) + (box.energyMethod === 'berechnet' ? ' (berechnet)' : '');
+            f.phases.textContent = box.phases ? String(box.phases) : 'Unbestätigt';
+            f.reason.textContent = box.reason;
+            f.gap.textContent = box.gap || '';
+            f.gap.hidden = !box.gap;
+        });
+        el('battery').hidden = !data.batteryConfigured;
+        el('battery-enable').checked = !!data.batteryEnabled;
+        el('battery-lock').hidden = data.battery.external;
+        text('soc', data.battery.soc === null ? 'Keine Messung' : number.format(data.battery.soc) + ' %');
+        text('capacity', energy(data.battery.capacity));
+        text('reserve-energy', energy(data.battery.energy));
+        text('battery-request', power(data.battery.commanded));
+        text('battery-power', power(data.battery.measured));
+        text('battery-state', data.battery.reason);
+        text('updated', 'Aktualisiert: ' + new Date(data.time * 1000).toLocaleTimeString('de-DE'));
+        el('simulation').hidden = !data.simulation;
+        countdown();
+    }
+    function countdown() {
+        if (!latest) return;
+        var elapsed = Math.floor((Date.now() - receivedAt) / 1000);
+        Object.values(latest.boxes).forEach(function (box) {
+            var item = cards.get(box.id);
+            if (!item) return;
+            var remaining = Math.max(0, box.remaining - elapsed);
+            var reason = box.reason || box.status;
+            if (remaining > 0) reason += box.status === 'Einschaltverzögerung' ? ' – Start in ' + remaining + ' s' : ' – noch ' + remaining + ' s';
+            item.fields.reason.textContent = reason;
+        });
+    }
+    window.handleMessage = function (message) {
+        try { render(typeof message === 'string' ? JSON.parse(message) : message); }
+        catch (error) { showError(error); }
+    };
+    el('manager').addEventListener('change', function () { action('ManagerEnabled', this.checked); });
+    el('mode').addEventListener('change', function () { action('DistributionMode', Number(this.value)); });
+    el('battery-enable').addEventListener('change', function () { action('BatteryEnabled', this.checked); });
+    render(window.WBM_INITIAL);
+    action('Refresh', 0);
+    setInterval(countdown, 1000);
+}());</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+    "BEnabled": true,
+    "BCapacityKWh": 10.0,
+    "BMaxPower": 4.0,
+    "BMaxPowerUnit": "kW",
+    "BSocVar": 34501,
+    "BMinSoc": 20.0,
+    "BSocHysteresis": 5.0,
+    "BSetpointVar": 34502,
+    "BSetpointUnit": "kW",
+    "BSign": -1,
+    "BPowerVar": 34503,
+    "BPowerUnit": "W",
+    "BPowerSign": -1,
+    "BStop": 0.0,
+    "BExternalVar": 34504,
+    "BMaxAge": 120
+}

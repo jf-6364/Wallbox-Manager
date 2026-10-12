@@ -1,0 +1,19 @@
+{
+    "elements": [],
+    "actions": [
+        { "type": "Button", "caption": "Jetzt regeln", "onClick": "WBM_Control($id);" },
+        { "type": "Button", "caption": "Diagnose anzeigen", "onClick": "echo WBM_Diagnose($id);" },
+        { "type": "Button", "caption": "Gerätefehler nach Prüfung quittieren", "confirm": "Sind die Fehlerursachen behoben? Geräte können danach wieder anlaufen.", "onClick": "WBM_ClearFaults($id);" },
+        { "type": "ExpansionPanel", "caption": "Energiezähler bewusst zurücksetzen", "items": [
+            { "type": "Label", "caption": "Alle Platz- und Gesamtzähler werden gelöscht. Eingabe: ENERGIE ZURÜCKSETZEN" },
+            { "type": "ValidationTextBox", "name": "ResetConfirmation", "caption": "Bestätigung" },
+            { "type": "Button", "caption": "Zähler zurücksetzen", "confirm": "Energiezähler unwiderruflich zurücksetzen?", "onClick": "WBM_ResetEnergy($id, $ResetConfirmation);" }
+        ] }
+    ],
+    "status": [
+        { "code": 102, "icon": "active", "caption": "Regelung bereit" },
+        { "code": 104, "icon": "inactive", "caption": "Manager ausgeschaltet" },
+        { "code": 200, "icon": "error", "caption": "Konfiguration ungültig – Diagnose beachten" },
+        { "code": 201, "icon": "error", "caption": "Eingangs-, Geräte- oder Befehlsfehler – Diagnose beachten" }
+    ]
+}

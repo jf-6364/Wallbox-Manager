@@ -1,0 +1,6 @@
+.tools/
+.research/
+dist/
+tests/results.local.json
+
+.dist/

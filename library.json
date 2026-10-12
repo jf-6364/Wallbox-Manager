@@ -1,0 +1,10 @@
+{
+    "id": "{A6233949-51A5-49C1-9D58-4B0FD1878B44}",
+    "author": "Wallbox Manager",
+    "name": "Wallbox Manager",
+    "url": "https://github.com/jf-6364/Wallbox-Manager",
+    "compatibility": { "version": "7.1" },
+    "version": "1.0",
+    "build": 1,
+    "date": 1791756000
+}

@@ -1,0 +1,14 @@
+{
+    "id": "{8EDC0388-D880-4518-A44B-91A1A3CF7086}",
+    "name": "Wallbox Manager",
+    "type": 3,
+    "vendor": "",
+    "aliases": [
+        "Wallbox Manager"
+    ],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "WBM",
+    "url": ""
+}
