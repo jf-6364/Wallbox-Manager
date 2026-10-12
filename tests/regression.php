@@ -55,9 +55,68 @@ test('Formular enthält jede Eigenschaft genau einmal und passende Auswahlwerte'
     foreach (Schema::definitions() as $key => $def) check(count($fields[$key] ?? []) === 1, 'Formularfeld fehlt/doppelt: ' . $key);
     check($fields['Mode'][0]['options'][0]['value'] === 0);
     check($fields['W1PhaseMode'][0]['options'][0]['value'] === '1');
+    check($fields['DecimalW1MinA'][0]['value'] === '6,0');
+    check($fields['DecimalW1MaxKW'][0]['value'] === '11,04');
+    foreach ($fields as $items) foreach ($items as $field) if ($field['type'] === 'NumberSpinner') check($field['digits'] <= 2);
 });test('Ungültige Einheit wird verständlich validiert statt Exception', function () {
     $flat = \WBM\Schema::defaults(); $flat['W1Enabled'] = true; $flat['W1SetpointUnit'] = 'invalid';
     check(count(\WBM\Validation::properties($flat)) > 0);
+});
+test('Formular zeigt kurze Wallbox- und Speicherüberschriften ohne Budget-Hinweis', function () {
+    $flat = Schema::defaults();
+    $form = Form::build($flat, [], '');
+    $captions = array_column($form['elements'], 'caption');
+    check(in_array('Wallbox 1', $captions, true));
+    check(in_array('Batteriespeicher', $captions, true));
+    $json = json_encode($form);
+    check(!str_contains($json, 'Einstellungen gelten nur'));
+    check(!str_contains($json, 'weitere Felder nur'));
+    check(!str_contains($json, 'Grundbudget ='));
+    $flat['W1Name'] = 'Garage';
+    check(in_array('Wallbox 1 – Garage', array_column(Form::build($flat, [], '')['elements'], 'caption'), true));
+});
+test('Dezimalfelder akzeptieren Komma und beachten die Stellen je Einheit', function () {
+    $flat = Schema::defaults();
+    closeTo(Form::decimalValue('W1MinA', '6,5', $flat), 6.5);
+    check(Form::decimalValue('W1MinA', '6,55', $flat) === null);
+    closeTo(Form::decimalValue('W1MaxKW', '11,04', $flat), 11.04);
+    check(Form::decimalValue('W1MaxKW', '11,044', $flat) === null);
+    check(Form::decimalValue('W1MaxKW', '11.04', $flat) === null);
+    check(Form::decimalValue('W1MaxKW', 'NaN', $flat) === null);
+    closeTo(Form::decimalValue('W1HysteresisW', '-1,00', $flat), -1);
+    check(Form::decimalDigits('W1Step', $flat) === 1);
+    $flat['W1SetpointUnit'] = 'W';
+    check(Form::decimalDigits('W1Step', $flat) === 2);
+});
+test('Komma-Eingabe ändert nur den Formularentwurf bis Übernehmen', function () {
+    [$m, $ids] = fixture();
+    $original = $m->properties['W1MinA'];
+    $m->UpdateDecimalField('W1MinA', '8,5');
+    check($m->properties['W1MinA'] === $original);
+    check(Kernel::$calls === []);
+    check($m->formUpdates[0] === ['field' => 'W1MinA', 'parameter' => 'value', 'value' => 8.5]);
+    // Emulate the console saving the numeric field updated via UpdateFormField.
+    $m->properties['W1MinA'] = $m->formUpdates[0]['value'];
+    $m->ApplyChanges();
+    closeTo(json_decode($m->attributes['Configuration'], true)['W1MinA'], 8.5);
+});
+test('Ungültige Dezimaleingaben verändern weder Konfiguration noch Geräte', function () {
+    [$m] = fixture();
+    $original = $m->properties;
+    foreach (['6,55', '6.5', '6,', 'NaN', '1e3'] as $value) $m->UpdateDecimalField('W1MinA', $value);
+    check($m->formUpdates === []);
+    check($m->properties === $original);
+    check(Kernel::$calls === []);
+    try { $m->UpdateDecimalField('Enabled', '1'); check(false); }
+    catch (InvalidArgumentException) {}
+});
+test('Anzeigeprofile begrenzen Nachkommastellen ohne Messwerte zu runden', function () {
+    [$m] = fixture();
+    check(Kernel::$profiles['WBM.Energy']['digits'] === 2);
+    check(Kernel::$profiles['WBM.Setpoint.A']['digits'] === 1);
+    foreach (Kernel::$profiles as $profile) check(($profile['digits'] ?? 0) <= 2);
+    $m->SetValue('TotalEnergy', 1.234567);
+    closeTo($m->GetValue('TotalEnergy'), 1.234567);
 });
 test('Energiearchiv bleibt bei anschließender Leistungsintegration erhalten', function () {
     $s = []; \WBM\Energy::identify($s, 'a'); \WBM\Energy::power($s, 'power:a', 1000, 0, 0, 120);

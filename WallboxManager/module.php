@@ -198,6 +198,14 @@ class WallboxManager extends IPSModule
         return $this->encode(Form::build($flat, $this->validate($flat), $this->GetValue('Status')));
     }
 
+    public function UpdateDecimalField(string $Name, string $Value): void
+    {
+        $flat = $this->configuration();
+        $number = Form::decimalValue($Name, $Value, $flat);
+        if ($number === null) return;
+        $this->UpdateFormField($Name, 'value', $number);
+    }
+
     public function GetVisualizationTile()
     {
         $html = file_get_contents(__DIR__ . '/tile.html');
@@ -747,7 +755,8 @@ class WallboxManager extends IPSModule
 
     private function profiles(): void
     {
-        $specs = ['WBM.Power' => [2, 1, ' W', 0, 0, 0], 'WBM.Energy' => [2, 3, ' kWh', 0, 0, 0],
+        $specs = ['WBM.Power' => [2, 1, ' W', 0, 0, 0], 'WBM.Energy' => [2, 2, ' kWh', 0, 0, 0],
+            'WBM.Setpoint.A' => [2, 1, ' A', 0, 0, 0], 'WBM.Setpoint.W' => [2, 2, ' W', 0, 0, 0], 'WBM.Setpoint.kW' => [2, 2, ' kW', 0, 0, 0],
             'WBM.Soc' => [2, 1, ' %', 0, 100, 0], 'WBM.Priority' => [1, 0, '', 1, 999, 1], 'WBM.Mode' => [1, 0, '', 0, 1, 1]];
         foreach ($specs as $name => $p) {
             if (!IPS_VariableProfileExists($name)) IPS_CreateVariableProfile($name, $p[0]);
@@ -784,10 +793,12 @@ class WallboxManager extends IPSModule
         ];
         for ($i = 1; $i <= 4; $i++) {
             $name = $this->ReadPropertyString('W' . $i . 'Name');
+            $unit = $this->ReadPropertyString('W' . $i . 'SetpointUnit');
+            $setpointProfile = 'WBM.Setpoint.' . (in_array($unit, ['A', 'W', 'kW'], true) ? $unit : 'W');
             $wb = [
                 'Manual' => [0, 'Manuelle Freigabe', '~Switch', true, true], 'Priority' => [1, 'Priorität', 'WBM.Priority', true, $i],
                 'Power' => [2, 'Ladeleistung', 'WBM.Power', false, 0.0], 'Assigned' => [2, 'Zugewiesene Leistung', 'WBM.Power', false, 0.0],
-                'Setpoint' => [2, 'Sollwert (Einheit laut Konfiguration)', '', false, 0.0], 'Phases' => [1, 'Bestätigte / feste Phasen', '', false, 0],
+                'Setpoint' => [2, 'Sollwert (Einheit laut Konfiguration)', $setpointProfile, false, 0.0], 'Phases' => [1, 'Bestätigte / feste Phasen', '', false, 0],
                 'Energy' => [2, 'Geladene Energie', 'WBM.Energy', false, 0.0], 'ExternalLocked' => [0, 'Externe Sperre', '~Switch', false, false],
                 'State' => [3, 'Zustand / Wartegrund', '', false, ''], 'Remaining' => [1, 'Zeitbedingung (s)', '', false, 0],
                 'EnergyMethod' => [3, 'Energiezählverfahren', '', false, ''], 'MeasurementGap' => [3, 'Messlücke / Zählerhinweis', '', false, '']

@@ -77,6 +77,8 @@ async function palette(page) {
         assert.equal(colors.scheme, 'dark');
         assert.equal(colors.background, 'rgb(28, 28, 33)');
         assert.equal(await page.locator('#support-metric').isVisible(), false);
+        assert.equal(await page.locator('#energy').textContent(), '2,41 kWh');
+        assert.equal(await page.locator('[data-field="energy"]').first().textContent(), '1,68 kWh (berechnet)');
         for (const [width, height] of [[1280, 720], [1440, 900], [800, 600], [960, 320], [360, 740], [320, 360], [240, 260]]) {
             await page.setViewportSize({width, height});
             await layout(page);

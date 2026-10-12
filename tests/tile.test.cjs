@@ -49,8 +49,10 @@ let count = 0;
 function test(name, fn) { fn(); count++; console.log('OK  ' + name); }
 test('Echte JavaScript-Datei ist syntaktisch gültig und baut zwei Karten', () => assert.equal(elements.boxes.children.length, 2));
 test('Initialzustand, deutsche Einheiten und Gesamtenergie', () => {
-    assert.equal(elements.base.textContent, '12 kW'); assert.equal(elements.energy.textContent, '124,312 kWh');
+    assert.equal(elements.base.textContent, '12 kW'); assert.equal(elements.energy.textContent, '124,31 kWh');
     assert.ok(fields1.energy.textContent.includes('(berechnet)')); assert.equal(fields2.measured.textContent, 'Keine Messung');
+    assert.ok(fields1.command.textContent.startsWith('7,0 A'));
+    assert.ok(fields1.energy.textContent.startsWith('12,12 kWh'));
 });
 test('Namen werden als Text gesetzt; HTML wird nicht interpretiert', () => assert.equal(fields1.name.textContent, data.boxes[1].name));
 test('Externe Sperre bleibt sichtbar und wird durch manuellen Klick nicht geändert', () => {

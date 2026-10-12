@@ -161,7 +161,7 @@ body#wbm-page {
   </div>
   <footer><span id="updated">–</span><span id="simulation" hidden>SIMULATION</span></footer>
 </main>
-<script>window.WBM_INITIAL = {"manager":true,"mode":0,"base":12000,"normalBudget":16000,"budget":16000,"assigned":15870,"overrun":0,"battery":{"theoretical":4000,"confirmed":4000,"energy":5.6,"soc":76,"reason":"Unterst\u00fctzung verf\u00fcgbar","external":true,"measured":4000,"requested":3870,"capacity":10,"commanded":4000},"boxes":{"1":{"id":1,"name":"Garage","enabled":true,"manual":true,"external":true,"priority":1,"measured":5500,"phases":3,"power":8280,"command":12,"unit":"A","status":"Laden","reason":"Laden","remaining":0,"phaseCommand":null,"fault":"","energy":82.183,"energyMethod":"berechnet","gap":""},"2":{"id":2,"name":"Stellplatz","enabled":true,"manual":true,"external":true,"priority":2,"measured":5500,"phases":3,"power":7590,"command":11,"unit":"A","status":"Laden","reason":"Laden","remaining":0,"phaseCommand":null,"fault":"","energy":42.129,"energyMethod":"berechnet","gap":""},"3":{"id":3,"name":"Wallbox 3","enabled":false,"manual":true,"external":true,"priority":3,"measured":null,"phases":3,"power":0,"command":0,"unit":"A","status":"Deaktiviert","reason":"Deaktiviert","remaining":0,"phaseCommand":null,"fault":"","energy":42.129,"energyMethod":"berechnet","gap":""},"4":{"id":4,"name":"Wallbox 4","enabled":false,"manual":true,"external":true,"priority":4,"measured":null,"phases":3,"power":0,"command":0,"unit":"A","status":"Deaktiviert","reason":"Deaktiviert","remaining":0,"phaseCommand":null,"fault":"","energy":42.129,"energyMethod":"berechnet","gap":""}},"errors":[],"time":1791839653,"managerEnabled":true,"measured":11000,"energy":124.312,"status":"Automatische Regelung aktiv","strict":true,"batteryEnabled":true,"batteryConfigured":true,"simulation":true};</script>
+<script>window.WBM_INITIAL = {"manager":true,"mode":0,"base":12000,"normalBudget":16000,"budget":16000,"assigned":15870,"overrun":0,"battery":{"theoretical":4000,"confirmed":4000,"energy":5.6,"soc":76,"reason":"Unterst\u00fctzung verf\u00fcgbar","external":true,"measured":4000,"requested":3870,"capacity":10,"commanded":4000},"boxes":{"1":{"id":1,"name":"Garage","enabled":true,"manual":true,"external":true,"priority":1,"measured":5500,"phases":3,"power":8280,"command":12,"unit":"A","status":"Laden","reason":"Laden","remaining":0,"phaseCommand":null,"fault":"","energy":82.183,"energyMethod":"berechnet","gap":""},"2":{"id":2,"name":"Stellplatz","enabled":true,"manual":true,"external":true,"priority":2,"measured":5500,"phases":3,"power":7590,"command":11,"unit":"A","status":"Laden","reason":"Laden","remaining":0,"phaseCommand":null,"fault":"","energy":42.129,"energyMethod":"berechnet","gap":""},"3":{"id":3,"name":"Wallbox 3","enabled":false,"manual":true,"external":true,"priority":3,"measured":null,"phases":3,"power":0,"command":0,"unit":"A","status":"Deaktiviert","reason":"Deaktiviert","remaining":0,"phaseCommand":null,"fault":"","energy":42.129,"energyMethod":"berechnet","gap":""},"4":{"id":4,"name":"Wallbox 4","enabled":false,"manual":true,"external":true,"priority":4,"measured":null,"phases":3,"power":0,"command":0,"unit":"A","status":"Deaktiviert","reason":"Deaktiviert","remaining":0,"phaseCommand":null,"fault":"","energy":42.129,"energyMethod":"berechnet","gap":""}},"errors":[],"time":1791840225,"managerEnabled":true,"measured":11000,"energy":124.312,"status":"Automatische Regelung aktiv","strict":true,"batteryEnabled":true,"batteryConfigured":true,"simulation":true};</script>
 <script>window.WBM_PREVIEW_ACTIONS = [];
 window.requestAction = function (ident, value) {
     window.WBM_PREVIEW_ACTIONS.push({ident: ident, value: value});
@@ -178,7 +178,8 @@ window.requestAction = function (ident, value) {
     var latest = null;
     var receivedAt = 0;
     var number = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
-    var energyFormat = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+    var energyFormat = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var ampereFormat = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     function el(id) { return document.getElementById(id); }
     function text(id, value) { el(id).textContent = value; }
     function power(value) { return value === null || value === undefined ? 'Keine Messung' : number.format(value / 1000) + ' kW'; }
@@ -357,7 +358,7 @@ window.requestAction = function (ident, value) {
             f.manual.disabled = !box.enabled;
             if (document.activeElement !== f.priority) f.priority.value = box.priority;
             f.measured.textContent = power(box.measured);
-            f.command.textContent = number.format(box.command) + ' ' + box.unit + ' / ' + power(box.power);
+            f.command.textContent = (box.unit === 'A' ? ampereFormat : number).format(box.command) + ' ' + box.unit + ' / ' + power(box.power);
             f.energy.textContent = energy(box.energy) + (box.energyMethod === 'berechnet' ? ' (berechnet)' : '');
             f.phases.textContent = box.phases ? String(box.phases) : 'Unbestätigt';
             f.reason.textContent = box.reason;

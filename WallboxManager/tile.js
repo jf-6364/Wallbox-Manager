@@ -4,7 +4,8 @@
     var latest = null;
     var receivedAt = 0;
     var number = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
-    var energyFormat = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+    var energyFormat = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var ampereFormat = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     function el(id) { return document.getElementById(id); }
     function text(id, value) { el(id).textContent = value; }
     function power(value) { return value === null || value === undefined ? 'Keine Messung' : number.format(value / 1000) + ' kW'; }
@@ -183,7 +184,7 @@
             f.manual.disabled = !box.enabled;
             if (document.activeElement !== f.priority) f.priority.value = box.priority;
             f.measured.textContent = power(box.measured);
-            f.command.textContent = number.format(box.command) + ' ' + box.unit + ' / ' + power(box.power);
+            f.command.textContent = (box.unit === 'A' ? ampereFormat : number).format(box.command) + ' ' + box.unit + ' / ' + power(box.power);
             f.energy.textContent = energy(box.energy) + (box.energyMethod === 'berechnet' ? ' (berechnet)' : '');
             f.phases.textContent = box.phases ? String(box.phases) : 'Unbestätigt';
             f.reason.textContent = box.reason;

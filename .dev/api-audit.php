@@ -7,7 +7,7 @@ $kernel = ['IPS_GetKernelRunlevel','IPS_SemaphoreEnter','IPS_SemaphoreLeave','IP
 'IPS_CreateVariableProfile','IPS_SetVariableProfileDigits','IPS_SetVariableProfileText','IPS_SetVariableProfileValues','IPS_SetVariableProfileAssociation'];
 $sdk = ['Create','ApplyChanges','Destroy','MessageSink','RequestAction','GetConfigurationForm','GetVisualizationTile','SetVisualizationType',
 'RegisterAttributeString','ReadAttributeString','WriteAttributeString','RegisterTimer','SetTimerInterval','RegisterMessage','UnregisterMessage',
-'GetMessageList','RegisterReference','UnregisterReference','GetReferenceList','SetBuffer','GetBuffer','GetValue','SetValue','SetStatus','SendDebug','UpdateVisualizationValue',
+'GetMessageList','RegisterReference','UnregisterReference','GetReferenceList','SetBuffer','GetBuffer','GetValue','SetValue','SetStatus','SendDebug','UpdateVisualizationValue','UpdateFormField',
 'RegisterPropertyBoolean','RegisterPropertyInteger','RegisterPropertyFloat','RegisterPropertyString','ReadPropertyBoolean','ReadPropertyInteger','ReadPropertyFloat','ReadPropertyString',
 'RegisterVariableBoolean','RegisterVariableInteger','RegisterVariableFloat','RegisterVariableString','EnableAction'];
 $t = chr(96);
@@ -36,6 +36,7 @@ foreach (['Kernfunktionen' => $kernel, 'PHP-Modul-SDK' => $sdk, 'HTML-SDK' => ['
     }
 }
 $out .= "\n## Auslegungsdetails\n\n";
+$out .= "- Komma-Eingaben werden über " . $t . "UpdateFormField" . $t . " in den numerischen Formularentwurf übernommen. Gespeichert wird erst über „Übernehmen“. Die Methode entspricht der [offiziellen SDK-Referenz](https://github.com/symcon/SymconStubs/blob/master/ModuleStrictStubs.php); die numerischen Eigenschaften behalten ihren bisherigen Typ.\n\n";
 $out .= "- RegisterVariable nutzt bei IPSModule Profilnamen als String; Array-Darstellungen setzen 8.0 voraus.\n";
 $out .= "- MessageSink-Zeitstempel ist ein Nachrichten-Zähler. VariableUpdated ist der Unix-Messzeitpunkt; Sekundenauflösung begrenzt die Integrationspräzision.\n";
 $out .= "- HasAction prüft das Vorhandensein. RequestAction wird auf false, Warnungen und Exceptions geprüft; fehlende Aktion nutzt nur im ausdrücklichen Simulationsmodus SetValue.\n";

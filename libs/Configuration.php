@@ -102,33 +102,51 @@ final class Form
     public static function build(array $flat, array $errors, string $diagnostic): array
     {
         $form = json_decode(file_get_contents(__DIR__ . '/../WallboxManager/form.json'), true, 512, JSON_THROW_ON_ERROR);
-        $form['elements'][] = ['type' => 'Label', 'caption' => 'Grundbudget = absolute Wallbox-Gesamtleistung OHNE Speicher. Kein verbleibender Überschuss, der die Wallboxen schon abzieht.'];
         $form['elements'][] = ['type' => 'Label', 'caption' => $errors ? implode("\n", $errors) : 'Konfiguration geprüft. Laufzeitfehler und Messlücken siehe Diagnose.'];
         $groups = [];
-        foreach (Schema::global() as $name => $d) $groups[$d[2]][] = self::field($name, $d, $flat['Simulation']);
+        foreach (Schema::global() as $name => $d) $groups[$d[2]][] = self::field($name, $d, $flat);
         foreach ($groups as $caption => $fields) $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => $caption, 'items' => $fields];
         for ($i = 1; $i <= 4; $i++) {
             $sections = [];
-            foreach (Schema::wallbox() as $key => $d) $sections[$d[2]][] = self::field('W' . $i . $key, $d, $flat['Simulation']);
+            foreach (Schema::wallbox() as $key => $d) $sections[$d[2]][] = self::field('W' . $i . $key, $d, $flat);
             $fields = [];
             foreach ($sections as $caption => $items) {
                 if ($caption === 'Dynamische Phasenumschaltung') $caption .= ' (nur bei dynamischem Phasenbetrieb)';
                 $fields[] = ['type' => 'ExpansionPanel', 'caption' => $caption, 'items' => $items];
             }
-            $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Wallbox ' . $i . ' – ' . $flat['W' . $i . 'Name'] . ' (Einstellungen gelten nur bei aktiviertem Platz)', 'items' => $fields];
+            $title = 'Wallbox ' . $i;
+            if ($flat['W' . $i . 'Name'] !== $title) $title .= ' – ' . $flat['W' . $i . 'Name'];
+            $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => $title, 'items' => $fields];
         }
         $fields = [];
-        foreach (Schema::battery() as $key => $d) $fields[] = self::field('B' . $key, $d, $flat['Simulation']);
+        foreach (Schema::battery() as $key => $d) $fields[] = self::field('B' . $key, $d, $flat);
         $fields[] = ['type' => 'Label', 'caption' => 'Ohne Leistungsrückmeldung: nur der konfigurierte Anteil nach Anlaufwartezeit; reale Entladung bleibt ungeprüft.'];
-        $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Batteriespeicher (weitere Felder nur bei aktivierter Funktion)', 'items' => $fields];
+        $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Batteriespeicher', 'items' => $fields];
         $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Aktuelle Diagnose', 'items' => [['type' => 'Label', 'caption' => $diagnostic ?: 'Noch kein Regeldurchlauf']]];
         return $form;
     }
 
-    private static function field(string $name, array $d, bool $simulation): array
+    public static function decimalDigits(string $name, array $flat): int
+    {
+        if (preg_match('/^W[1-4](MinA|MaxA)$/', $name)) return 1;
+        if (preg_match('/^(W[1-4])(Step|Stop)$/', $name, $match) && $flat[$match[1] . 'SetpointUnit'] === 'A') return 1;
+        return 2;
+    }
+
+    public static function decimalValue(string $name, string $value, array $flat): ?float
+    {
+        $definition = Schema::definitions()[$name] ?? null;
+        if (!$definition || !is_float($definition[0])) throw new \InvalidArgumentException('Unbekannte Dezimaleinstellung');
+        $digits = self::decimalDigits($name, $flat);
+        if (!preg_match('/^-?[0-9]+(?:,[0-9]{1,' . $digits . '})?$/D', trim($value))) return null;
+        $number = (float)str_replace(',', '.', trim($value));
+        return is_finite($number) ? $number : null;
+    }
+
+    private static function field(string $name, array $d, array $flat): array
     {
         $field = ['name' => $name, 'caption' => $d[1]];
-        if (isset($d[4])) return $field + ['type' => 'SelectVariable', 'validVariableTypes' => $d[4], 'requiredAction' => $d[3] === 'write' && !$simulation ? 1 : 0];
+        if (isset($d[4])) return $field + ['type' => 'SelectVariable', 'validVariableTypes' => $d[4], 'requiredAction' => $d[3] === 'write' && !$flat['Simulation'] ? 1 : 0];
         if (isset($d[3]) && is_array($d[3])) {
             $options = [];
             $list = array_is_list($d[3]) && is_string($d[0]);
@@ -136,7 +154,20 @@ final class Form
             return $field + ['type' => 'Select', 'options' => $options];
         }
         if (is_bool($d[0])) return $field + ['type' => 'CheckBox'];
-        if (is_int($d[0]) || is_float($d[0])) return $field + ['type' => 'NumberSpinner', 'digits' => is_float($d[0]) ? 3 : 0];
+        if (is_int($d[0])) return $field + ['type' => 'NumberSpinner', 'digits' => 0];
+        if (is_float($d[0])) {
+            $digits = self::decimalDigits($name, $flat);
+            $editor = 'Decimal' . $name;
+            // Keep the original numeric property bound to a hidden native field.
+            // UpdateFormField changes its pending value; saving still uses Übernehmen.
+            return ['type' => 'RowLayout', 'items' => [
+                $field + ['type' => 'NumberSpinner', 'digits' => $digits, 'visible' => false],
+                ['type' => 'ValidationTextBox', 'name' => $editor, 'caption' => $d[1],
+                    'value' => number_format((float)$flat[$name], $digits, ',', ''),
+                    'validate' => '^-?[0-9]+(?:,[0-9]{1,' . $digits . '})?$',
+                    'onChange' => 'WBM_UpdateDecimalField($id, "' . $name . '", $' . $editor . ');']
+            ]];
+        }
         return $field + ['type' => 'ValidationTextBox'];
     }
 }

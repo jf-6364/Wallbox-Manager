@@ -78,6 +78,8 @@ Array-Variablendarstellungen (8.0), IPSModuleStrict (8.1), openObject (8.2) und 
 
 ## Auslegungsdetails
 
+- Komma-Eingaben werden über `UpdateFormField` in den numerischen Formularentwurf übernommen. Gespeichert wird erst über „Übernehmen“. Die Methode entspricht der [offiziellen SDK-Referenz](https://github.com/symcon/SymconStubs/blob/master/ModuleStrictStubs.php); die numerischen Eigenschaften behalten ihren bisherigen Typ.
+
 - RegisterVariable nutzt bei IPSModule Profilnamen als String; Array-Darstellungen setzen 8.0 voraus.
 - MessageSink-Zeitstempel ist ein Nachrichten-Zähler. VariableUpdated ist der Unix-Messzeitpunkt; Sekundenauflösung begrenzt die Integrationspräzision.
 - HasAction prüft das Vorhandensein. RequestAction wird auf false, Warnungen und Exceptions geprüft; fehlende Aktion nutzt nur im ausdrücklichen Simulationsmodus SetValue.

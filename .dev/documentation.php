@@ -6,6 +6,7 @@ $t = chr(96);
 $md = "# Einstellungen und Variablen\n\nDie Definitionen werden aus libs/Schema.php erzeugt. Wn steht für W1 bis W4.\n";
 $md .= "Die Sollwertziele müssen im Normalbetrieb Geräteaktionen besitzen. Alle externen Freigaben sind ausschließlich Lesebedingungen.\n\n";
 $md .= "Von Gerätemodulen angelegte Sollwertvariablen können als Objekt schreibgeschützt sein und trotzdem eine Geräteaktion besitzen. Dieser Objektschutz muss für die Steuerung nicht entfernt werden. Gesperrte Variablenwerte und fehlende Geräteaktionen werden weiterhin abgelehnt.\n\n";
+$md .= "Dezimaleinstellungen werden mit Komma eingegeben: Amperewerte mit einer, andere Werte mit höchstens zwei Nachkommastellen. Änderungen werden über „Übernehmen“ gespeichert. Die bisherigen numerischen Eigenschaften bleiben erhalten; Mess- und Rechenwerte werden intern nicht für die Anzeige gerundet.\n\n";
 $md .= "## Variablenverknüpfungen\n\n| Eigenschaft | Zweck | Datentyp | Einheit | Pflicht | Zugriff |\n|---|---|---|---|---|---|\n";
 $unitMap = ['BudgetVar' => 'W/kW (BudgetUnit)', 'SetpointVar' => 'A/W/kW (SetpointUnit)', 'PowerVar' => 'W/kW (PowerUnit)', 'EnergyVar' => 'Wh/kWh (EnergyUnit)',
     'SocVar' => '%', 'LimitVar' => 'W/kW (LimitUnit)', 'PhaseCommandVar' => 'Gerätewerte für 1/3 Phasen', 'PhaseFeedbackVar' => 'Wertezuordnung für 1/3 Phasen'];

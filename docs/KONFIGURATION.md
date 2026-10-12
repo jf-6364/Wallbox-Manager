@@ -5,6 +5,8 @@ Die Sollwertziele müssen im Normalbetrieb Geräteaktionen besitzen. Alle extern
 
 Von Gerätemodulen angelegte Sollwertvariablen können als Objekt schreibgeschützt sein und trotzdem eine Geräteaktion besitzen. Dieser Objektschutz muss für die Steuerung nicht entfernt werden. Gesperrte Variablenwerte und fehlende Geräteaktionen werden weiterhin abgelehnt.
 
+Dezimaleinstellungen werden mit Komma eingegeben: Amperewerte mit einer, andere Werte mit höchstens zwei Nachkommastellen. Änderungen werden über „Übernehmen“ gespeichert. Die bisherigen numerischen Eigenschaften bleiben erhalten; Mess- und Rechenwerte werden intern nicht für die Anzeige gerundet.
+
 ## Variablenverknüpfungen
 
 | Eigenschaft | Zweck | Datentyp | Einheit | Pflicht | Zugriff |

@@ -2,10 +2,14 @@
 
 ## Ausgeführt
 
-- **70 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- **75 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
 - **10 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
+- Deutsche Komma-Eingaben, Nachkommastellen und die Übernahme numerischer
+  Einstellungen aus dem Formularentwurf geprüft. Ampereanzeigen besitzen eine,
+  andere Dezimalanzeigen höchstens zwei Nachkommastellen; Messwerte bleiben intern
+  unverändert präzise.
 - Zusätzliche Chromium-Prüfung der tatsächlichen HTML/CSS/JS-Kachel: sieben Größen
   von 240 × 260 bis 1440 × 900 Pixeln, kompakte aufklappbare Detailwerte,
   erreichbare Bedienung und keine horizontale Überbreite.

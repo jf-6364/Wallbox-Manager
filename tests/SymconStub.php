@@ -48,6 +48,7 @@ class IPSModule
     public array $idents = [];
     public array $debug = [];
     public array $visualUpdates = [];
+    public array $formUpdates = [];
     public int $status = 0;
     public int $visualType = 0;
     public function __construct(int $id = 50)
@@ -95,6 +96,7 @@ class IPSModule
     public function SetStatus($status) { $this->status = $status; }
     public function SendDebug($name, $data, $format) { $this->debug[] = [$name, $data]; }
     public function SetVisualizationType($type) { $this->visualType = $type; }
+    public function UpdateFormField($field, $parameter, $value) { $this->formUpdates[] = ['field' => $field, 'parameter' => $parameter, 'value' => $value]; return true; }
     public function UpdateVisualizationValue($value)
     {
         if (!is_scalar($value)) throw new TypeError('Cannot auto-convert value for parameter Value (Type does not match)');
@@ -136,7 +138,7 @@ function IPS_SemaphoreEnter($name, $timeout)
 function IPS_SemaphoreLeave($name) { Kernel::$locks[$name] = false; return true; }
 function IPS_VariableProfileExists($name) { return isset(Kernel::$profiles[$name]); }
 function IPS_CreateVariableProfile($name, $type) { Kernel::$profiles[$name] = ['type' => $type]; }
-function IPS_SetVariableProfileDigits(...$args) {}
+function IPS_SetVariableProfileDigits($name, $digits) { Kernel::$profiles[$name]['digits'] = $digits; }
 function IPS_SetVariableProfileText(...$args) {}
 function IPS_SetVariableProfileValues(...$args) {}
 function IPS_SetVariableProfileAssociation(...$args) {}function WBM_ControlTargets($id) { return Kernel::$instances[$id]->ControlTargets(); }

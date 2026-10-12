@@ -1,214 +1,138 @@
 # Wallbox Manager
 
-Installierbare PHP-Modulbibliothek für **IP-Symcon ab 7.1**. Eine Instanz verwaltet
-eine bis vier Wallboxen über vorhandene Variablen und deren Geräteaktionen sowie
-optional einen Batteriespeicher. Die Instanz besitzt eine eigene HTML-SDK-Kachel.
+Der Wallbox Manager verteilt ein verfügbares Leistungsbudget auf **eine bis vier
+Wallboxen** in IP-Symcon ab Version 7.1. Er steuert vorhandene Gerätevariablen über
+Symcon-Aktionen und berücksichtigt die tatsächlich gemessene Ladeleistung.
+Optional kann ein Batteriespeicher zusätzliche Leistung bereitstellen.
 
-## Installation
+## Leistungsbudget und Verteilung
 
-Die Bibliothek liegt vollständig in diesem Projektordner. Das Paket
-`Wallbox-Manager-1.0.zip` enthält sie ohne portable Laufzeit und Recherchedateien.
+Das Grundbudget beschreibt die insgesamt verfügbare Leistung für alle Wallboxen,
+wahlweise in Watt oder Kilowatt. Bei zwei gleichberechtigten Wallboxen und
+12.000 W Budget kann der Manager beispielsweise je 6.000 W anfordern.
 
-**Lokale Installation für Entwicklung / erste Abnahme:**
+| Budget | Wallbox 1 | Wallbox 2 |
+|---|---|---|
+| 12.000 W | 6.000 W | 6.000 W |
+| 10.000 W | 5.000 W | 5.000 W |
+| 0 W | Stoppwert | Stoppwert |
 
-1. Das Datenverzeichnis des Symcon-Servers feststellen, bei Bedarf mit
-   `echo IPS_GetKernelDir();` in einem Symcon-Skript.
-2. Das ZIP so in dessen `modules`-Verzeichnis entpacken, dass
-   `modules/Wallbox-Manager/library.json` und
-   `modules/Wallbox-Manager/WallboxManager/module.php` vorhanden sind.
-   Der Ordner muss auf dem **Symcon-Server** liegen.
-3. Symcon-Dienst neu starten, damit die lokale Bibliothek eingelesen wird.
-4. **Instanz hinzufügen → Wallbox Manager** wählen (Herstellergruppe „Sonstige“).
+Diese Beispiele setzen passende Mindest- und Höchstgrenzen, Freigaben und
+Messrückmeldungen voraus. Start- und Wartezeiten können die Umsetzung verzögern.
 
-**Installation über GitHub mit Updatefunktion:**
+**Gleichmäßig:** Die aktiven Wallboxen erhalten möglichst gleiche Wattwerte.
+Erreicht eine Box ihre konfigurierte Höchstleistung, kann die verbleibende
+Leistung an andere Boxen gehen. Reicht das Budget nicht für die Mindestleistung
+aller Boxen, werden geeignete Geräte ausgewählt. Eine Rotation ermöglicht
+abwechselndes Laden bei knappem Budget.
 
-1. Unter **Kern Instanzen → Modules → +** diese Repository-URL hinzufügen:
-   `https://github.com/jf-6364/Wallbox-Manager`
-2. Den Branch `main` auswählen und die Bibliothek installieren.
-3. **Instanz hinzufügen → Wallbox Manager** wählen (Herstellergruppe „Sonstige“).
+**Priorität:** Höher priorisierte Boxen werden zuerst versorgt. Priorität 1 ist
+die höchste. Boxen mit gleichem Rang teilen sich die Leistung gleichmäßig.
+Laufzeitbedingungen können den Wechsel beeinflussen.
 
-Die Struktur und der Repository-Installationsweg folgen dem
-[offiziellen PHP-SDK](https://www.symcon.de/de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/)
-und [Module Control](https://www.symcon.de/de/service/dokumentation/modulreferenz/kern-instanzen/module-control/).
+Das Budget ist die verfügbare Gesamtleistung ohne zusätzliche Speicherunterstützung.
+Ein Restüberschuss, der laufende Wallboxen bereits abzieht, muss entsprechend
+aufbereitet werden. Negative Budgetwerte werden als 0 W behandelt; ungültige
+Messwerte führen zum Stopp.
 
-## Erste Instanz konfigurieren
+## Verknüpfte Variablen
 
-1. Numerische **Budgetvariable** und W/kW wählen. Managerfreigabe zunächst aus.
-2. Einen Wallbox-Platz aktivieren. Name, Gerätekennung, Sollwertvariable mit Aktion,
-   Ladeleistungsmessung, Einheiten, Strom-/Leistungsgrenzen, Raster und den
-   **vom konkreten Gerät vorgesehenen Stoppwert** eintragen.
-3. Fest ein-/dreiphasigen Betrieb und Spannung einstellen. Dynamische Umschaltung
-   erst nach der Geräteabnahme aktivieren.
-4. Optional externe Freigabe, Ladebedarf und separaten Gerätefreigabebefehl
-   verknüpfen. Diese Funktionen unterscheiden sich.
-5. Zeitbedingungen und Messwertüberwachung passend zur Geräteabfrage wählen.
-   Ein Heartbeat kann die Überwachung unveränderter Messwerte übernehmen.
-6. Übernehmen und Diagnose prüfen. Das Modul sendet zuerst Stopp und wartet auf
-   niedrige tatsächliche Last; danach gelten Mindestpause und Startverzögerung.
-7. Nach der [Abnahmecheckliste](docs/ABNAHME.md) Manager und gewünschte manuelle
-   Freigaben einschalten. Externe Sperren bleiben verbindlich.
+Für zwei Wallboxen benötigt der Grundbetrieb fünf Verknüpfungen:
 
-Im Normalbetrieb verwendet das Modul `RequestAction`. Nur die ausdrücklich
-aktivierte **Simulation** erlaubt direkte Änderungen an Testvariablen ohne
-Aktion. Befehls- und Phasenfehler bleiben bis „Gerätefehler nach Prüfung quittieren“
-gesperrt. Vorübergehend ungültige Messwerte werden erneut geprüft.
+| Variable | Aufgabe |
+|---|---|
+| Gemeinsames Leistungsbudget | Verfügbares Gesamtlimit in W oder kW |
+| Sollwert Wallbox 1 | Steuerbare Gerätevariable mit Aktion |
+| Gemessene Ladeleistung Wallbox 1 | Tatsächliche Leistung in W oder kW |
+| Sollwert Wallbox 2 | Steuerbare Gerätevariable mit Aktion |
+| Gemessene Ladeleistung Wallbox 2 | Tatsächliche Leistung in W oder kW |
 
-## Budget und Verteilung
+Sollwerte sind in A, W oder kW möglich. Die Einheit wird für jede Box separat
+festgelegt. Sollwert und tatsächliche Ladeleistung haben unterschiedliche Rollen.
 
-**Grundbudget = absolute verfügbare Gesamtleistung für alle Wallboxen, OHNE
-Batteriespeicher.** Es ist kein Restüberschuss, der die Wallboxen bereits abzieht.
-12 kW bedeuten zusammen maximal 12 kW, bevor bestätigte Speicherunterstützung
-hinzukommt. Verbrauch und Batteriemessung werden niemals erneut zum Budget
-addiert. Negative Werte gelten als 0 W; ungültige Werte führen zum Stopp.
+Optional können Fahrzeug-/Ladebedarf, externe Freigaben, Gerätefehler, separate
+Geräte-Ladefreigaben, Energiezähler und Heartbeats verknüpft werden. Ohne eine
+Ladebedarfsvariable nimmt der Manager Ladebedarf an; 0 W Messleistung allein
+bedeutet daher nicht, dass ein Fahrzeug voll oder abgesteckt ist.
 
-Intern gelten W/kWh. Nominell: `P = Phasen × Spannung × Strom je Phase`.
-Strom- und Leistungsgrenzen gelten gleichzeitig. Mindestwerte werden aufgerundet,
-Maxima/Zuteilungen abgerundet. 6 A bei 230 V und drei Phasen sind 4,14 kW.
-Exakt 4,2 kW Mindestleistung benötigen bei ganzen Amperewerten **7 A / 4,83 kW**.
-Ein Stoppwert von 1 A bleibt ein Ausschaltbefehl mit **0 W Anforderung**.
+## Grenzen, Zeiten und Freigaben
 
-- **Gleichmäßig:** Ausgleich in W mit Sättigung an Maxima. Wenn nicht alle Minima
-  passen: geschützte laufende Geräte, laufende Geräte bis zur Rotationszeit,
-  dann am längsten nicht bediente Geräte. Gleichstand entscheidet die Platznummer.
-  Rasterreste werden nur innerhalb aller Grenzen vergeben.
-- **Priorität:** Rang 1 zuerst, folgende Ränge danach. Gleiche Ränge verwenden
-  dieselbe faire Verteilung. Geschützte laufende Geräte reservieren vorher ihre
-  Mindestleistung; Zeitbedingungen können damit eine sofortige Rangübernahme verzögern.
-- **Strikt (Standard):** Bei Leistungsmangel dürfen Mindestlaufzeit/Nachlauf
-  übersteuert werden. Kein Betrieb unter der legalen Mindestleistung.
-- **Zeitweise Überschreitung:** Nur bereits laufende Geräte während einer
-  Mindestlauf-/Nachlaufbedingung; Betrag und Dauer begrenzt. Neue Starts erhalten
-  daraus kein Budget. Ein harter Gesamtgrenzwert gilt immer.
+Jede Wallbox besitzt eigene Strom- und Leistungsgrenzen, ein Sollwertraster und
+einen gerätespezifischen Stoppwert. Strom- und Leistungsgrenzen gelten gleichzeitig,
+auch bei Watt-Sollwerten. Drei Phasen mit 230 V und mindestens 6,0 A je Phase
+erfordern beispielsweise rund 4,14 kW Mindestleistung.
 
-Reduzierungen erfolgen vor Erhöhungen. Noch nicht abgebaute gemessene Last
-reserviert Budget; Erhöhungen warten auf frische Rückmeldung. Befehlsfehler geben
-kein neues Budget frei. Physischer Lastabbau hängt von Geräte-/Abfragezeiten ab.
+Einschaltverzögerung, Hysterese, Mindestlaufzeit, Nachlauf und Mindestpause vermeiden
+häufiges Umschalten. Standardmäßig beträgt das Regelintervall 5 Sekunden.
 
-Ohne Ladebedarfsvariable wird Ladebedarf angenommen, solange alle Freigaben
-gelten. 0 W allein beendet diese Annahme nicht. Für volle oder nicht verbundene
-Fahrzeuge eine geeignete boolesche Statusvariable verknüpfen.
+Die globale Managerfreigabe, die manuelle Freigabe je Box und optionale externe
+Freigaben bestimmen gemeinsam, welche Geräte laden dürfen. Externe Freigaben
+werden ausschließlich gelesen.
 
-## Zeiten und Phasen
+Im strikten Modus bleiben die zugeteilten Sollleistungen innerhalb des Budgets;
+bei Leistungsmangel können Mindestlaufzeit und Nachlauf übersteuert werden.
+Optional sind begrenzte zeitweilige Überschreitungen für bereits laufende Geräte
+möglich. Ein zusätzlicher harter Gesamtgrenzwert begrenzt auch Speicherunterstützung.
 
-Startverzögerung verlangt durchgehend genügend Leistung mit Start-Hysterese.
-Mindestlaufzeit bevorzugt gestartete Geräte, Nachlauf überbrückt kurze Einbrüche,
-Mindestpause verhindert sofortigen Wiederanlauf. Erhöhungen können einen
-Befehlsabstand erhalten; Reduzierungen/Sperren warten darauf nicht.
-Rotation gilt standardmäßig nach 900 s, respektiert Zeitbedingungen und ist mit
-0 deaktivierbar.
+## Rückmeldungen und Fehler
 
-Dynamische Phasen verwenden ein hypothetisches Leistungsangebot unter den
-Gerätegrenzen. Aufwärts: `PhaseUpW + PhaseHysteresisW`, abwärts:
-`PhaseDownW - PhaseHysteresisW`, jeweils nach dauerhaft erfüllter Schwelle,
-Mindestverweildauer und gegebenenfalls Mindestlaufzeit.
+Bei einer Umverteilung reduziert der Manager zuerst Leistung. Noch nicht abgebaute
+Last bleibt reserviert, bevor andere Geräte erhöht werden. Die reale Reaktion hängt
+von den Wallboxen und ihren Abfragezeiten ab.
 
-Ablauf: Stopp → frische niedrige Istleistung für die Bestätigungsdauer →
-Vorwartezeit → Geräte-Phasenbefehl → passende tatsächliche Rückmeldung →
-Nachwartezeit → neu berechneter Start. Last, unerwartete Rückmeldung oder Timeout
-verriegeln einen Fehler. Nur dafür geeignete Wallbox-Phasenfunktionen sind
-unterstützt, keine beliebigen Leistungsschütze. Alle Zeiten verwenden Zustände
-und Timer, keine blockierenden Sleeps.
+Messwertalter und Heartbeats können überwacht werden. Ein Watchdog kann Sollwerte
+regelmäßig erneut senden. Die Diagnose zeigt Zustände, Wartegründe und die letzten
+Befehle. Befehls- und Phasenfehler bleiben bis zur Quittierung nach Ursachenprüfung
+gesperrt. Ein ausgeschalteter Manager ist ein normaler Betriebszustand.
 
-## Speicher
+## Phasen und Batteriespeicher
 
-Gültiger SoC ist Voraussetzung. Verfügbarkeit wird begrenzt durch maximale
-Entladeleistung, gemeldete aktuelle Leistungsgrenze und geschätzte Energie oberhalb
-der Reserve. Diese Energie wird konservativ auf den größeren Zeitraum aus
-Regelintervall, Anlaufwartezeit und Reaktionstimeout bezogen. Kapazität wird nicht
-als aktueller Energieinhalt interpretiert.
+Der Manager unterstützt festen einphasigen oder dreiphasigen Betrieb. Geeignete
+Wallboxen können zusätzlich dynamisch umgeschaltet werden: Stopp, bestätigter
+Stillstand, Phasenbefehl, Rückmeldung und geregelter Wiederanlauf.
 
-Nur die nach Raster und Freigaben sinnvoll nutzbare zusätzliche Ladeleistung
-wird angefordert. Erst bestätigte Entladung erlaubt zusätzliche Wallboxleistung.
-Die Messung bestätigt eine bestehende Anforderung und erhöht das theoretische
-Budget nicht erneut. Unzureichende Entladung begrenzt das Budget sofort auf den
-bestätigten Betrag; nach Timeout wird ein Fehler verriegelt.
+Die optionale Speicherfunktion berücksichtigt Ladezustand, Reserve, Kapazität und
+Entladegrenzen. Mit Leistungsrückmeldung wird zusätzliche Ladeleistung erst nach
+bestätigter Entladung freigegeben. Ohne Rückmeldung gilt ein konfigurierbarer
+konservativer Anteil nach einer Wartezeit. Automatische Speicherladung ist nicht
+enthalten.
 
-Mindest-SoC, manuelle/externe Sperre und Manager-Aus führen zu Neutral/Stopp
-und 0 Zusatzbudget. Nach Reserveabschaltung ist SoC-Hysterese erforderlich.
-Einheit/Vorzeichen werden erst am Ausgang umgesetzt. Integerziele werden
-konservativ abgerundet. Automatische Speicherladung ist nicht enthalten.
+## Energie und gespeicherte Zustände
 
-Ohne Leistungsrückmeldung: standardmäßig **50 %** der theoretischen Leistung
-nach **10 s** erfolgreicher Anforderung. Anteil/Wartezeit sind konfigurierbar;
-Anteil 0 deaktiviert solche Unterstützung. Die tatsächliche Entladung ist ohne
-Messung nicht überprüfbar und muss vor Ort geprüft werden.
+Ein vorhandener Geräte-Energiezähler liefert Verbrauchsdifferenzen in Wh oder kWh.
+Ohne Zähler wird die Energie aus der gemessenen Ladeleistung berechnet und als
+„berechnet“ gekennzeichnet. Messlücken werden berücksichtigt; Energie stammt nicht
+aus den angeforderten Sollwerten.
 
-## Energie und Persistenz
+Bedienwerte, Energie und Zustände bleiben über Neustarts erhalten. Gerätewechsel
+können über eine Gerätekennung getrennt erfasst werden. Beim Neustart bestätigt
+der Manager zunächst den Stopp der Geräte. Zwei Managerinstanzen dürfen dieselben
+Steuerziele nicht gleichzeitig beanspruchen. Ein Energie-Reset benötigt eine
+explizite Bestätigung.
 
-Gerätezähler liefern positive Differenzen in kWh. Initialwert, neue Verknüpfung,
-Reset und unplausible Sprünge bilden neue Basen ohne künstlichen Verbrauch.
-Zulässiger Sprung: `MaxKW × Zeit_s / 3600 × Plausibilitätsfaktor` plus kWh-Toleranz.
-Den tatsächlich an Fahrzeuge abgegebenen Energiezähler wählen.
+## Kachelvisualisierung
 
-Ohne Zähler gilt stückweise konstante Integration: alter Messwert bis zum
-Messzeitpunkt, neuer Messwert danach. Ereignisse und Timer teilen einen Cursor.
-Lücken über `EnergyMaxGap` und ungültige/veraltete Messungen ohne frischen
-Heartbeat werden nicht extrapoliert. Bei Neustart erhält Leistungsintegration
-eine neue Zeitbasis; echte Zähler können positive Differenzen über den Neustart
-erfassen. Energie stammt niemals aus Sollwerten. Batterientladung wird nicht
-zusätzlich als Fahrzeugenergie gezählt. Berechnete Energie ist entsprechend
-gekennzeichnet und nicht für eichrechtskonforme Abrechnung vorgesehen.
+Die eigene Symcon-Kachel zeigt Budget, Soll- und Istleistung, Energie, Zustände und
+Wartezeiten. Freigaben, Verteilungsmodus und Prioritäten sind direkt bedienbar.
+Das Layout passt sich der verfügbaren Breite und Höhe an. In kleinen Kacheln sind
+zusätzliche Werte aufklappbar; umfangreiche Inhalte scrollen innerhalb der Kachel.
 
-Attribute speichern Zustände und Energie. ApplyChanges löscht keine Zähler.
-Deaktivierte Plätze behalten ihre Energie. Geänderte Sollwert-/Messvariablen oder
-Gerätekennung erzeugen eine neue Platzgeneration und archivieren alte
-Platzenergie in der Diagnose. Gesamtenergie enthält alle Generationen.
-Bei physischem Gerätetausch mit denselben Variablen **Gerätekennung ändern**;
-ein solcher Tausch ist an gleichbleibenden IDs allein nicht erkennbar. Wechsel
-nur des Energiezählers erneuert die Basis und erhält die Platzenergie.
+Die Darstellung übernimmt Symcon-Farben für Hell- und Dunkelmodus. Ohne übergebene
+Symcon-Farben gilt die Browser-Einstellung. Zahlen werden mit Dezimalkomma und
+höchstens zwei Nachkommastellen angezeigt, Amperewerte mit einer Nachkommastelle.
 
-Reset ist im Formular geschützt durch `ENERGIE ZURÜCKSETZEN` und Bestätigungsdialog,
-nicht in der Kachel. Bei Neustart werden Geräte gestoppt und Lastabbau bestätigt;
-danach erfolgt ein regulärer Start. Laufende Phasenwechsel werden weiter sicher
-geprüft. Bei Umkonfiguration bleiben alte Ziele referenziert, bis deren Stopp
-bestätigt ist. Unerreichbare alte Ziele müssen wieder erreichbar gemacht und
-geprüft werden; bis dahin gibt es keine neue Last. Instanzen besitzen unabhängige
-Zustände und können dieselben Steuerziele nicht gleichzeitig beanspruchen.
+## Weitere Informationen
 
-## Kachel einbinden
+- [Einstellungen und Variablen](docs/KONFIGURATION.md)
+- [Beispielkonfigurationen](docs/examples/README.md)
+- [SDK-Schnittstellen](docs/API.md)
+- [Automatisierte Prüfungen](docs/TESTBERICHT.md)
+- [Abnahme am Gerät](docs/ABNAHME.md)
+- [Kachelvorschau mit Beispieldaten](docs/preview.html)
 
-Im Konfigurator der Symcon-Kachelvisualisierung die **Instanz Wallbox Manager**
-in die gewünschte Seite aufnehmen. `SetVisualizationType` und
-`GetVisualizationTile` liefern die eigene Darstellung. Keine HTML-Box oder
-externer Webhook erforderlich.
+Die Simulation erlaubt Testvariablen ohne Geräteaktion. Vorhandene Geräteaktionen
+werden auch bei aktivierter Simulation ausgeführt.
 
-Bedienung von Manager, Verteilung, manuellen Freigaben, Prioritäten und Speicher
-erfolgt über das HTML-SDK. Externe Freigaben werden nur gelesen. Daten werden ohne
-Seitenneuladen aktualisiert. Das Layout nutzt die Breite und Höhe der Kachel.
-In kleinen Kacheln lassen sich Energie und Phasen aufklappen; umfangreiche Inhalte
-scrollen innerhalb der Kachel. Ohne aktivierten Speicher entfällt dessen Übersicht.
-Schrift-, Flächen- und Akzentfarben werden aus den Symcon-CSS-Variablen bzw. den
-HTML-SDK-Farbparametern übernommen und bei Änderungen aktualisiert. Ohne
-Symcon-Farben gilt die Hell-/Dunkeleinstellung des Browsers. Keine externen CDNs.
-
-Die [lokale Vorschau](docs/preview.html) enthält Beispieldaten und einen
-nachgebildeten Aktionskanal; sie ist keine Live-Symcon-Kachel.
-
-## Dateien und Prüfung
-
-- `WallboxManager/`: Modul, Metadaten, Formular und HTML/CSS/JS-Kachel.
-- `libs/`: Konfiguration, Validierung, Raster, Verteilung, Zustandsmaschinen, Energie.
-- `tests/`: Fachtests, Kernel-Testdouble und JavaScript-Tests.
-- [Alle Einstellungen und Variablen](docs/KONFIGURATION.md).
-- [Beispiele](docs/examples/README.md), [API-Nachweise](docs/API.md),
-  [Prüfbericht](docs/TESTBERICHT.md), [Abnahme](docs/ABNAHME.md).
-- `.dev/`: Prüfer, Vorschaugenerator und Paketerstellung.
-
-```powershell
-php -n tests/run.php
-php -n .dev/verify.php
-node tests/tile.test.cjs
-```
-
-Zusätzlich liegt eine portable PHP-Laufzeit in `.tools/php/php.exe`, außerhalb
-des Installationspakets. PHP-Tests wurden unter PHP 8.3.35 ausgeführt; der Code
-verwendet die in Symcon 7.1 vorhandene PHP-8.2-Sprachbasis. JavaScript wurde mit
-Node und DOM-Testdouble sowie Chromium geprüft. Der optionale Browsertest
-`node tests/tile.browser.cjs` benötigt Playwright und Chromium (alternativer
-Browserpfad über `WBM_CHROMIUM_PATH`). Er prüft sieben Kachelgrößen, Designwechsel,
-Bedienaktionen sowie vier Wallboxen mit Speicher und langen Fehlertexten.
-Live-Symcon-/Hardwaretests bleiben erforderlich.
-
-Das Modul ist eine übergeordnete Betriebsregelung und ersetzt keine elektrischen
-oder geräteseitigen Schutzfunktionen. Planung verwendet nominelle Spannung;
-tatsächliche Leistung und Energie stammen aus Messwerten.
+Der Manager ist eine Betriebsregelung und ersetzt keine elektrischen oder
+geräteseitigen Schutzfunktionen. Die berechnete Energie ist nicht für
+eichrechtskonforme Abrechnung vorgesehen.
