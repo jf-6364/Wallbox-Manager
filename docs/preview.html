@@ -4,30 +4,144 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Wallbox Manager</title>
-<style>:root{color-scheme:light dark;--wb-accent:var(--accent-color,#14a998);--wb-text:var(--content-color,#203544);--wb-card:var(--card-color,#fff);--wb-bg:#f2f6f7;--wb-line:#dbe4e7;--wb-muted:#637984}
-*{box-sizing:border-box}body{margin:0;font:14px/1.5 "Segoe UI",Arial,sans-serif;color:var(--wb-text);background:transparent}main{max-width:1100px;margin:auto;padding:16px}
-header,.card-heading,.toolbar,footer{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}header{margin-bottom:16px}h1{font-size:24px;line-height:1.2;margin:4px 0;font-weight:650}h2{font-size:17px;margin:0}.eyebrow{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--wb-accent)}
-.toolbar{padding:12px 0;border-top:1px solid var(--wb-line);margin-bottom:10px}.toolbar label{display:flex;align-items:center;gap:10px}input,select,button{font:inherit;color:inherit}select,input[type=number]{border:1px solid var(--wb-line);border-radius:7px;background:var(--wb-card);padding:9px;min-height:44px}select{min-width:155px}input[type=number]{width:76px}input[type=checkbox]{width:22px;height:22px;accent-color:var(--wb-accent);margin:0}.switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;min-height:44px}.muted{color:var(--wb-muted);font-size:12px}
-.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.metric,.box,.battery{background:var(--wb-card);border:1px solid var(--wb-line);border-radius:12px;padding:16px}.metric span,.metric small,.battery-metrics span{display:block;color:var(--wb-muted);font-size:12px}.metric strong{display:block;font-size:25px;font-weight:650;margin:5px 0}.metric small{font-size:11px}
-#status{color:var(--wb-muted);margin:14px 0}.notice{padding:12px;border:1px solid #b97811;background:#b9781110;border-radius:8px;font-size:13px}.error{border-color:#ce4c4c;color:#b63c3c;white-space:pre-line;overflow-wrap:anywhere}
-.boxes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.box{min-width:0;position:relative}.box[data-state="Laden"]{border-left:4px solid var(--wb-accent)}.box[data-state="Fehler"]{border-left:4px solid #ce4c4c}.box-title{min-width:0;overflow-wrap:anywhere}.badge{font-size:12px;color:var(--wb-accent);margin:6px 0 14px}.lock{color:#b97811;font-size:12px;font-weight:650}.device-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.device-metrics span{display:block;font-size:12px;color:var(--wb-muted)}.device-metrics strong{font-size:19px;font-weight:600}.device-controls{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;padding-top:10px;border-top:1px solid var(--wb-line)}.priority-label{display:flex;align-items:center;gap:8px;color:var(--wb-muted);font-size:12px}.reason{font-size:12px;color:var(--wb-muted);min-height:18px;overflow-wrap:anywhere}.gap{font-size:11px;color:#b97811}.battery{margin-top:12px}.battery-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:14px}.battery-metrics strong{font-size:19px}#battery-state{font-size:12px;color:var(--wb-muted)}footer{font-size:11px;color:var(--wb-muted);margin-top:14px}#simulation{font-weight:700;letter-spacing:1px;color:#b97811}[hidden]{display:none!important}:focus-visible{outline:3px solid var(--wb-accent);outline-offset:3px}
-@media(prefers-color-scheme:dark){:root{--wb-text:var(--content-color,#e0eaf0);--wb-card:var(--card-color,#203039);--wb-bg:#16252e;--wb-line:#3a4c55;--wb-muted:#a5b6c0}.error{color:#ff9393}.lock,.gap{color:#edba68}}
-@media(max-width:650px){main{padding:10px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.boxes{grid-template-columns:1fr}.metric{padding:12px}.metric strong{font-size:22px}.battery-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}h1{font-size:21px}}
-@media(max-width:340px){.metric strong{font-size:18px}.device-controls{flex-wrap:wrap}.battery-metrics{grid-template-columns:1fr}}</style>
+<style>:root {
+    color-scheme: light;
+    --wb-default-text: #24262b;
+    --wb-default-surface: #ffffff;
+    --wb-default-error: #b3261e;
+    --wb-default-warning: #805b00;
+}
+:root[data-wb-theme="dark"] {
+    color-scheme: dark;
+    --wb-default-text: #f0f0f3;
+    --wb-default-surface: #1c1c21;
+    --wb-default-error: #ffb4ab;
+    --wb-default-warning: #f2cd75;
+}
+html { width: 100%; height: 100%; overflow: hidden; }
+body#wbm-page {
+    width: 100%; height: 100%; margin: 0; overflow: hidden; box-sizing: border-box;
+    display: flex; flex-direction: column;
+    background: var(--card-color, var(--wb-host-surface, var(--wb-default-surface)));
+    color: var(--content-color, var(--wb-host-text, var(--wb-default-text)));
+    font-family: Roboto, "Segoe UI", system-ui, sans-serif;
+}
+#wbm {
+    --wb-accent: var(--accent-color, var(--wb-host-accent, #00bfa5));
+    --wb-text: var(--content-color, var(--wb-host-text, var(--wb-default-text)));
+    --wb-surface: var(--card-color, var(--wb-host-surface, var(--wb-default-surface)));
+    --wb-line: color-mix(in srgb, var(--wb-text) 16%, transparent);
+    --wb-muted: color-mix(in srgb, var(--wb-text) 70%, var(--wb-surface));
+    --wb-panel: color-mix(in srgb, var(--wb-text) 4%, var(--wb-surface));
+    --wb-gap: clamp(6px, 1.6vmin, 14px);
+    box-sizing: border-box; flex: 1; width: 100%; height: 100%; max-width: none; margin: 0;
+    padding: clamp(8px, 2vmin, 18px); display: flex; flex-direction: column;
+    gap: var(--wb-gap); min-width: 0; min-height: 0;
+    font-size: clamp(12px, 1.8vmin, 15px); line-height: 1.4; color: var(--wb-text);
+}
+#wbm *, #wbm *::before, #wbm *::after { box-sizing: border-box; }
+#wbm [hidden] { display: none !important; }
+#wbm .wb-header, #wbm .toolbar, #wbm .card-heading, #wbm .device-controls, #wbm footer {
+    position: static; display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; flex-wrap: wrap; flex-shrink: 0; min-width: 0;
+}
+#wbm .wb-header { padding: 0; margin: 0; background: transparent; }
+#wbm .wb-title { font-size: 1.1em; font-weight: 600; color: var(--wb-text); }
+#wbm .toolbar { padding: 0; margin: 0; border: 0; }
+#wbm .toolbar > label { display: flex; align-items: center; gap: 8px; min-width: 0; }
+#wbm input, #wbm select, #wbm button { font: inherit; color: var(--wb-text); }
+#wbm select, #wbm input[type="number"] {
+    border: 1px solid var(--wb-line); border-radius: 6px; background: var(--wb-panel);
+    padding: 5px 8px; min-height: 32px; max-width: 100%;
+}
+#wbm select { width: 150px; min-width: 0; }
+#wbm input[type="number"] { width: 62px; }
+#wbm input[type="checkbox"] { width: 19px; height: 19px; accent-color: var(--wb-accent); margin: 0; flex-shrink: 0; }
+#wbm .switch { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; min-height: 32px; color: var(--wb-text); }
+#wbm .muted, #wbm .priority-label { color: var(--wb-muted); font-size: .85em; }
+#wbm .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--wb-gap); flex-shrink: 0; }
+#wbm .metrics:has(#support-metric:not([hidden])) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+#wbm .metric, #wbm .box, #wbm .battery {
+    background: var(--wb-panel); color: var(--wb-text); border: 1px solid var(--wb-line);
+    border-radius: 8px; padding: clamp(8px, 1.8vmin, 16px); min-width: 0;
+}
+#wbm .metric span, #wbm .metric small, #wbm .device-metrics span, #wbm .device-secondary span, #wbm .battery-metrics span {
+    display: block; color: var(--wb-muted); font-size: .83em; overflow-wrap: anywhere;
+}
+#wbm .metric strong { display: block; font-size: clamp(17px, 3.4vmin, 28px); line-height: 1.2; font-weight: 600; margin: 5px 0; overflow-wrap: anywhere; }
+#wbm .metric small { font-size: .75em; }
+#wbm .wb-content { flex: 1; min-height: 0; min-width: 0; overflow: auto; display: flex; flex-direction: column; gap: var(--wb-gap); scrollbar-width: thin; scrollbar-color: var(--wb-line) transparent; }
+#wbm #status { flex-shrink: 0; margin: 0; color: var(--wb-muted); font-size: .85em; overflow-wrap: anywhere; }
+#wbm .notice { flex-shrink: 0; padding: 8px 10px; margin: 0; border: 1px solid var(--wb-default-warning); border-radius: 6px; color: var(--wb-default-warning); font-size: .85em; overflow-wrap: anywhere; }
+#wbm .error { border-color: var(--wb-default-error); color: var(--wb-default-error); white-space: pre-line; }
+#wbm .boxes { flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(min-content, 1fr); gap: var(--wb-gap); }
+#wbm .boxes[data-count="1"] { grid-template-columns: 1fr; }
+#wbm .box { display: flex; flex-direction: column; gap: 10px; border-top: 3px solid var(--wb-line); }
+#wbm .box[data-state="Laden"] { border-top-color: var(--wb-accent); }
+#wbm .box[data-state="Fehler"] { border-top-color: var(--wb-default-error); }
+#wbm h2 { position: static; font-size: 1.05em; line-height: 1.3; font-weight: 600; margin: 0; color: var(--wb-text); }
+#wbm .box-title { min-width: 0; overflow-wrap: anywhere; }
+#wbm .badge { border-radius: 20px; background: color-mix(in srgb, var(--wb-accent) 12%, var(--wb-surface)); color: var(--wb-text); padding: 3px 8px; font-size: .75em; max-width: 100%; overflow-wrap: anywhere; }
+#wbm .box[data-state="Fehler"] .badge { color: var(--wb-default-error); background: transparent; }
+#wbm .lock, #wbm .gap { margin: 0; color: var(--wb-default-warning); font-size: .8em; overflow-wrap: anywhere; }
+#wbm .device-metrics, #wbm .device-secondary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+#wbm .device-metrics { flex: 1; align-content: center; }
+#wbm .device-metrics strong { display: block; font-size: clamp(16px, 2.8vmin, 24px); font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+#wbm .device-secondary strong, #wbm .battery-metrics strong { display: block; font-size: 1em; font-weight: 500; overflow-wrap: anywhere; }
+#wbm .device-details { margin: 0; min-width: 0; }
+#wbm .device-details summary { color: var(--wb-muted); cursor: pointer; font-size: .85em; min-height: 28px; padding: 4px 0; }
+#wbm:not([data-compact="true"]) .device-details summary { display: none; }
+#wbm .device-controls { border-top: 1px solid var(--wb-line); padding-top: 7px; margin: 0; }
+#wbm .priority-label { display: flex; align-items: center; gap: 6px; }
+#wbm .reason { margin: 0; color: var(--wb-muted); font-size: .8em; overflow-wrap: anywhere; }
+#wbm .battery { flex-shrink: 0; margin: 0; }
+#wbm .battery-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+#wbm #battery-state { font-size: .8em; color: var(--wb-muted); margin: 8px 0 0; overflow-wrap: anywhere; }
+#wbm footer { font-size: .75em; color: var(--wb-muted); margin: 0; }
+#wbm #simulation { color: var(--wb-default-warning); font-weight: 600; }
+#wbm :focus-visible { outline: 2px solid var(--wb-accent); outline-offset: 2px; }
+@media (max-width: 540px) {
+    #wbm .boxes { grid-template-columns: 1fr; }
+    #wbm .metrics { gap: 6px; }
+    #wbm .metric { padding: 8px; }
+    #wbm .metric strong { font-size: clamp(16px, 4.8vw, 22px); }
+    #wbm .metrics:has(#support-metric:not([hidden])) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #wbm .battery-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-height: 460px) {
+    #wbm { --wb-gap: 6px; padding: 8px; }
+    #wbm .metric { padding: 6px 8px; }
+    #wbm .metric small { display: none; }
+    #wbm .metric strong { font-size: 18px; margin: 2px 0; }
+    #wbm .box { padding: 8px; gap: 6px; }
+    #wbm .device-metrics strong { font-size: 17px; }
+}
+@media (max-width: 300px) {
+    #wbm .wb-title { font-size: 1em; }
+    #wbm .toolbar > label { width: 100%; justify-content: space-between; }
+    #wbm .toolbar select { flex: 1; max-width: 155px; }
+    #wbm .device-controls { gap: 5px; }
+    #wbm .priority-label { gap: 4px; }
+    #wbm .battery-metrics { grid-template-columns: 1fr; }
+    #wbm .metric span { font-size: .75em; }
+    #wbm .metric small, #wbm #policy { display: none; }
+}
+</style>
 </head>
-<body>
-<main>
-  <header>
-    <div><div class="eyebrow">LADEMANAGEMENT</div><h1>Wallbox Manager</h1></div>
+<body id="wbm-page">
+<main id="wbm">
+  <header class="wb-header">
+    <span class="wb-title">Lademanagement</span>
     <label class="switch"><input id="manager" type="checkbox"><span>Manager aktiv</span></label>
   </header>
   <div class="toolbar"><label>Verteilung <select id="mode"><option value="0">Gleichmäßig</option><option value="1">Priorität</option></select></label><span id="policy" class="muted"></span></div>
   <section class="metrics" aria-label="Gesamtübersicht">
     <div class="metric"><span>Grundbudget</span><strong id="base">–</strong><small>absolut, ohne Speicher</small></div>
-    <div class="metric"><span>Speicher verfügbar</span><strong id="support">–</strong><small id="confirmed">–</small></div>
+    <div id="support-metric" class="metric"><span>Speicher verfügbar</span><strong id="support">–</strong><small id="confirmed">–</small></div>
     <div class="metric"><span>Aktuell laden</span><strong id="measured">–</strong><small id="assigned">–</small></div>
     <div class="metric"><span>Gesamtenergie</span><strong id="energy">–</strong><small>an Fahrzeuge abgegeben</small></div>
   </section>
+  <div class="wb-content">
   <p id="overrun" class="notice" hidden></p>
   <p id="status" role="status" aria-live="polite">Status wird geladen …</p>
   <div id="errors" class="notice error" role="alert" hidden></div>
@@ -44,9 +158,10 @@ header,.card-heading,.toolbar,footer{display:flex;align-items:center;justify-con
     </div>
     <p id="battery-state"></p>
   </section>
+  </div>
   <footer><span id="updated">–</span><span id="simulation" hidden>SIMULATION</span></footer>
 </main>
-<script>window.WBM_INITIAL = {"manager":true,"mode":0,"base":12000,"normalBudget":16000,"budget":16000,"assigned":15870,"overrun":0,"battery":{"theoretical":4000,"confirmed":4000,"energy":5.6,"soc":76,"reason":"Unterst\u00fctzung verf\u00fcgbar","external":true,"measured":4000,"requested":3870,"capacity":10,"commanded":4000},"boxes":{"1":{"id":1,"name":"Garage","enabled":true,"manual":true,"external":true,"priority":1,"measured":5500,"phases":3,"power":8280,"command":12,"unit":"A","status":"Laden","reason":"Laden","remaining":0,"phaseCommand":null,"fault":"","energy":82.183,"energyMethod":"berechnet","gap":""},"2":{"id":2,"name":"Stellplatz","enabled":true,"manual":true,"external":true,"priority":2,"measured":5500,"phases":3,"power":7590,"command":11,"unit":"A","status":"Laden","reason":"Laden","remaining":0,"phaseCommand":null,"fault":"","energy":42.129,"energyMethod":"berechnet","gap":""},"3":{"id":3,"name":"Wallbox 3","enabled":false,"manual":true,"external":true,"priority":3,"measured":null,"phases":3,"power":0,"command":0,"unit":"A","status":"Deaktiviert","reason":"Deaktiviert","remaining":0,"phaseCommand":null,"fault":"","energy":42.129,"energyMethod":"berechnet","gap":""},"4":{"id":4,"name":"Wallbox 4","enabled":false,"manual":true,"external":true,"priority":4,"measured":null,"phases":3,"power":0,"command":0,"unit":"A","status":"Deaktiviert","reason":"Deaktiviert","remaining":0,"phaseCommand":null,"fault":"","energy":42.129,"energyMethod":"berechnet","gap":""}},"errors":[],"time":1791834291,"managerEnabled":true,"measured":11000,"energy":124.312,"status":"Automatische Regelung aktiv","strict":true,"batteryEnabled":true,"batteryConfigured":true,"simulation":true};</script>
+<script>window.WBM_INITIAL = {"manager":true,"mode":0,"base":12000,"normalBudget":16000,"budget":16000,"assigned":15870,"overrun":0,"battery":{"theoretical":4000,"confirmed":4000,"energy":5.6,"soc":76,"reason":"Unterst\u00fctzung verf\u00fcgbar","external":true,"measured":4000,"requested":3870,"capacity":10,"commanded":4000},"boxes":{"1":{"id":1,"name":"Garage","enabled":true,"manual":true,"external":true,"priority":1,"measured":5500,"phases":3,"power":8280,"command":12,"unit":"A","status":"Laden","reason":"Laden","remaining":0,"phaseCommand":null,"fault":"","energy":82.183,"energyMethod":"berechnet","gap":""},"2":{"id":2,"name":"Stellplatz","enabled":true,"manual":true,"external":true,"priority":2,"measured":5500,"phases":3,"power":7590,"command":11,"unit":"A","status":"Laden","reason":"Laden","remaining":0,"phaseCommand":null,"fault":"","energy":42.129,"energyMethod":"berechnet","gap":""},"3":{"id":3,"name":"Wallbox 3","enabled":false,"manual":true,"external":true,"priority":3,"measured":null,"phases":3,"power":0,"command":0,"unit":"A","status":"Deaktiviert","reason":"Deaktiviert","remaining":0,"phaseCommand":null,"fault":"","energy":42.129,"energyMethod":"berechnet","gap":""},"4":{"id":4,"name":"Wallbox 4","enabled":false,"manual":true,"external":true,"priority":4,"measured":null,"phases":3,"power":0,"command":0,"unit":"A","status":"Deaktiviert","reason":"Deaktiviert","remaining":0,"phaseCommand":null,"fault":"","energy":42.129,"energyMethod":"berechnet","gap":""}},"errors":[],"time":1791839653,"managerEnabled":true,"measured":11000,"energy":124.312,"status":"Automatische Regelung aktiv","strict":true,"batteryEnabled":true,"batteryConfigured":true,"simulation":true};</script>
 <script>window.WBM_PREVIEW_ACTIONS = [];
 window.requestAction = function (ident, value) {
     window.WBM_PREVIEW_ACTIONS.push({ident: ident, value: value});
@@ -68,6 +183,64 @@ window.requestAction = function (ident, value) {
     function text(id, value) { el(id).textContent = value; }
     function power(value) { return value === null || value === undefined ? 'Keine Messung' : number.format(value / 1000) + ' kW'; }
     function energy(value) { return energyFormat.format(value || 0) + ' kWh'; }
+    function compactLayout() {
+        var root = document.getElementById('wbm');
+        var height = root && root.clientHeight ? root.clientHeight : window.innerHeight;
+        var width = root && root.clientWidth ? root.clientWidth : window.innerWidth;
+        return typeof height === 'number' && (height < 480 || width < 440);
+    }
+    function updateLayout() {
+        var root = document.getElementById('wbm');
+        if (!root) return;
+        var compact = compactLayout();
+        if (root.dataset.compact === String(compact)) return;
+        root.dataset.compact = String(compact);
+        cards.forEach(function (item) { item.details.open = !compact; });
+    }
+    function themeParameter(names) {
+        var parameters = typeof queryParameters !== 'undefined' ? queryParameters : null;
+        var local = typeof URLSearchParams === 'function' && window.location ? new URLSearchParams(window.location.search) : null;
+        for (var i = 0; i < names.length; i++) {
+            var value = parameters && typeof parameters.get === 'function' ? parameters.get(names[i]) : null;
+            value = value || (local && local.get(names[i]));
+            if (value) return value;
+        }
+        return '';
+    }
+    function validColor(value) {
+        value = (value || '').trim();
+        if (/^[\da-f]{6}$/i.test(value)) value = '#' + value;
+        return value && typeof CSS !== 'undefined' && CSS.supports('color', value) ? value : '';
+    }
+    function brightness(value) {
+        if (!value) return null;
+        var canvas = document.createElement('canvas');
+        var context = canvas.getContext('2d');
+        if (!context) return null;
+        context.fillStyle = value;
+        context.fillRect(0, 0, 1, 1);
+        var pixel = context.getImageData(0, 0, 1, 1).data;
+        return pixel[3] === 0 ? null : (pixel[0] * .299 + pixel[1] * .587 + pixel[2] * .114);
+    }
+    function syncTheme() {
+        if (!document.documentElement || typeof getComputedStyle !== 'function') return;
+        var root = document.documentElement;
+        var styles = getComputedStyle(root);
+        var foreground = validColor(styles.getPropertyValue('--content-color')) || validColor(themeParameter(['textcolor', 'textColor', 'contentColor']));
+        var surface = validColor(styles.getPropertyValue('--card-color')) || validColor(themeParameter(['backgroundColor', 'backgroundcolor', 'cardColor']));
+        var accent = validColor(styles.getPropertyValue('--accent-color')) || validColor(themeParameter(['accentColor', 'accentcolor']));
+        [['--wb-host-text', foreground], ['--wb-host-surface', surface], ['--wb-host-accent', accent]].forEach(function (pair) {
+            if (root.style.getPropertyValue(pair[0]) !== pair[1]) {
+                if (pair[1]) root.style.setProperty(pair[0], pair[1]);
+                else root.style.removeProperty(pair[0]);
+            }
+        });
+        var backgroundBrightness = brightness(surface);
+        var textBrightness = brightness(foreground);
+        var dark = backgroundBrightness !== null ? backgroundBrightness < 128 : (textBrightness !== null ? textBrightness > 128 : !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches));
+        var theme = dark ? 'dark' : 'light';
+        if (root.dataset.wbTheme !== theme) root.dataset.wbTheme = theme;
+    }
     function action(ident, value) {
         try {
             if (typeof requestAction !== 'function') throw new Error('Keine Verbindung zur Symcon-Kachel');
@@ -106,7 +279,16 @@ window.requestAction = function (ident, value) {
         lock.textContent = 'Extern gesperrt – manuelle Freigabe hebt die Sperre nicht auf';
         var metrics = document.createElement('div');
         metrics.className = 'device-metrics';
-        metrics.append(metric('Tatsächlich laden', 'measured'), metric('Sollwert / Anforderung', 'command'), metric('Geladene Energie', 'energy'), metric('Aktive Phasen', 'phases'));
+        metrics.append(metric('Tatsächlich laden', 'measured'), metric('Sollwert / Anforderung', 'command'));
+        var details = document.createElement('details');
+        details.className = 'device-details';
+        details.open = !compactLayout();
+        var summary = document.createElement('summary');
+        summary.textContent = 'Energie und Phasen';
+        var secondary = document.createElement('div');
+        secondary.className = 'device-secondary';
+        secondary.append(metric('Geladene Energie', 'energy'), metric('Aktive Phasen', 'phases'));
+        details.append(summary, secondary);
         var controls = document.createElement('div');
         controls.className = 'device-controls';
         var manualLabel = document.createElement('label');
@@ -136,10 +318,10 @@ window.requestAction = function (ident, value) {
         reason.className = 'reason'; reason.dataset.field = 'reason';
         var gap = document.createElement('p');
         gap.className = 'gap'; gap.dataset.field = 'gap';
-        card.append(head, lock, metrics, controls, reason, gap);
+        card.append(head, lock, metrics, details, reason, gap, controls);
         var fields = {};
         card.querySelectorAll('[data-field]').forEach(function (node) { fields[node.dataset.field] = node; });
-        cards.set(id, { node: card, fields: fields });
+        cards.set(id, { node: card, fields: fields, details: details });
         el('boxes').append(card);
         return cards.get(id);
     }
@@ -153,6 +335,7 @@ window.requestAction = function (ident, value) {
         text('policy', data.strict ? 'Budget strikt' : 'Zeitweise Überschreitung zugelassen');
         text('base', power(data.base));
         text('support', power(data.battery.theoretical));
+        el('support-metric').hidden = !data.batteryConfigured;
         text('confirmed', 'davon bestätigt: ' + power(data.battery.confirmed));
         text('measured', power(data.measured));
         text('assigned', 'zugewiesen: ' + power(data.assigned));
@@ -181,6 +364,7 @@ window.requestAction = function (ident, value) {
             f.gap.textContent = box.gap || '';
             f.gap.hidden = !box.gap;
         });
+        el('boxes').dataset.count = String(Object.values(data.boxes).filter(function (box) { return box.enabled; }).length);
         el('battery').hidden = !data.batteryConfigured;
         el('battery-enable').checked = !!data.batteryEnabled;
         el('battery-lock').hidden = data.battery.external;
@@ -193,6 +377,7 @@ window.requestAction = function (ident, value) {
         text('updated', 'Aktualisiert: ' + new Date(data.time * 1000).toLocaleTimeString('de-DE'));
         el('simulation').hidden = !data.simulation;
         countdown();
+        updateLayout();
     }
     function countdown() {
         if (!latest) return;
@@ -204,6 +389,7 @@ window.requestAction = function (ident, value) {
             var reason = box.reason || box.status;
             if (remaining > 0) reason += box.status === 'Einschaltverzögerung' ? ' – Start in ' + remaining + ' s' : ' – noch ' + remaining + ' s';
             item.fields.reason.textContent = reason;
+            item.fields.reason.hidden = remaining === 0 && reason === box.status;
         });
     }
     window.handleMessage = function (message) {
@@ -213,9 +399,27 @@ window.requestAction = function (ident, value) {
     el('manager').addEventListener('change', function () { action('ManagerEnabled', this.checked); });
     el('mode').addEventListener('change', function () { action('DistributionMode', Number(this.value)); });
     el('battery-enable').addEventListener('change', function () { action('BatteryEnabled', this.checked); });
+    syncTheme();
+    if (typeof ResizeObserver === 'function' && document.getElementById('wbm')) {
+        new ResizeObserver(updateLayout).observe(document.getElementById('wbm'));
+    }
+    if (typeof window.addEventListener === 'function') {
+        window.addEventListener('resize', function () { updateLayout(); syncTheme(); });
+        if (window.matchMedia) {
+            var scheme = window.matchMedia('(prefers-color-scheme: dark)');
+            if (scheme.addEventListener) scheme.addEventListener('change', syncTheme);
+        }
+    }
+    if (typeof MutationObserver === 'function' && document.documentElement) {
+        var observer = new MutationObserver(syncTheme);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class', 'data-theme'] });
+        observer.observe(document.body, { attributes: true, attributeFilter: ['style', 'class', 'data-theme'] });
+        observer.observe(document.head, { childList: true, subtree: true, characterData: true });
+    }
     render(window.WBM_INITIAL);
     action('Refresh', 0);
-    setInterval(countdown, 1000);
-}());</script>
+    setInterval(function () { countdown(); syncTheme(); }, 1000);
+}());
+</script>
 </body>
 </html>

@@ -9,6 +9,64 @@
     function text(id, value) { el(id).textContent = value; }
     function power(value) { return value === null || value === undefined ? 'Keine Messung' : number.format(value / 1000) + ' kW'; }
     function energy(value) { return energyFormat.format(value || 0) + ' kWh'; }
+    function compactLayout() {
+        var root = document.getElementById('wbm');
+        var height = root && root.clientHeight ? root.clientHeight : window.innerHeight;
+        var width = root && root.clientWidth ? root.clientWidth : window.innerWidth;
+        return typeof height === 'number' && (height < 480 || width < 440);
+    }
+    function updateLayout() {
+        var root = document.getElementById('wbm');
+        if (!root) return;
+        var compact = compactLayout();
+        if (root.dataset.compact === String(compact)) return;
+        root.dataset.compact = String(compact);
+        cards.forEach(function (item) { item.details.open = !compact; });
+    }
+    function themeParameter(names) {
+        var parameters = typeof queryParameters !== 'undefined' ? queryParameters : null;
+        var local = typeof URLSearchParams === 'function' && window.location ? new URLSearchParams(window.location.search) : null;
+        for (var i = 0; i < names.length; i++) {
+            var value = parameters && typeof parameters.get === 'function' ? parameters.get(names[i]) : null;
+            value = value || (local && local.get(names[i]));
+            if (value) return value;
+        }
+        return '';
+    }
+    function validColor(value) {
+        value = (value || '').trim();
+        if (/^[\da-f]{6}$/i.test(value)) value = '#' + value;
+        return value && typeof CSS !== 'undefined' && CSS.supports('color', value) ? value : '';
+    }
+    function brightness(value) {
+        if (!value) return null;
+        var canvas = document.createElement('canvas');
+        var context = canvas.getContext('2d');
+        if (!context) return null;
+        context.fillStyle = value;
+        context.fillRect(0, 0, 1, 1);
+        var pixel = context.getImageData(0, 0, 1, 1).data;
+        return pixel[3] === 0 ? null : (pixel[0] * .299 + pixel[1] * .587 + pixel[2] * .114);
+    }
+    function syncTheme() {
+        if (!document.documentElement || typeof getComputedStyle !== 'function') return;
+        var root = document.documentElement;
+        var styles = getComputedStyle(root);
+        var foreground = validColor(styles.getPropertyValue('--content-color')) || validColor(themeParameter(['textcolor', 'textColor', 'contentColor']));
+        var surface = validColor(styles.getPropertyValue('--card-color')) || validColor(themeParameter(['backgroundColor', 'backgroundcolor', 'cardColor']));
+        var accent = validColor(styles.getPropertyValue('--accent-color')) || validColor(themeParameter(['accentColor', 'accentcolor']));
+        [['--wb-host-text', foreground], ['--wb-host-surface', surface], ['--wb-host-accent', accent]].forEach(function (pair) {
+            if (root.style.getPropertyValue(pair[0]) !== pair[1]) {
+                if (pair[1]) root.style.setProperty(pair[0], pair[1]);
+                else root.style.removeProperty(pair[0]);
+            }
+        });
+        var backgroundBrightness = brightness(surface);
+        var textBrightness = brightness(foreground);
+        var dark = backgroundBrightness !== null ? backgroundBrightness < 128 : (textBrightness !== null ? textBrightness > 128 : !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches));
+        var theme = dark ? 'dark' : 'light';
+        if (root.dataset.wbTheme !== theme) root.dataset.wbTheme = theme;
+    }
     function action(ident, value) {
         try {
             if (typeof requestAction !== 'function') throw new Error('Keine Verbindung zur Symcon-Kachel');
@@ -47,7 +105,16 @@
         lock.textContent = 'Extern gesperrt – manuelle Freigabe hebt die Sperre nicht auf';
         var metrics = document.createElement('div');
         metrics.className = 'device-metrics';
-        metrics.append(metric('Tatsächlich laden', 'measured'), metric('Sollwert / Anforderung', 'command'), metric('Geladene Energie', 'energy'), metric('Aktive Phasen', 'phases'));
+        metrics.append(metric('Tatsächlich laden', 'measured'), metric('Sollwert / Anforderung', 'command'));
+        var details = document.createElement('details');
+        details.className = 'device-details';
+        details.open = !compactLayout();
+        var summary = document.createElement('summary');
+        summary.textContent = 'Energie und Phasen';
+        var secondary = document.createElement('div');
+        secondary.className = 'device-secondary';
+        secondary.append(metric('Geladene Energie', 'energy'), metric('Aktive Phasen', 'phases'));
+        details.append(summary, secondary);
         var controls = document.createElement('div');
         controls.className = 'device-controls';
         var manualLabel = document.createElement('label');
@@ -77,10 +144,10 @@
         reason.className = 'reason'; reason.dataset.field = 'reason';
         var gap = document.createElement('p');
         gap.className = 'gap'; gap.dataset.field = 'gap';
-        card.append(head, lock, metrics, controls, reason, gap);
+        card.append(head, lock, metrics, details, reason, gap, controls);
         var fields = {};
         card.querySelectorAll('[data-field]').forEach(function (node) { fields[node.dataset.field] = node; });
-        cards.set(id, { node: card, fields: fields });
+        cards.set(id, { node: card, fields: fields, details: details });
         el('boxes').append(card);
         return cards.get(id);
     }
@@ -94,6 +161,7 @@
         text('policy', data.strict ? 'Budget strikt' : 'Zeitweise Überschreitung zugelassen');
         text('base', power(data.base));
         text('support', power(data.battery.theoretical));
+        el('support-metric').hidden = !data.batteryConfigured;
         text('confirmed', 'davon bestätigt: ' + power(data.battery.confirmed));
         text('measured', power(data.measured));
         text('assigned', 'zugewiesen: ' + power(data.assigned));
@@ -122,6 +190,7 @@
             f.gap.textContent = box.gap || '';
             f.gap.hidden = !box.gap;
         });
+        el('boxes').dataset.count = String(Object.values(data.boxes).filter(function (box) { return box.enabled; }).length);
         el('battery').hidden = !data.batteryConfigured;
         el('battery-enable').checked = !!data.batteryEnabled;
         el('battery-lock').hidden = data.battery.external;
@@ -134,6 +203,7 @@
         text('updated', 'Aktualisiert: ' + new Date(data.time * 1000).toLocaleTimeString('de-DE'));
         el('simulation').hidden = !data.simulation;
         countdown();
+        updateLayout();
     }
     function countdown() {
         if (!latest) return;
@@ -145,6 +215,7 @@
             var reason = box.reason || box.status;
             if (remaining > 0) reason += box.status === 'Einschaltverzögerung' ? ' – Start in ' + remaining + ' s' : ' – noch ' + remaining + ' s';
             item.fields.reason.textContent = reason;
+            item.fields.reason.hidden = remaining === 0 && reason === box.status;
         });
     }
     window.handleMessage = function (message) {
@@ -154,7 +225,24 @@
     el('manager').addEventListener('change', function () { action('ManagerEnabled', this.checked); });
     el('mode').addEventListener('change', function () { action('DistributionMode', Number(this.value)); });
     el('battery-enable').addEventListener('change', function () { action('BatteryEnabled', this.checked); });
+    syncTheme();
+    if (typeof ResizeObserver === 'function' && document.getElementById('wbm')) {
+        new ResizeObserver(updateLayout).observe(document.getElementById('wbm'));
+    }
+    if (typeof window.addEventListener === 'function') {
+        window.addEventListener('resize', function () { updateLayout(); syncTheme(); });
+        if (window.matchMedia) {
+            var scheme = window.matchMedia('(prefers-color-scheme: dark)');
+            if (scheme.addEventListener) scheme.addEventListener('change', syncTheme);
+        }
+    }
+    if (typeof MutationObserver === 'function' && document.documentElement) {
+        var observer = new MutationObserver(syncTheme);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class', 'data-theme'] });
+        observer.observe(document.body, { attributes: true, attributeFilter: ['style', 'class', 'data-theme'] });
+        observer.observe(document.head, { childList: true, subtree: true, characterData: true });
+    }
     render(window.WBM_INITIAL);
     action('Refresh', 0);
-    setInterval(countdown, 1000);
+    setInterval(function () { countdown(); syncTheme(); }, 1000);
 }());

@@ -2,10 +2,16 @@
 
 ## Ausgeführt
 
-- **64 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34** und **8.3.35**.
+- **70 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
 - **10 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
+- Zusätzliche Chromium-Prüfung der tatsächlichen HTML/CSS/JS-Kachel: sieben Größen
+  von 240 × 260 bis 1440 × 900 Pixeln, kompakte aufklappbare Detailwerte,
+  erreichbare Bedienung und keine horizontale Überbreite.
+- Helle/dunkle Symcon-Farbparameter und CSS-Variablen als Testvorgaben,
+  Wechsel ohne Neuladen und Browser-Fallback geprüft; zusätzlich vier Wallboxen,
+  optionaler Speicher und lange Fehlertexte.
 - Alle **16 PHP-Dateien** syntaktisch geprüft; alle **7 vorhandenen JSON-Dateien**
   syntaktisch geprüft (einschließlich lokalem Testergebnis).
 - Metadaten, unterschiedliche gültige GUIDs, Präfix, Modulstruktur,
@@ -55,9 +61,9 @@ verfügbar. Daher sind Installation im Kernel, tatsächliche Geräteaktionen,
 elektrische Lastreaktionen, reale Phasenwechsel, Symcon-Persistenz im Dienst
 und die Kacheleinbindung noch praktisch zu prüfen.
 
-Der Browseradapter meldete keine verfügbaren Browser. Daher wurde die
-responsiv gestaltete Kachel nicht visuell gerendert oder auf einem realen
-Smartphone/Tablet geprüft. [Lokale Vorschau](preview.html) ist vorhanden.
+Die Kachel wurde in Chromium gerendert und in heller/dunkler Darstellung visuell
+geprüft. Eine echte Symcon-Einbettung mit deren SDK sowie reale Smartphones und
+Tablets bleiben zu prüfen. [Lokale Vorschau](preview.html) ist vorhanden.
 
 Das Kernel-Testdouble belegt die Adapterlogik unter den dokumentierten
 Schnittstellenannahmen. Es ersetzt keine Kernel-, Berechtigungs-, Geräte- oder
@@ -70,6 +76,12 @@ PHP-Laufzeit mit mindestens PHP 8.2 und Node benötigt:
     php -n tests/run.php
     php -n .dev/verify.php
     node tests/tile.test.cjs
+
+Optionaler Layout-/Design-/Bedienungstest mit installiertem Playwright und Chromium:
+
+    node tests/tile.browser.cjs
+
+Ein abweichender Browserpfad kann über WBM_CHROMIUM_PATH angegeben werden.
 
 Auf diesem Arbeitsplatz kann statt php auch .tools/php/php.exe bzw.
 .tools/php82/php.exe verwendet werden. Die lokale Ergebnisdatei

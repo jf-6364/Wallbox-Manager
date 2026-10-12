@@ -174,8 +174,12 @@ externer Webhook erforderlich.
 
 Bedienung von Manager, Verteilung, manuellen Freigaben, Prioritäten und Speicher
 erfolgt über das HTML-SDK. Externe Freigaben werden nur gelesen. Daten werden ohne
-Seitenneuladen aktualisiert. Smartphone-/Tablet-Layouts, Hell-/Dunkelmodus und
-Symcon-Farben besitzen lokale Fallbacks; keine externen CDNs.
+Seitenneuladen aktualisiert. Das Layout nutzt die Breite und Höhe der Kachel.
+In kleinen Kacheln lassen sich Energie und Phasen aufklappen; umfangreiche Inhalte
+scrollen innerhalb der Kachel. Ohne aktivierten Speicher entfällt dessen Übersicht.
+Schrift-, Flächen- und Akzentfarben werden aus den Symcon-CSS-Variablen bzw. den
+HTML-SDK-Farbparametern übernommen und bei Änderungen aktualisiert. Ohne
+Symcon-Farben gilt die Hell-/Dunkeleinstellung des Browsers. Keine externen CDNs.
 
 Die [lokale Vorschau](docs/preview.html) enthält Beispieldaten und einen
 nachgebildeten Aktionskanal; sie ist keine Live-Symcon-Kachel.
@@ -199,8 +203,11 @@ node tests/tile.test.cjs
 Zusätzlich liegt eine portable PHP-Laufzeit in `.tools/php/php.exe`, außerhalb
 des Installationspakets. PHP-Tests wurden unter PHP 8.3.35 ausgeführt; der Code
 verwendet die in Symcon 7.1 vorhandene PHP-8.2-Sprachbasis. JavaScript wurde mit
-Node und DOM-Testdouble geprüft. Keine Live-Symcon-/Hardwaretests und keine
-visuelle Browserabnahme wurden durchgeführt.
+Node und DOM-Testdouble sowie Chromium geprüft. Der optionale Browsertest
+`node tests/tile.browser.cjs` benötigt Playwright und Chromium (alternativer
+Browserpfad über `WBM_CHROMIUM_PATH`). Er prüft sieben Kachelgrößen, Designwechsel,
+Bedienaktionen sowie vier Wallboxen mit Speicher und langen Fehlertexten.
+Live-Symcon-/Hardwaretests bleiben erforderlich.
 
 Das Modul ist eine übergeordnete Betriebsregelung und ersetzt keine elektrischen
 oder geräteseitigen Schutzfunktionen. Planung verwendet nominelle Spannung;
