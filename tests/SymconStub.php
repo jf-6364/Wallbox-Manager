@@ -5,7 +5,6 @@ const KR_READY = 10103;
 const IPS_KERNELMESSAGE = 10100;
 const VM_UPDATE = 10603;
 const VM_DELETE = 10602;
-const INSTANCE_VISUALIZATION_TYPE_HTML = 1;
 
 final class Kernel
 {

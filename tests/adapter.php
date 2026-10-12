@@ -27,6 +27,16 @@ function telemetryOf(WallboxManager $m): array { return json_decode($m->attribut
 function setRuntime(WallboxManager $m, array $state): void { $m->attributes['Runtime'] = json_encode($state, JSON_PRESERVE_ZERO_FRACTION); }
 function callsTo(int $target): array { return array_values(array_filter(Kernel::$calls, fn($c) => $c['target'] === $target)); }
 
+test('Adapter: HTML-Kachel ohne nicht vorhandene SDK-Konstante', function () {
+    check(!defined('INSTANCE_VISUALIZATION_TYPE_HTML'));
+    Kernel::reset();
+    $m = new WallboxManager(50);
+    $m->Create();
+    check($m->visualType === 1);
+    $m->visualType = 0;
+    $m->ApplyChanges();
+    check($m->visualType === 1);
+});
 test('Adapter: installierbare Metadaten, deutsches Formular und HTML-SDK', function () {
     [$m] = fixture(); $m->ApplyChanges();
     check($m->status === 102, $m->GetValue('Status'));
@@ -86,6 +96,11 @@ test('Adapter: Reduzierungen vor Erhöhungen und Messrückmeldung abwarten', fun
 });
 test('Adapter: fehlgeschlagene Geräteaktion sperrt Erhöhungen', function () {
     [$m, $ids] = fixture(2); $m->ApplyChanges();
+    // Confirm the startup stop before testing a later command failure.
+    // Initial integer timestamps can precede the stop at a second boundary.
+    foreach ([1, 2] as $id) Kernel::update($ids[$id]['power'], 0.0, microtime(true));
+    $m->Control();
+    check($m->status === 102, $m->GetValue('Status'));
     Kernel::$failures[$ids[1]['setpoint']] = 'false';
     $m->RequestAction('W1Manual', false);
     check($m->status === 201); check(str_contains($m->GetValue('Status'), 'fehlgeschlagen'));

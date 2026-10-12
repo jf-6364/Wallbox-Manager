@@ -7,6 +7,8 @@ use WBM\{Schema, Validation, Form, Setpoint, Engine, PhaseSwitch, Battery, Energ
 class WallboxManager extends IPSModule
 {
     private const MODULE_ID = '{8EDC0388-D880-4518-A44B-91A1A3CF7086}';
+    // The Symcon SDK uses 1 for HTML tiles; it provides no global HTML constant.
+    private const VISUALIZATION_TYPE_HTML = 1;
 
     public function Create()
     {
@@ -22,7 +24,7 @@ class WallboxManager extends IPSModule
         $this->SetBuffer('ColdStart', '1');
         $this->profiles();
         $this->variables();
-        $this->SetVisualizationType(INSTANCE_VISUALIZATION_TYPE_HTML);
+        $this->SetVisualizationType(self::VISUALIZATION_TYPE_HTML);
     }
 
     public function ApplyChanges()
@@ -79,7 +81,7 @@ class WallboxManager extends IPSModule
             $this->SetBuffer('ColdStart', '0');
             $this->references($flat, $state);
             $this->SetTimerInterval('Control', max(1, min(3600, $flat['Interval'])) * 1000);
-            $this->SetVisualizationType(INSTANCE_VISUALIZATION_TYPE_HTML);
+            $this->SetVisualizationType(self::VISUALIZATION_TYPE_HTML);
         } finally {
             IPS_SemaphoreLeave($this->lockName());
         }
