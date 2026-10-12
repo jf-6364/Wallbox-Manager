@@ -81,6 +81,6 @@ Array-Variablendarstellungen (8.0), IPSModuleStrict (8.1), openObject (8.2) und 
 - RegisterVariable nutzt bei IPSModule Profilnamen als String; Array-Darstellungen setzen 8.0 voraus.
 - MessageSink-Zeitstempel ist ein Nachrichten-Zähler. VariableUpdated ist der Unix-Messzeitpunkt; Sekundenauflösung begrenzt die Integrationspräzision.
 - HasAction prüft das Vorhandensein. RequestAction wird auf false, Warnungen und Exceptions geprüft; fehlende Aktion nutzt nur im ausdrücklichen Simulationsmodus SetValue.
-- HTML-Nachrichten sind frei kodierbar. Das Modul sendet Datenobjekte; die Kachel akzeptiert zusätzlich JSON-Strings. Initialdaten sind gegen HTML-/Script-Einschleusung JSON-kodiert.
+- Das Modul überträgt strukturierte Kacheldaten als JSON-Strings an UpdateVisualizationValue. handleMessage dekodiert diese in der Kachel. Die native Schnittstelle kann PHP-Arrays nicht als Wert übernehmen. Initialdaten sind gegen HTML-/Script-Einschleusung JSON-kodiert.
 - WBM_ControlTargets ist eine eigene öffentliche Modulfunktion mit automatisch durch Symcon erzeugtem Präfixwrapper. Sie ist keine behauptete Kern-API.
 - Hysterese, Mindestlaufzeit und Nachlauf sind mit der [Energie-Manager-Dokumentation](https://www.symcon.de/de/llms/modules/energy-manager.md) abgeglichen. Budgetkonflikte und Sperren werden gemäß Auftrag explizit strenger aufgelöst.

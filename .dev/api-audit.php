@@ -39,7 +39,7 @@ $out .= "\n## Auslegungsdetails\n\n";
 $out .= "- RegisterVariable nutzt bei IPSModule Profilnamen als String; Array-Darstellungen setzen 8.0 voraus.\n";
 $out .= "- MessageSink-Zeitstempel ist ein Nachrichten-Zähler. VariableUpdated ist der Unix-Messzeitpunkt; Sekundenauflösung begrenzt die Integrationspräzision.\n";
 $out .= "- HasAction prüft das Vorhandensein. RequestAction wird auf false, Warnungen und Exceptions geprüft; fehlende Aktion nutzt nur im ausdrücklichen Simulationsmodus SetValue.\n";
-$out .= "- HTML-Nachrichten sind frei kodierbar. Das Modul sendet Datenobjekte; die Kachel akzeptiert zusätzlich JSON-Strings. Initialdaten sind gegen HTML-/Script-Einschleusung JSON-kodiert.\n";
+$out .= "- Das Modul überträgt strukturierte Kacheldaten als JSON-Strings an UpdateVisualizationValue. handleMessage dekodiert diese in der Kachel. Die native Schnittstelle kann PHP-Arrays nicht als Wert übernehmen. Initialdaten sind gegen HTML-/Script-Einschleusung JSON-kodiert.\n";
 $out .= "- WBM_ControlTargets ist eine eigene öffentliche Modulfunktion mit automatisch durch Symcon erzeugtem Präfixwrapper. Sie ist keine behauptete Kern-API.\n";
 $out .= "- Hysterese, Mindestlaufzeit und Nachlauf sind mit der [Energie-Manager-Dokumentation](https://www.symcon.de/de/llms/modules/energy-manager.md) abgeglichen. Budgetkonflikte und Sperren werden gemäß Auftrag explizit strenger aufgelöst.\n";
 file_put_contents($root . '/docs/API.md', $out);

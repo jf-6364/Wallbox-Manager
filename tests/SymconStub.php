@@ -95,7 +95,12 @@ class IPSModule
     public function SetStatus($status) { $this->status = $status; }
     public function SendDebug($name, $data, $format) { $this->debug[] = [$name, $data]; }
     public function SetVisualizationType($type) { $this->visualType = $type; }
-    public function UpdateVisualizationValue($value) { $this->visualUpdates[] = $value; return true; }
+    public function UpdateVisualizationValue($value)
+    {
+        if (!is_scalar($value)) throw new TypeError('Cannot auto-convert value for parameter Value (Type does not match)');
+        $this->visualUpdates[] = $value;
+        return true;
+    }
 }
 function IPS_GetKernelRunlevel() { return KR_READY; }
 function IPS_VariableExists($id) { return isset(Kernel::$variables[$id]); }

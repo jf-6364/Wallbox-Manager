@@ -27,6 +27,54 @@ function telemetryOf(WallboxManager $m): array { return json_decode($m->attribut
 function setRuntime(WallboxManager $m, array $state): void { $m->attributes['Runtime'] = json_encode($state, JSON_PRESERVE_ZERO_FRACTION); }
 function callsTo(int $target): array { return array_values(array_filter(Kernel::$calls, fn($c) => $c['target'] === $target)); }
 
+class VisualizationFailureModule extends WallboxManager
+{
+    public bool $failNextVisualization = false;
+    public function UpdateVisualizationValue($value)
+    {
+        if ($this->failNextVisualization) {
+            $this->failNextVisualization = false;
+            throw new RuntimeException('Visualisierung vorübergehend nicht verfügbar');
+        }
+        return parent::UpdateVisualizationValue($value);
+    }
+}
+
+test('Adapter: Instanzerstellung, Regelung und Refresh übertragen JSON-Strings', function () {
+    Kernel::reset();
+    $m = new WallboxManager(50);
+    $m->Create();
+    $m->ApplyChanges();
+    $initial = end($m->visualUpdates);
+    $m->RequestAction('Refresh', null);
+    check(end($m->visualUpdates) === $initial);
+    $m->Control();
+    check(count($m->visualUpdates) === 3);
+    foreach ($m->visualUpdates as $message) {
+        check(is_string($message));
+        $data = json_decode($message, true, 512, JSON_THROW_ON_ERROR);
+        check(isset($data['boxes'], $data['errors'], $data['status']));
+    }
+    check(json_decode(end($m->visualUpdates), true) === telemetryOf($m));
+});
+test('Adapter: Regelfehler werden als JSON an die Kachel übertragen', function () {
+    Kernel::reset();
+    $m = new VisualizationFailureModule(50);
+    $m->Create();
+    $m->ApplyChanges();
+    $m->visualUpdates = [];
+    $m->failNextVisualization = true;
+    $m->Control();
+    check($m->status === 201);
+    check(count($m->visualUpdates) === 1);
+    $message = $m->visualUpdates[0];
+    check(is_string($message));
+    $data = json_decode($message, true, 512, JSON_THROW_ON_ERROR);
+    check($data['status'] === 'Fehler');
+    check(str_contains($data['errors'][0], 'Visualisierung vorübergehend nicht verfügbar'));
+    check($data === telemetryOf($m));
+});
+
 test('Adapter: HTML-Kachel ohne nicht vorhandene SDK-Konstante', function () {
     check(!defined('INSTANCE_VISUALIZATION_TYPE_HTML'));
     Kernel::reset();

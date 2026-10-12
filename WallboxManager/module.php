@@ -118,7 +118,7 @@ class WallboxManager extends IPSModule
     public function RequestAction($Ident, $Value)
     {
         if ($Ident === 'Refresh') {
-            $this->UpdateVisualizationValue($this->jsonAttribute('Telemetry'));
+            $this->UpdateVisualizationValue($this->ReadAttributeString('Telemetry'));
             return;
         }
         $bools = ['ManagerEnabled', 'BatteryEnabled'];
@@ -182,7 +182,7 @@ class WallboxManager extends IPSModule
             $telemetry['errors'] = ['Regeldurchlauf fehlgeschlagen: ' . $e->getMessage()];
             $telemetry['status'] = 'Fehler';
             $this->WriteAttributeString('Telemetry', $this->encode($telemetry));
-            $this->UpdateVisualizationValue($telemetry);
+            $this->UpdateVisualizationValue($this->encode($telemetry));
             $this->SendDebug('Regelfehler', $e->getMessage(), 0);
         } finally { IPS_SemaphoreLeave('WBM_DeviceOwnership'); IPS_SemaphoreLeave($this->lockName()); }
     }
@@ -740,7 +740,7 @@ class WallboxManager extends IPSModule
             'OverrunPower' => $plan['overrun'], 'Status' => $plan['status']] as $key => $value) $this->SetValue($key, $value);
         $this->SetStatus($validation ? 200 : ($plan['errors'] ? 201 : ($plan['manager'] ? 102 : 104)));
         $this->WriteAttributeString('Telemetry', $this->encode($plan));
-        $this->UpdateVisualizationValue($plan);
+        $this->UpdateVisualizationValue($this->encode($plan));
         $this->SendDebug('Regelung', $this->encode($plan), 0);
     }
 
