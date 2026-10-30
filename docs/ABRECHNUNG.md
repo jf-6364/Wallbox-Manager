@@ -25,6 +25,49 @@ Im allgemeinen Bereich **Abrechnung** steht die Zeitzone der PDFs, standardmäß
 `Europe/Berlin`. Eine Änderung gilt für neu beginnende Ladegänge. Zeitpunkte
 werden intern als Unix-Zeit gespeichert; die PDF nennt die verwendete Zeitzone.
 
+## Rechnung: Adressen, Zahlung und Nummern
+
+Im allgemeinen Bereich **Abrechnung → Rechnung** stehen die gemeinsamen Daten:
+
+- Rechnungssteller: Name/Firma, Straße, Postleitzahl, Ort und Land.
+- Optionales Logo-Kürzel für den runden Monogrammbereich der Vorlage.
+- Kontakt: Telefon, E-Mail, Webseite und zusätzlicher Fußtext.
+- Zahlung: Bank, Kontoinhaber, IBAN, BIC, Zahlungsmethode, Zahlungsfrist und
+  optionaler eigener Zahlungshinweis. Ohne eigenen Text werden Zahlungsziel und
+  Rechnungsnummer automatisch eingesetzt.
+- Nummer und Steuer: Präfix, Startnummer, Umsatzsteuerdarstellung und Steuersatz,
+  optional Steuernummer und USt-IdNr.
+
+Je **Wallbox → Abrechnung → Rechnung** sind Empfängername/Firma, Straße,
+Postleitzahl, Ort und Land sowie Kundennummer und Referenz/Kennzeichen einstellbar.
+Die Rechnungsdaten werden beim Abschluss des Ladegangs gespeichert. Spätere
+Änderungen gelten für weitere Abschlüsse. Bereits gespeicherte PDFs und noch
+ausstehende Schreibversuche behalten ihre ursprünglichen Daten.
+
+Die Nummer wird automatisch vergeben, beispielsweise `RE-2026-000001`.
+Der Nummernkreis läuft innerhalb einer Managerinstanz über alle Wallboxen weiter.
+Eine kleinere Startnummer verwendet bereits reservierte Nummern nicht erneut.
+Auch Neustarts und Energiezähler-Reset setzen diesen Zähler nicht zurück.
+Bei mehreren unabhängigen Managerinstanzen sind unterschiedliche Präfixe sinnvoll.
+
+### Umsatzsteuer ignorieren oder einbeziehen
+
+Die kWh-Preise sind **Endpreise**. Der Gesamtbetrag wird durch einen Wechsel der
+Umsatzsteuerdarstellung nicht erhöht.
+
+| Auswahl | Darstellung |
+|---|---|
+| Umsatzsteuer ignorieren | Keine gesonderte Steuerposition; Gesamtbetrag entspricht den Tarifpositionen |
+| Umsatzsteuer einbeziehen | Enthaltene Steuer wird mit dem eingestellten Satz herausgerechnet und separat ausgewiesen |
+| Kleinunternehmerregelung | Kein Umsatzsteuerausweis und ausdrücklich gewählter Hinweis zu § 19 UStG |
+
+Beispiel bei 1,89 EUR Gesamtbetrag und 19,00 %: 1,59 EUR netto + 0,30 EUR USt
+= 1,89 EUR Endbetrag. Die Tarifpositionen bleiben Endpreise; Steuer und Nettosumme
+werden auf Cent gerundet und stimmen zusammen mit dem Gesamtbetrag überein.
+
+Eine [Beispiel-PDF mit fiktiven Daten](examples/rechnung-beispiel.pdf) zeigt
+Adressblöcke, Datum und Nummer, Bankangaben, Positionstabelle, Summen und Fußbereich.
+
 ## Beginn und Abschluss eines Ladegangs
 
 Ein Ladegang beginnt, wenn die tatsächlich gemessene Leistung die eingestellte
@@ -87,12 +130,13 @@ Wiederholungsversuche dieselbe Abrechnung mehrfach anlegen.
 
 Die Kachel zeigt je aktiver Wallbox den aufklappbaren Bereich **Abrechnung** mit
 laufendem beziehungsweise letztem Ladegang, PV-/Normalenergie und Kosten. Der
-Button **Letzte Abrechnung als PDF** lädt das letzte gespeicherte Dokument
+Button **Rechnung … als PDF** lädt das letzte gespeicherte Dokument
 herunter. Ältere PDFs bleiben im jeweiligen Symcon-Ordner erreichbar. Ein
 offener Browser ist für die automatische Erstellung nicht erforderlich.
 
 Zum Download in der Visualisierung die gewünschte **Wallbox → Abrechnung**
-aufklappen und **„Letzte Abrechnung als PDF“** anklicken. Der Browser speichert
+aufklappen und **„Rechnung … als PDF“** anklicken (bei älteren Dokumenten
+„Letzte Abrechnung als PDF“). Der Browser speichert
 die Datei im Download-Ordner oder fragt nach einem Speicherort. Solange kein
 abgeschlossener Ladegang mit erfasster Energie vorliegt, ist der Button deaktiviert.
 Der Ladegang wird nach der eingestellten Ladepause abgeschlossen, standardmäßig
@@ -109,6 +153,8 @@ Kann ein PDF nicht gespeichert werden, bleibt die Abrechnung in einer
 persistenten Warteschlange. Der Fehler wird angezeigt; die Erstellung wird im
 nächsten Regeldurchlauf erneut versucht. Ein Dokumentfehler beendet die
 Laderegelung nicht. PDFs werden nicht automatisch gelöscht oder versandt.
+Es wird **für jeden Ladegang eine eigene PDF** gespeichert; der Downloadbutton
+zeigt lediglich auf das letzte Dokument. Frühere PDFs werden nicht überschrieben.
 
 Ein Neustart bewahrt laufende Ladegänge, bisherige Tarifpositionen und noch zu
 erstellende PDFs. Ausfallzeiten werden nicht als angenommene Ladeenergie

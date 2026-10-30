@@ -145,6 +145,20 @@ PDFs bleiben bei Neustarts erhalten; der Gesamtenergie-Reset verändert sie nich
 Weitere Details und ein Rechenbeispiel stehen in der
 [Dokumentation zur Ladeabrechnung](docs/ABRECHNUNG.md).
 
+Unter **Abrechnung → Rechnung** werden Rechnungssteller, Anschrift, Kontakt,
+Bankverbindung, Zahlungsfrist sowie Nummernkreis und Umsatzsteuer eingestellt.
+Der Empfänger und eine optionale Kundennummer stehen je Wallbox unter
+**Abrechnung → Rechnung**. Die PDF orientiert sich an einer klassischen Rechnung
+mit Adressblöcken, Positionstabelle, Summen und Zahlungsinformationen.
+
+Umsatzsteuer kann ignoriert oder als bereits im Endpreis enthaltene Steuer
+ausgewiesen werden; der Steuersatz ist einstellbar. Der §-19-Hinweis erscheint
+bei ausdrücklich gewählter Kleinunternehmerregelung. Bereits erstellte Rechnungen
+behalten ihre Daten und Nummern. **Jeder Ladegang erzeugt ein eigenes Dokument**;
+die Dateien werden nicht automatisch überschrieben oder gelöscht.
+Eine [Beispielrechnung mit fiktiven Daten](docs/examples/rechnung-beispiel.pdf)
+zeigt das Layout.
+
 ## Kachelvisualisierung
 
 Die eigene Symcon-Kachel zeigt Budget, aktuelle Ladeleistung und Gesamtenergie
@@ -171,6 +185,10 @@ Die Darstellung übernimmt Symcon-Farben für Hell- und Dunkelmodus. Ohne überg
 Symcon-Farben gilt die Browser-Einstellung. Zahlen werden mit Dezimalkomma und
 höchstens zwei Nachkommastellen angezeigt, Ampere- und Wattwerte in der Kachel
 mit einer Nachkommastelle.
+
+Die Oberfläche nutzt die Systemschrift des WebFronts, Türkis als Standardakzent
+(`#00B5AD`) und übernimmt bereitgestellte Symcon-Akzentfarben. Dezente Kartenrahmen,
+flache Bedienelemente, Linienicons und schlichte Trennlinien folgen dem Dashboard.
 
 ## Weitere Informationen
 

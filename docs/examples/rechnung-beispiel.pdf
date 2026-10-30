@@ -1,0 +1,177 @@
+%PDF-1.4
+%âãÏÓ
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 1 /Kids [6 0 R] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Times-Italic /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 5632>>
+stream
+0.949 0.937 0.929 rg 0 0 595 842 re f
+0.06 0.06 0.06 rg 0.4 0.38 0.37 RG 0.5 w
+BT /F2 30 Tf 1 0 0 1 54 780 Tm (RECHNUNG) Tj ET
+527 788 m 527 802.91 514.91 815 500 815 c 485.09 815 473 802.91 473 788 c 473 773.09 485.09 761 500 761 c 514.91 761 527 773.09 527 788 c S
+BT /F3 22 Tf 1 0 0 1 483.5 782 Tm (SM) Tj ET
+BT /F1 8 Tf 1 0 0 1 54 734 Tm (Datum:) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 722 Tm (30.10.2026) Tj ET
+54 710 m 288 710 l S
+BT /F1 8 Tf 1 0 0 1 54 694 Tm (Nr. Rechnung:) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 682 Tm (MUSTER-2026-000001) Tj ET
+54 670 m 288 670 l S
+BT /F1 8 Tf 1 0 0 1 54 654 Tm (Rechnungsempfänger) Tj ET
+BT /F2 10 Tf 1 0 0 1 54 638 Tm (Max Beispiel) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 624 Tm (Mauerstraße 14) Tj ET
+BT /F1 10 Tf 1 0 0 1 54 610 Tm (90443 Nürnberg) Tj ET
+BT /F1 8 Tf 1 0 0 1 54 596 Tm (Kundennr.: K-1001) Tj ET
+BT /F1 8 Tf 1 0 0 1 54 584 Tm (Referenz: Fahrzeug / Garage) Tj ET
+BT /F2 10 Tf 1 0 0 1 326 734 Tm (Solar & Energie Mustermann) Tj ET
+BT /F1 10 Tf 1 0 0 1 326 720 Tm (Sonnenstraße 12) Tj ET
+BT /F1 10 Tf 1 0 0 1 326 706 Tm (90443 Nürnberg) Tj ET
+BT /F1 9 Tf 1 0 0 1 326 674 Tm (Zahlungsmethode: Überweisung) Tj ET
+BT /F1 9 Tf 1 0 0 1 326 661 Tm (Bank: Beispielbank) Tj ET
+BT /F1 9 Tf 1 0 0 1 326 648 Tm (Kontoinhaber: Solar & Energie Mustermann) Tj ET
+BT /F1 9 Tf 1 0 0 1 326 635 Tm (IBAN: DE00 0000 0000 0000 0000 00) Tj ET
+BT /F1 9 Tf 1 0 0 1 326 622 Tm (BIC: BEISPIELXXX) Tj ET
+BT /F1 8 Tf 1 0 0 1 54 556 Tm (Ladezeitraum: 30.10.2026 11:00:00 - 30.10.2026 13:00:00 \(Europe/Berlin\)) Tj ET
+BT /F1 8 Tf 1 0 0 1 54 544 Tm (Wallbox 1 - Garage · 11,75 kWh \(aus gemessener Ladeleistung berechnet\)) Tj ET
+54 498 487 28 re S
+121 498 m 121 526 l S
+321 498 m 321 526 l S
+405 498 m 405 526 l S
+475 498 m 475 526 l S
+BT /F2 8 Tf 1 0 0 1 61 508 Tm (Datum) Tj ET
+BT /F2 8 Tf 1 0 0 1 128 508 Tm (Artikelbeschreibung) Tj ET
+BT /F2 8 Tf 1 0 0 1 328 508 Tm (Preis/kWh) Tj ET
+BT /F2 8 Tf 1 0 0 1 412 508 Tm (Menge) Tj ET
+BT /F2 8 Tf 1 0 0 1 482 508 Tm (Gesamt) Tj ET
+54 470 487 28 re S
+121 470 m 121 498 l S
+321 470 m 321 498 l S
+405 470 m 405 498 l S
+475 470 m 475 498 l S
+BT /F1 8 Tf 1 0 0 1 61 480 Tm (30.10.2026) Tj ET
+BT /F1 8 Tf 1 0 0 1 128 480 Tm (PV-Überschussladen) Tj ET
+BT /F1 8 Tf 1 0 0 1 374.704 480 Tm (0,10 €) Tj ET
+BT /F1 8 Tf 1 0 0 1 433.152 480 Tm (8,50 kWh) Tj ET
+BT /F1 8 Tf 1 0 0 1 510.704 480 Tm (0,85 €) Tj ET
+54 442 487 28 re S
+121 442 m 121 470 l S
+321 442 m 321 470 l S
+405 442 m 405 470 l S
+475 442 m 475 470 l S
+BT /F1 8 Tf 1 0 0 1 61 452 Tm (30.10.2026) Tj ET
+BT /F1 8 Tf 1 0 0 1 128 452 Tm (Normalladen) Tj ET
+BT /F1 8 Tf 1 0 0 1 374.704 452 Tm (0,32 €) Tj ET
+BT /F1 8 Tf 1 0 0 1 433.152 452 Tm (3,25 kWh) Tj ET
+BT /F1 8 Tf 1 0 0 1 510.704 452 Tm (1,04 €) Tj ET
+54 414 487 28 re S
+121 414 m 121 442 l S
+321 414 m 321 442 l S
+405 414 m 405 442 l S
+475 414 m 475 442 l S
+BT /F1 8 Tf 1 0 0 1 61 424 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 128 424 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 398 424 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 468 424 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 534 424 Tm () Tj ET
+54 386 487 28 re S
+121 386 m 121 414 l S
+321 386 m 321 414 l S
+405 386 m 405 414 l S
+475 386 m 475 414 l S
+BT /F1 8 Tf 1 0 0 1 61 396 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 128 396 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 398 396 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 468 396 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 534 396 Tm () Tj ET
+54 358 487 28 re S
+121 358 m 121 386 l S
+321 358 m 321 386 l S
+405 358 m 405 386 l S
+475 358 m 475 386 l S
+BT /F1 8 Tf 1 0 0 1 61 368 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 128 368 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 398 368 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 468 368 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 534 368 Tm () Tj ET
+54 330 487 28 re S
+121 330 m 121 358 l S
+321 330 m 321 358 l S
+405 330 m 405 358 l S
+475 330 m 475 358 l S
+BT /F1 8 Tf 1 0 0 1 61 340 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 128 340 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 398 340 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 468 340 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 534 340 Tm () Tj ET
+54 302 487 28 re S
+121 302 m 121 330 l S
+321 302 m 321 330 l S
+405 302 m 405 330 l S
+475 302 m 475 330 l S
+BT /F1 8 Tf 1 0 0 1 61 312 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 128 312 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 398 312 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 468 312 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 534 312 Tm () Tj ET
+54 274 487 28 re S
+121 274 m 121 302 l S
+321 274 m 321 302 l S
+405 274 m 405 302 l S
+475 274 m 475 302 l S
+BT /F1 8 Tf 1 0 0 1 61 284 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 128 284 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 398 284 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 468 284 Tm () Tj ET
+BT /F1 8 Tf 1 0 0 1 534 284 Tm () Tj ET
+BT /F1 24 Tf 1 0 0 1 54 132 Tm (DANKE!) Tj ET
+BT /F1 8 Tf 1 0 0 1 54 102 Tm (Tel.: +49 123 456789) Tj ET
+BT /F1 8 Tf 1 0 0 1 54 90 Tm (kontakt@example.org) Tj ET
+BT /F1 8 Tf 1 0 0 1 54 78 Tm (www.example.org) Tj ET
+BT /F1 8 Tf 1 0 0 1 54 66 Tm (Steuernr.: 123/456/78900) Tj ET
+BT /F1 8 Tf 1 0 0 1 54 54 Tm (Vielen Dank für Ihr Vertrauen.) Tj ET
+321 230 220 26 re S
+BT /F1 9 Tf 1 0 0 1 328 239 Tm (Zwischensumme \(netto\)) Tj ET
+BT /F1 9 Tf 1 0 0 1 507.792 239 Tm (1,59 €) Tj ET
+321 204 220 26 re S
+BT /F1 9 Tf 1 0 0 1 328 213 Tm (USt 19,00 %) Tj ET
+BT /F1 9 Tf 1 0 0 1 507.792 213 Tm (0,30 €) Tj ET
+321 178 220 26 re S
+BT /F2 9 Tf 1 0 0 1 328 187 Tm (Gesamtbetrag) Tj ET
+BT /F2 9 Tf 1 0 0 1 506.21952 187 Tm (1,89 €) Tj ET
+BT /F1 8 Tf 1 0 0 1 326 162 Tm (Alle Positionspreise und Beträge sind Endpreise inklusive) Tj ET
+BT /F1 8 Tf 1 0 0 1 326 150 Tm (Umsatzsteuer.) Tj ET
+BT /F1 8 Tf 1 0 0 1 326 130 Tm (Zahlbar bis zum 13.11.2026. Verwendungszweck:) Tj ET
+BT /F1 8 Tf 1 0 0 1 326 118 Tm (MUSTER-2026-000001.) Tj ET
+BT /F1 8 Tf 1 0 0 1 54 16 Tm (MUSTER-2026-000001 · Seite 1 / 1) Tj ET
+endstream
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000218 00000 n 
+0000000320 00000 n 
+0000000420 00000 n 
+0000000566 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+6248
+%%EOF

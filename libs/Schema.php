@@ -30,6 +30,48 @@ final class Schema
             'MeterJumpFactor' => [2.0, 'Plausibilitätsfaktor für Zählersprünge', 'Energiezählung'],
             'MeterJumpSlack' => [0.02, 'Zählersprung-Toleranz (kWh)', 'Energiezählung'],
             'BillingTimezone' => ['Europe/Berlin', 'Zeitzone der Ladeabrechnungen', 'Abrechnung']
+        ] + self::invoice();
+    }
+
+    public static function invoice(): array
+    {
+        return [
+            'InvoiceSenderName' => ['', 'Name / Firma', 'Rechnung: Rechnungssteller'],
+            'InvoiceSenderStreet' => ['', 'Straße / Hausnummer', 'Rechnung: Rechnungssteller'],
+            'InvoiceSenderZip' => ['', 'Postleitzahl', 'Rechnung: Rechnungssteller'],
+            'InvoiceSenderCity' => ['', 'Ort', 'Rechnung: Rechnungssteller'],
+            'InvoiceSenderCountry' => ['', 'Land', 'Rechnung: Rechnungssteller'],
+            'InvoiceLogoText' => ['', 'Logo-Kürzel (optional)', 'Rechnung: Rechnungssteller'],
+            'InvoicePhone' => ['', 'Telefon', 'Rechnung: Kontakt'],
+            'InvoiceEmail' => ['', 'E-Mail', 'Rechnung: Kontakt'],
+            'InvoiceWebsite' => ['', 'Webseite', 'Rechnung: Kontakt'],
+            'InvoiceBankName' => ['', 'Name der Bank', 'Rechnung: Zahlung'],
+            'InvoiceAccountHolder' => ['', 'Kontoinhaber', 'Rechnung: Zahlung'],
+            'InvoiceIBAN' => ['', 'IBAN', 'Rechnung: Zahlung'],
+            'InvoiceBIC' => ['', 'BIC', 'Rechnung: Zahlung'],
+            'InvoicePaymentMethod' => ['Überweisung', 'Zahlungsmethode', 'Rechnung: Zahlung'],
+            'InvoicePaymentDays' => [14, 'Zahlungsfrist (Tage; 0 = sofort)', 'Rechnung: Zahlung'],
+            'InvoicePaymentText' => ['', 'Zahlungshinweis (leer = automatisch)', 'Rechnung: Zahlung'],
+            'InvoiceFooterText' => ['', 'Zusätzlicher Fußtext (optional)', 'Rechnung: Kontakt'],
+            'InvoicePrefix' => ['RE', 'Rechnungsnummer-Präfix', 'Rechnung: Nummer und Steuer'],
+            'InvoiceStartNumber' => [1, 'Startnummer (bereits vergebene Nummern bleiben reserviert)', 'Rechnung: Nummer und Steuer'],
+            'InvoiceTaxMode' => ['none', 'Umsatzsteuerdarstellung', 'Rechnung: Nummer und Steuer', ['none' => 'Umsatzsteuer ignorieren (kein gesonderter Ausweis)', 'included' => 'Umsatzsteuer einbeziehen (im Endpreis enthalten)', 'small' => 'Kleinunternehmerregelung (§ 19 UStG)']],
+            'InvoiceTaxRate' => [19.0, 'Umsatzsteuersatz (%)', 'Rechnung: Nummer und Steuer'],
+            'InvoiceTaxNumber' => ['', 'Steuernummer (optional)', 'Rechnung: Nummer und Steuer'],
+            'InvoiceVATID' => ['', 'USt-IdNr. (optional)', 'Rechnung: Nummer und Steuer']
+        ];
+    }
+
+    public static function invoiceRecipient(): array
+    {
+        return [
+            'InvoiceRecipientName' => ['', 'Rechnungsempfänger: Name / Firma', 'Rechnung'],
+            'InvoiceRecipientStreet' => ['', 'Straße / Hausnummer', 'Rechnung'],
+            'InvoiceRecipientZip' => ['', 'Postleitzahl', 'Rechnung'],
+            'InvoiceRecipientCity' => ['', 'Ort', 'Rechnung'],
+            'InvoiceRecipientCountry' => ['', 'Land', 'Rechnung'],
+            'InvoiceCustomerNumber' => ['', 'Kundennummer (optional)', 'Rechnung'],
+            'InvoiceReference' => ['', 'Referenz / Kennzeichen (optional)', 'Rechnung']
         ];
     }
 
@@ -89,7 +131,7 @@ final class Schema
             'MinPause' => [60, 'Mindestpause (s)', 'Zeitbedingungen'],
             'HysteresisW' => [-1.0, 'Eigene Hysterese (W; -1 = global)', 'Zeitbedingungen'],
             'CommandGap' => [0, 'Mindestabstand für Erhöhungsbefehle (s)', 'Zeitbedingungen']
-        ];
+        ] + self::invoiceRecipient();
     }
 
     public static function battery(): array

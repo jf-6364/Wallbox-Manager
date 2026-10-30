@@ -2,7 +2,7 @@
 
 ## Ausgeführt
 
-- **107 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- **114 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
 - **10 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
@@ -38,7 +38,19 @@
   Seiten geprüft. Eine Beispielabrechnung wurde zusätzlich mit `pdftotext`
   gelesen und als Bild gerendert. Chromium prüft Abrechnungsanzeige und
   PDF-Download ohne Geräteaktion sowie den Hell-/Dunkelmodus und kleine Kacheln.
-- Alle **19 PHP-Dateien** syntaktisch geprüft; alle **7 vorhandenen JSON-Dateien**
+- Rechnungsdaten und Nummernkreis geprüft: getrennte Empfänger, gemeinsame
+  Absender-/Bankdaten, fortlaufende Nummern und unveränderte Datenschnappschüsse
+  bei Wiederholungen nach Schreibfehlern. Neue Rechnungen überschreiben keine
+  vorhandenen PDFs. Zahlungsfrist über die Zeitumstellung, lange Adressen und
+  mehrseitige Zahlungstexte sind abgedeckt.
+- Umsatzsteuer einbeziehen/ignorieren sowie §-19-Auswahl geprüft. Bei enthaltenen
+  19 % ergeben 1,89 EUR Endpreis 1,59 EUR netto und 0,30 EUR USt. Steuer und Netto
+  stimmen centgenau mit dem unveränderten Endpreis überein.
+- UI in Chromium mit Systemschrift, abgerundeten Kartenrahmen, SVG-Linienicons und
+  Standardakzent #00B5AD geprüft; Symcon-Farben haben Vorrang. PDF-Download nennt
+  die Rechnungsnummer, Hell-/Dunkelmodus und alle vorhandenen Größenprüfungen
+  bleiben abgedeckt.
+- Alle **22 PHP-Dateien** syntaktisch geprüft; alle **7 vorhandenen JSON-Dateien**
   syntaktisch geprüft (einschließlich lokalem Testergebnis).
 - Metadaten, unterschiedliche gültige GUIDs, Präfix, Modulstruktur,
   vollständige Formularfelder und Beispielkonfigurationen geprüft.

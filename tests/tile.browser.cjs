@@ -76,6 +76,9 @@ async function palette(page) {
         assert.equal(colors.text, 'rgb(240, 240, 243)');
         assert.equal(colors.scheme, 'dark');
         assert.equal(colors.background, 'rgb(28, 28, 33)');
+        assert.ok((await page.evaluate(() => getComputedStyle(document.body).fontFamily)).startsWith('system-ui, -apple-system, BlinkMacSystemFont'));
+        assert.equal(await page.locator('.tile-view').evaluate(node => getComputedStyle(node).borderRadius), '6px');
+        assert.equal(await page.locator('#energy-open .wb-icon').getAttribute('aria-hidden'), 'true');
         assert.equal(await page.locator('#support-metric').isVisible(), false);
         assert.equal(await page.locator('#energy').textContent(), '2,41 kWh');
         assert.equal(await page.locator('[data-field="energy"]').first().textContent(), '1,68 kWh (berechnet)');
@@ -170,7 +173,8 @@ async function palette(page) {
             });
             const bounds = await page.locator('#energy-dashboard').evaluate(node => {
                 const scroller = node.querySelector('.dashboard-scroll');
-                return {width: node.clientWidth, height: node.clientHeight, scrollWidth: scroller.scrollWidth, contentWidth: scroller.clientWidth,
+                const frame = node.getBoundingClientRect();
+                return {width: frame.width, height: frame.height, scrollWidth: scroller.scrollWidth, contentWidth: scroller.clientWidth,
                     documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight};
             });
             assert.ok(bounds.scrollWidth <= bounds.contentWidth + 1, JSON.stringify(bounds));
@@ -241,6 +245,7 @@ async function palette(page) {
         console.log('OK  Dashboard dark mode, safe names, focus trap and fullscreen');
         await page.setContent(html());
         assert.equal((await palette(page)).theme, 'dark');
+        assert.equal((await palette(page)).accent, '#00b5ad');
         await page.emulateMedia({colorScheme: 'light'});
         await page.waitForFunction(() => document.documentElement.dataset.wbTheme === 'light');
         console.log('OK  Standalone browser theme fallback');
@@ -315,7 +320,7 @@ async function palette(page) {
         const documentBytes = Buffer.from('%PDF-1.4\n% Browser download transport fixture\n%%EOF\n');
         const receipt = {id: 'abc123', started: 1791838054, ended: 1791840054,
             pvEnergy: 1.25, normalEnergy: 2.5, totalEnergy: 3.75, pvCost: .13, normalCost: .8, totalCost: .93,
-            unassignedEnergy: 0, warnings: [], fileName: 'wbm-50-w1-abc123.pdf', mediaID: 12345};
+            unassignedEnergy: 0, warnings: [], fileName: 'RE-2026-000123.pdf', mediaID: 12345, invoice: {number: 'RE-2026-000123'}};
         billed.boxes[1].billing = {enabled: true, active: receipt, last: receipt,
             pvPrice: .1, normalPrice: .32, mode: 'pv', idleSince: null, idleSeconds: 600,
             pending: 0, error: '', pdf: documentBytes.toString('base64')};
@@ -328,11 +333,12 @@ async function palette(page) {
         assert.equal(await page.locator('[data-field="billingCost"]').first().innerText(), '0,93 €');
         assert.ok((await page.locator('[data-field="billingRates"]').first().innerText()).includes('PV-Überschussladen'));
         assert.equal(await page.locator('[data-field="billingPDF"]').first().isEnabled(), true);
+        assert.equal(await page.locator('[data-field="billingPDF"]').first().innerText(), 'Rechnung RE-2026-000123 als PDF');
         const actionsBeforePDF = await page.evaluate(() => actions.length);
         const downloadEvent = page.waitForEvent('download');
         await page.locator('[data-field="billingPDF"]').first().click();
         const download = await downloadEvent;
-        assert.equal(download.suggestedFilename(), 'wbm-50-w1-abc123.pdf');
+        assert.equal(download.suggestedFilename(), 'RE-2026-000123.pdf');
         const stream = await download.createReadStream(); const chunks = [];
         for await (const chunk of stream) chunks.push(chunk);
         assert.deepEqual(Buffer.concat(chunks), documentBytes);

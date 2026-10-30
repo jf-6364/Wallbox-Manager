@@ -11,7 +11,7 @@
 <div id="tile-view" class="tile-view">
   <header class="wb-header">
     <label class="switch"><input id="manager" type="checkbox"><span>Manager aktiv</span></label>
-    <button id="energy-open" class="wb-button" type="button" aria-haspopup="dialog"><span aria-hidden="true">◔</span> Energie-Dashboard</button>
+    <button id="energy-open" class="wb-button" type="button" aria-haspopup="dialog"><svg class="wb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9h9M20.8 15A9 9 0 1 1 9 3.5M15 3.5a9 9 0 0 1 5.5 5.5H15Z"/></svg> Energie-Dashboard</button>
   </header>
   <div class="toolbar"><label>Verteilung <select id="mode"><option value="0">Gleichmäßig</option><option value="1">Priorität</option></select></label><span id="policy" class="muted"></span></div>
   <section class="metrics" aria-label="Gesamtübersicht">
@@ -44,8 +44,8 @@
   <header class="dashboard-header">
     <div><h2 id="dashboard-title">Energieverteilung</h2><p>Gesamter Zählzeitraum</p></div>
     <div class="dashboard-actions">
-      <button id="energy-fullscreen" class="wb-button icon-button" type="button" aria-label="Dashboard im Vollbild anzeigen" title="Vollbild" hidden>⛶</button>
-      <button id="energy-close" class="wb-button icon-button" type="button" aria-label="Energie-Dashboard schließen" title="Schließen">×</button>
+      <button id="energy-fullscreen" class="wb-button icon-button" type="button" aria-label="Dashboard im Vollbild anzeigen" title="Vollbild" hidden><svg class="wb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/></svg></button>
+      <button id="energy-close" class="wb-button icon-button" type="button" aria-label="Energie-Dashboard schließen" title="Schließen"><svg class="wb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 14 14M19 5 5 19"/></svg></button>
     </div>
   </header>
   <div class="dashboard-scroll">

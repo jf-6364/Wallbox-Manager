@@ -18,9 +18,10 @@ final class Billing
     }
 
     public static function observe(int $id, array $c, array &$s, ?float $power, float $sample, float $now, int $maxGap,
-        ?float $fresh, ?bool $pv, string $timezone): void
+        ?float $fresh, ?bool $pv, string $timezone, array $invoiceProfile = []): void
     {
         $s += ['active' => null, 'integrator' => [], 'pending' => [], 'totals' => self::totals(), 'idleSince' => null, 'last' => null, 'error' => ''];
+        if ($s['active'] && $invoiceProfile) $s['active']['invoiceProfile'] = $invoiceProfile;
         $identity = ($c['DeviceKey'] ?: 'auto') . ':' . $c['SetpointVar'] . ':' . $c['PowerVar'];
         $validSettings = is_finite($c['BillingPVPrice']) && is_finite($c['BillingNormalPrice']) && is_finite($c['BillingMinPowerW'])
             && $c['BillingPVPrice'] >= 0 && $c['BillingNormalPrice'] >= 0 && $c['BillingMinPowerW'] >= 0
@@ -50,7 +51,7 @@ final class Billing
         if (!$s['active'] && ($result['delta'] > 0 || ($watts !== null && $watts > 0))) {
             $started = $result['segments'] ? $result['segments'][0]['from'] : $now;
             $s['active'] = ['id' => bin2hex(random_bytes(10)), 'wallbox' => $id, 'name' => $c['Name'], 'device' => $identity,
-                'started' => $started, 'timezone' => $timezone, 'lines' => [], 'warnings' => [], 'method' => 'berechnet'];
+                'started' => $started, 'timezone' => $timezone, 'lines' => [], 'warnings' => [], 'method' => 'berechnet', 'invoiceProfile' => $invoiceProfile];
         }
         if ($s['active']) {
             if ($result['gap'] !== '' && ($wasCharging || $watts === null || $watts > 0) && $result['gap'] !== 'Neue Messbasis') self::note($s['active'], $result['gap']);

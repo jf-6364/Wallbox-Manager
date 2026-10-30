@@ -256,6 +256,7 @@ test('1000 zufällige Verteilungen halten alle Grenzen ein', function () {
 require __DIR__ . '/adapter.php';
 require __DIR__ . '/regression.php';
 require __DIR__ . '/billing.php';
+require __DIR__ . '/invoice.php';
 
 $results = [];
 foreach ($tests as $name => $fn) {

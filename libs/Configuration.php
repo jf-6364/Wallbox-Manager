@@ -18,6 +18,10 @@ final class Validation
         }
         $cfg = Schema::unpack($flat);
         $g = $cfg['global'];
+        if ($g['InvoiceStartNumber'] < 1 || $g['InvoiceStartNumber'] > 999999999) $errors[] = 'Rechnung: Startnummer muss zwischen 1 und 999999999 liegen';
+        if ($g['InvoicePaymentDays'] < 0 || $g['InvoicePaymentDays'] > 3650) $errors[] = 'Rechnung: Zahlungsfrist muss zwischen 0 und 3650 Tagen liegen';
+        if ($g['InvoiceTaxRate'] < 0 || $g['InvoiceTaxRate'] > 100) $errors[] = 'Rechnung: Umsatzsteuersatz muss zwischen 0 und 100 % liegen';
+        if (trim($g['InvoicePrefix']) === '' || strlen($g['InvoicePrefix']) > 64) $errors[] = 'Rechnung: Präfix muss 1 bis 64 Zeichen haben';
         if (!in_array($g['BillingTimezone'], \DateTimeZone::listIdentifiers(), true) && $g['BillingTimezone'] !== 'UTC') $errors[] = 'Abrechnung: ungültige Zeitzone';
         if ($g['Interval'] < 1 || $g['Interval'] > 3600) $errors[] = 'Regelintervall muss zwischen 1 und 3600 s liegen';
         foreach (['Hysteresis', 'HardLimitW', 'BudgetMaxAge', 'Rotation', 'OverrunW', 'Watchdog', 'FeedbackToleranceW', 'MeterJumpSlack'] as $k) {
@@ -113,15 +117,26 @@ final class Form
     {
         $form = json_decode(file_get_contents(__DIR__ . '/../WallboxManager/form.json'), true, 512, JSON_THROW_ON_ERROR);
         $form['elements'][] = ['type' => 'Label', 'caption' => $errors ? implode("\n", $errors) : 'Konfiguration geprüft. Laufzeitfehler und Messlücken siehe Diagnose.'];
-        $groups = [];
-        foreach (Schema::global() as $name => $d) $groups[$d[2]][] = self::field($name, $d, $flat);
+        $groups = []; $invoice = [];
+        foreach (Schema::global() as $name => $d) {
+            if (str_starts_with($d[2], 'Rechnung: ')) $invoice[substr($d[2], 10)][] = self::field($name, $d, $flat);
+            else $groups[$d[2]][] = self::field($name, $d, $flat);
+        }
+        $invoicePanels = [];
+        foreach ($invoice as $caption => $items) $invoicePanels[] = ['type' => 'ExpansionPanel', 'caption' => $caption, 'items' => $items];
+        $invoicePanels[] = ['type' => 'Label', 'caption' => 'PV- und Normalpreise sind Endpreise. Bei Umsatzsteuerausweis wird die enthaltene Steuer herausgerechnet. Rechnungsdaten werden beim Abschluss gespeichert; bestehende PDFs bleiben unverändert.'];
+        $groups['Abrechnung'][] = ['type' => 'ExpansionPanel', 'caption' => 'Rechnung', 'items' => $invoicePanels];
         foreach ($groups as $caption => $fields) $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => $caption, 'items' => $fields];
         for ($i = 1; $i <= 4; $i++) {
             $sections = [];
             foreach (Schema::wallbox() as $key => $d) $sections[$d[2]][] = self::field('W' . $i . $key, $d, $flat);
             $fields = [];
             foreach ($sections as $caption => $items) {
-                if ($caption === 'Abrechnung') $items[] = ['type' => 'Label', 'caption' => 'Energie wird aus der gemessenen Ladeleistung berechnet. Ohne PV-Boolvariable gilt der Normalpreis. 0,00 EUR/kWh bedeutet kostenlos. PDFs werden nach der Ladepause unter dieser Instanz im Ordner „Abrechnung“ gespeichert.'];
+                if ($caption === 'Rechnung') continue;
+                if ($caption === 'Abrechnung') {
+                    $items[] = ['type' => 'ExpansionPanel', 'caption' => 'Rechnung', 'items' => $sections['Rechnung']];
+                    $items[] = ['type' => 'Label', 'caption' => 'Energie wird aus der gemessenen Ladeleistung berechnet. Ohne PV-Boolvariable gilt der Normalpreis. 0,00 EUR/kWh bedeutet kostenlos. PDFs werden nach der Ladepause unter dieser Instanz im Ordner „Abrechnung“ gespeichert.'];
+                }
                 if ($caption === 'Dynamische Phasenumschaltung') $caption .= ' (nur bei dynamischem Phasenbetrieb)';
                 $fields[] = ['type' => 'ExpansionPanel', 'caption' => $caption, 'items' => $items];
             }

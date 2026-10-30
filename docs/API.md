@@ -94,6 +94,13 @@ eigene Modulfunktionen. Der zweite liefert Base64; die Kachel erstellt daraus
 bei einem Benutzerklick einen lokalen PDF-Download. Die Daten werden über die
 vorhandene Symcon-Kachelverbindung übertragen.
 
+Rechnungsdaten werden bei Abschluss des Ladegangs als `invoiceProfile` gespeichert.
+Vor dem Schreiben wird die Nummer im Runtime-Feld `invoiceSequence` reserviert
+und der vollständige `invoice`-Datensatz mit Ausstellungs-/Fälligkeitszeitpunkt
+und Steueraufteilung gespeichert. Nachfolgende Schreibversuche verwenden diesen
+Datensatz unverändert. Es werden weder alte Medien neu generiert noch Nummern
+beim Energiezähler-Reset zurückgesetzt.
+
 - Komma-Eingaben werden über `UpdateFormField` in den numerischen Formularentwurf übernommen. Gespeichert wird erst über „Übernehmen“. Die Methode entspricht der [offiziellen SDK-Referenz](https://github.com/symcon/SymconStubs/blob/master/ModuleStrictStubs.php); die numerischen Eigenschaften behalten ihren bisherigen Typ.
 
 - RegisterVariable nutzt bei IPSModule Profilnamen als String; Array-Darstellungen setzen 8.0 voraus.

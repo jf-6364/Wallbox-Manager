@@ -140,6 +140,7 @@
             fields.billingState.textContent += ' Ladepause: Abschluss nach ' + number.format(billing.idleSeconds) + ' s ohne Ladeleistung.';
         }
         fields.billingPDF.disabled = !billing.pdf;
+        fields.billingPDF.textContent = billing.last && billing.last.invoice ? 'Rechnung ' + billing.last.invoice.number + ' als PDF' : 'Letzte Abrechnung als PDF';
     }
     function createCard(id) {
         var card = document.createElement('article');

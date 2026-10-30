@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../libs/bootstrap.php';
 
-use WBM\{Schema, Validation, Form, Setpoint, Engine, PhaseSwitch, Battery, Energy, Billing, BillingPdf};
+use WBM\{Schema, Validation, Form, Setpoint, Engine, PhaseSwitch, Battery, Energy, Billing, BillingPdf, Invoice};
 
 class WallboxManager extends IPSModule
 {
@@ -173,7 +173,7 @@ class WallboxManager extends IPSModule
             $in['errors'] = array_merge($in['errors'], $validation, $retired);
             $plan = Engine::plan($cfg, $in, $state, $now);
             $this->outputs($cfg, $in, $plan, $state, $now);
-            $this->processBillingDocuments($state);
+            $this->processBillingDocuments($state, $cfg, $now);
             $this->publish($cfg, $in, $plan, $state, $validation);
             $this->references($flat, $state);
             if (!$validation) $this->claimTargets($flat, $state);
@@ -775,7 +775,8 @@ class WallboxManager extends IPSModule
                 $v = $this->inspect($c['BillingPVVar']);
                 $pv = $v !== null && $v['type'] === 0 && is_bool($v['value']) ? $v['value'] : null;
             }
-            Billing::observe($id, $c, $state['billing'][$id], $power, $sample, $now, $cfg['global']['EnergyMaxGap'], $fresh, $pv, $cfg['global']['BillingTimezone']);
+            Billing::observe($id, $c, $state['billing'][$id], $power, $sample, $now, $cfg['global']['EnergyMaxGap'], $fresh, $pv,
+                $cfg['global']['BillingTimezone'], Invoice::profile($cfg['global'], $c));
         }
     }
 
@@ -792,7 +793,7 @@ class WallboxManager extends IPSModule
         return $id;
     }
 
-    private function processBillingDocuments(array &$state): void
+    private function processBillingDocuments(array &$state, array $cfg, float $now): void
     {
         $remaining = 5;
         foreach ($state['billing'] as $id => &$billing) {
@@ -802,10 +803,18 @@ class WallboxManager extends IPSModule
             foreach ($billing['pending'] as $key => $record) {
                 if ($remaining-- <= 0) break;
                 try {
+                    if (!isset($record['invoice']['number'])) {
+                        $state['invoiceSequence'] ??= 0;
+                        $record = Invoice::issue($record, Invoice::profile($cfg['global'], $cfg['boxes'][$id]), $state['invoiceSequence'], $now);
+                        $billing['pending'][$key] = $record;
+                        if (($billing['last']['id'] ?? '') === $key) $billing['last'] = $record;
+                        // Reserve the number and complete invoice data before any file operation.
+                        $this->saveRuntime($state);
+                    }
                     set_error_handler(static function ($severity, $message, $file, $line) { throw new ErrorException($message, 0, $severity, $file, $line); });
                     try {
                         $folder = $this->billingObject($this->InstanceID, 'W' . $id . 'BillingDocuments', 'Abrechnung – Wallbox ' . $id, 0);
-                        $title = $record['name'] . ' – ' . BillingPdf::date($record['started'], $record['timezone']);
+                        $title = $record['invoice']['number'] . ' – ' . $record['name'];
                         $media = $this->billingObject($folder, 'Bill_' . $record['id'], $title, 5);
                         $file = 'wbm-' . $this->InstanceID . '-w' . $id . '-' . $record['id'] . '.pdf';
                         $pdf = base64_encode(BillingPdf::create($record));
@@ -813,7 +822,7 @@ class WallboxManager extends IPSModule
                     } finally { restore_error_handler(); }
                     if (($billing['last']['id'] ?? '') === $key) {
                         $billing['last']['mediaID'] = $media;
-                        $billing['last']['fileName'] = $file;
+                        $billing['last']['fileName'] = preg_replace('/[^a-zA-Z0-9._-]/', '_', $record['invoice']['number']) . '.pdf';
                     }
                     unset($billing['pending'][$key]);
                     $billing['error'] = '';

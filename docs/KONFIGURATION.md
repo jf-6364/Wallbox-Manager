@@ -61,6 +61,29 @@ ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilli
 | `MeterJumpFactor` | `2` | Plausibilitätsfaktor für Zählersprünge | Energiezählung |
 | `MeterJumpSlack` | `0.02` | Zählersprung-Toleranz (kWh) | Energiezählung |
 | `BillingTimezone` | `Europe/Berlin` | Zeitzone der Ladeabrechnungen | Abrechnung |
+| `InvoiceSenderName` | `(leer)` | Name / Firma | Rechnung: Rechnungssteller |
+| `InvoiceSenderStreet` | `(leer)` | Straße / Hausnummer | Rechnung: Rechnungssteller |
+| `InvoiceSenderZip` | `(leer)` | Postleitzahl | Rechnung: Rechnungssteller |
+| `InvoiceSenderCity` | `(leer)` | Ort | Rechnung: Rechnungssteller |
+| `InvoiceSenderCountry` | `(leer)` | Land | Rechnung: Rechnungssteller |
+| `InvoiceLogoText` | `(leer)` | Logo-Kürzel (optional) | Rechnung: Rechnungssteller |
+| `InvoicePhone` | `(leer)` | Telefon | Rechnung: Kontakt |
+| `InvoiceEmail` | `(leer)` | E-Mail | Rechnung: Kontakt |
+| `InvoiceWebsite` | `(leer)` | Webseite | Rechnung: Kontakt |
+| `InvoiceBankName` | `(leer)` | Name der Bank | Rechnung: Zahlung |
+| `InvoiceAccountHolder` | `(leer)` | Kontoinhaber | Rechnung: Zahlung |
+| `InvoiceIBAN` | `(leer)` | IBAN | Rechnung: Zahlung |
+| `InvoiceBIC` | `(leer)` | BIC | Rechnung: Zahlung |
+| `InvoicePaymentMethod` | `Überweisung` | Zahlungsmethode | Rechnung: Zahlung |
+| `InvoicePaymentDays` | `14` | Zahlungsfrist (Tage; 0 = sofort) | Rechnung: Zahlung |
+| `InvoicePaymentText` | `(leer)` | Zahlungshinweis (leer = automatisch) | Rechnung: Zahlung |
+| `InvoiceFooterText` | `(leer)` | Zusätzlicher Fußtext (optional) | Rechnung: Kontakt |
+| `InvoicePrefix` | `RE` | Rechnungsnummer-Präfix | Rechnung: Nummer und Steuer |
+| `InvoiceStartNumber` | `1` | Startnummer (bereits vergebene Nummern bleiben reserviert) | Rechnung: Nummer und Steuer |
+| `InvoiceTaxMode` | `none` | Umsatzsteuerdarstellung | Rechnung: Nummer und Steuer |
+| `InvoiceTaxRate` | `19` | Umsatzsteuersatz (%) | Rechnung: Nummer und Steuer |
+| `InvoiceTaxNumber` | `(leer)` | Steuernummer (optional) | Rechnung: Nummer und Steuer |
+| `InvoiceVATID` | `(leer)` | USt-IdNr. (optional) | Rechnung: Nummer und Steuer |
 
 ## Wallbox Wn: sämtliche Einstellungen
 
@@ -119,6 +142,13 @@ ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilli
 | `WnMinPause` | `60` | Mindestpause (s) | Zeitbedingungen |
 | `WnHysteresisW` | `-1` | Eigene Hysterese (W; -1 = global) | Zeitbedingungen |
 | `WnCommandGap` | `0` | Mindestabstand für Erhöhungsbefehle (s) | Zeitbedingungen |
+| `WnInvoiceRecipientName` | `(leer)` | Rechnungsempfänger: Name / Firma | Rechnung |
+| `WnInvoiceRecipientStreet` | `(leer)` | Straße / Hausnummer | Rechnung |
+| `WnInvoiceRecipientZip` | `(leer)` | Postleitzahl | Rechnung |
+| `WnInvoiceRecipientCity` | `(leer)` | Ort | Rechnung |
+| `WnInvoiceRecipientCountry` | `(leer)` | Land | Rechnung |
+| `WnInvoiceCustomerNumber` | `(leer)` | Kundennummer (optional) | Rechnung |
+| `WnInvoiceReference` | `(leer)` | Referenz / Kennzeichen (optional) | Rechnung |
 
 ## Speicher B: sämtliche Einstellungen
 
