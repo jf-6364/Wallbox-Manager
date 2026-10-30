@@ -2,7 +2,7 @@
 
 ## Ausgeführt
 
-- **102 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- **107 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
 - **10 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
@@ -10,6 +10,10 @@
   Einstellungen aus dem Formularentwurf geprüft. Ampereanzeigen besitzen eine,
   andere Dezimalanzeigen höchstens zwei Nachkommastellen; Messwerte bleiben intern
   unverändert präzise.
+- Wallboxanzahl 1–4 geprüft: Dropdown und sofortige Formularvorschau, Speicherung
+  erst mit „Übernehmen“, Ausblenden ohne Einstellungsverlust, Stoppen mit
+  Rückmeldung beim Reduzieren, erneutes Aktivieren sowie Erhalt von Energie und
+  Abrechnungen. Bestehende Konfigurationen behalten standardmäßig vier Plätze.
 - Zusätzliche Chromium-Prüfung der tatsächlichen HTML/CSS/JS-Kachel: sieben Größen
   von 240 × 260 bis 1440 × 900 Pixeln, kompakte aufklappbare Detailwerte,
   erreichbare Bedienung und keine horizontale Überbreite.

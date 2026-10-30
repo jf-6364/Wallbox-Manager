@@ -7,6 +7,7 @@ $md = "# Einstellungen und Variablen\n\nDie Definitionen werden aus libs/Schema.
 $md .= "Die Sollwertziele müssen im Normalbetrieb Geräteaktionen besitzen. Alle externen Freigaben sind ausschließlich Lesebedingungen.\n\n";
 $md .= "Von Gerätemodulen angelegte Sollwertvariablen können als Objekt schreibgeschützt sein und trotzdem eine Geräteaktion besitzen. Dieser Objektschutz muss für die Steuerung nicht entfernt werden. Gesperrte Variablenwerte und fehlende Geräteaktionen werden weiterhin abgelehnt.\n\n";
 $md .= "Dezimaleinstellungen werden mit Komma eingegeben: Amperewerte mit einer, andere Werte mit höchstens zwei Nachkommastellen. Änderungen werden über „Übernehmen“ gespeichert. Die bisherigen numerischen Eigenschaften bleiben erhalten; Mess- und Rechenwerte werden intern nicht für die Anzeige gerundet.\n\n";
+$md .= "Die Anzahl der konfigurierbaren Wallboxen wird unter Allgemein und Budget mit WallboxCount auf 1 bis 4 begrenzt. Die Formularbereiche werden sofort ein-/ausgeblendet; erst Übernehmen ändert den Betrieb. Höhere Plätze werden gestoppt und deaktiviert, ihre gespeicherten Einstellungen, Variablen und PDFs bleiben erhalten. Innerhalb der gewählten Anzahl gilt weiterhin Platz aktiviert. Standardmäßig bleiben vier Plätze verfügbar, damit bestehende Installationen unverändert weiterarbeiten.\n\n";
 $md .= "## Variablenverknüpfungen\n\n| Eigenschaft | Zweck | Datentyp | Einheit | Pflicht | Zugriff |\n|---|---|---|---|---|---|\n";
 $unitMap = ['BudgetVar' => 'W/kW (BudgetUnit)', 'SetpointVar' => 'A/W/kW (SetpointUnit)', 'PowerVar' => 'W/kW (PowerUnit)', 'EnergyVar' => 'Wh/kWh (EnergyUnit)',
     'SocVar' => '%', 'LimitVar' => 'W/kW (LimitUnit)', 'PhaseCommandVar' => 'Gerätewerte für 1/3 Phasen', 'PhaseFeedbackVar' => 'Wertezuordnung für 1/3 Phasen'];
@@ -88,13 +89,13 @@ $md .= "\nRuntime, Configuration, Telemetry und OwnedTargets sind persistente St
 file_put_contents(__DIR__ . '/../docs/KONFIGURATION.md', $md);
 
 $two = [
-'Enabled'=>false,'BudgetVar'=>12345,'BudgetUnit'=>'kW','Interval'=>5,'Hysteresis'=>0.2,'HysteresisUnit'=>'kW','HardLimitW'=>22080.0,'Mode'=>0,'StrictBudget'=>true,'Rotation'=>900,
+'Enabled'=>false,'WallboxCount'=>2,'BudgetVar'=>12345,'BudgetUnit'=>'kW','Interval'=>5,'Hysteresis'=>0.2,'HysteresisUnit'=>'kW','HardLimitW'=>22080.0,'Mode'=>0,'StrictBudget'=>true,'Rotation'=>900,
 'W1Enabled'=>true,'W1Name'=>'Garage (11 kW)','W1DeviceKey'=>'garage-2026','W1SetpointVar'=>23451,'W1PowerVar'=>23452,'W1SetpointUnit'=>'A','W1PowerUnit'=>'W','W1MinA'=>6.0,'W1MaxA'=>16.0,'W1MinKW'=>4.14,'W1MaxKW'=>11.04,'W1Step'=>1.0,'W1Stop'=>0.0,'W1PhaseMode'=>'3','W1Priority'=>1,'W1MaxAge'=>120,
 'W2Enabled'=>true,'W2Name'=>'Stellplatz (11 kW)','W2DeviceKey'=>'stellplatz-2026','W2SetpointVar'=>23461,'W2PowerVar'=>23462,'W2SetpointUnit'=>'A','W2PowerUnit'=>'W','W2MinA'=>6.0,'W2MaxA'=>16.0,'W2MinKW'=>4.14,'W2MaxKW'=>11.04,'W2Step'=>1.0,'W2Stop'=>0.0,'W2PhaseMode'=>'3','W2Priority'=>2,'W2MaxAge'=>120
 ];
 $storage = ['BEnabled'=>true,'BCapacityKWh'=>10.0,'BMaxPower'=>4.0,'BMaxPowerUnit'=>'kW','BSocVar'=>34501,'BMinSoc'=>20.0,'BSocHysteresis'=>5.0,'BSetpointVar'=>34502,
 'BSetpointUnit'=>'kW','BSign'=>-1,'BPowerVar'=>34503,'BPowerUnit'=>'W','BPowerSign'=>-1,'BStop'=>0.0,'BExternalVar'=>34504,'BMaxAge'=>120];
-$stop = ['Enabled'=>false,'BudgetVar'=>12345,'BudgetUnit'=>'W','W1Enabled'=>true,'W1Name'=>'Wallbox mit individuellem 1-A-Stopp','W1DeviceKey'=>'wb-1A-2026',
+$stop = ['Enabled'=>false,'WallboxCount'=>1,'BudgetVar'=>12345,'BudgetUnit'=>'W','W1Enabled'=>true,'W1Name'=>'Wallbox mit individuellem 1-A-Stopp','W1DeviceKey'=>'wb-1A-2026',
 'W1SetpointVar'=>23451,'W1SetpointUnit'=>'A','W1PowerVar'=>23452,'W1PowerUnit'=>'W','W1MinA'=>6.0,'W1MaxA'=>16.0,'W1MinKW'=>4.14,'W1MaxKW'=>11.04,
 'W1Step'=>1.0,'W1Stop'=>1.0,'W1PhaseMode'=>'3'];
 foreach (['two-11kw.json'=>$two,'battery-overlay.json'=>$storage,'stop-1a.json'=>$stop] as $name=>$data) file_put_contents(__DIR__ . '/../docs/examples/' . $name,

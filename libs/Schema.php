@@ -9,6 +9,7 @@ final class Schema
     {
         return [
             'Enabled' => [false, 'Manager bei Erstkonfiguration aktivieren', 'Allgemein und Budget'],
+            'WallboxCount' => [4, 'Anzahl Wallboxen', 'Allgemein und Budget', [1 => '1 Wallbox', 2 => '2 Wallboxen', 3 => '3 Wallboxen', 4 => '4 Wallboxen']],
             'BudgetVar' => [0, 'Absolutes Grundbudget ohne Speicher', 'Allgemein und Budget', 'read', [1, 2], true],
             'BudgetUnit' => ['W', 'Einheit Grundbudget', 'Allgemein und Budget', ['W', 'kW']],
             'Interval' => [5, 'Regelintervall (s)', 'Allgemein und Budget'],
@@ -145,6 +146,8 @@ final class Schema
         foreach (self::global() as $key => $_) $out['global'][$key] = $flat[$key];
         for ($i = 1; $i <= 4; $i++) {
             foreach (self::wallbox() as $key => $_) $out['boxes'][$i][$key] = $flat['W' . $i . $key];
+            // Preserve stored settings; places above the selected count are inactive.
+            $out['boxes'][$i]['Enabled'] = $out['boxes'][$i]['Enabled'] && $i <= $flat['WallboxCount'];
         }
         foreach (self::battery() as $key => $_) $out['battery'][$key] = $flat['B' . $key];
         return $out;
@@ -157,7 +160,7 @@ final class Schema
             if (!isset($def[4])) continue;
             $active = true;
             if (preg_match('/^W([1-4])(.+)$/', $key, $m)) {
-                $active = (bool)$flat['W' . $m[1] . 'Enabled'];
+                $active = (bool)$flat['W' . $m[1] . 'Enabled'] && (int)$m[1] <= ($flat['WallboxCount'] ?? 4);
                 if (str_starts_with($m[2], 'Billing')) $active = $active && $flat['W' . $m[1] . 'BillingEnabled'];
                 if (str_starts_with($m[2], 'Phase') && in_array($m[2], ['PhaseCommandVar', 'PhaseFeedbackVar'], true)) {
                     $active = $active && $flat['W' . $m[1] . 'PhaseMode'] === 'dynamic';

@@ -138,3 +138,59 @@ test('Adapter: vier Geräte funktionieren innerhalb einer Instanz', function () 
     closeTo(\WBM\Energy::meter($s, 'm', 101.0, 1800, 11000, 2, 0.02)['delta'], 1.0);
     closeTo(\WBM\Energy::meter($s, 'm', 101.0, 1800, 11000, 2, 0.02)['delta'], 0);
 });
+
+test('Wallboxanzahl: Dropdown bietet 1 bis 4 und blendet passende Konfigurationsbereiche ein', function () {
+    foreach ([1, 2, 3, 4] as $count) {
+        $flat = Schema::defaults(); $flat['WallboxCount'] = $count;
+        $form = Form::build($flat, [], ''); $select = null;
+        foreach ($form['elements'] as $group) {
+            if (($group['caption'] ?? '') !== 'Allgemein und Budget') continue;
+            foreach ($group['items'] as $field) if (($field['name'] ?? '') === 'WallboxCount') $select = $field;
+        }
+        check($select['type'] === 'Select'); check(array_column($select['options'], 'value') === [1, 2, 3, 4]);
+        check($select['onChange'] === 'WBM_UpdateWallboxCount($id, $WallboxCount);');
+        $panels = array_column(array_filter($form['elements'], fn($item) => str_starts_with($item['name'] ?? '', 'WallboxPanel')), null, 'name');
+        foreach ([1, 2, 3, 4] as $id) check($panels['WallboxPanel' . $id]['visible'] === ($id <= $count));
+        // Hidden fields retain their bindings so increasing the count restores previous settings.
+        check(str_contains(json_encode($panels['WallboxPanel4']), 'W4SetpointVar'));
+    }
+});
+test('Wallboxanzahl: Vorschau verändert nur Sichtbarkeit bis Übernehmen und lehnt ungültige Werte ab', function () {
+    [$m] = fixture(2); $m->ApplyChanges(); $before = $m->properties; $commands = count(Kernel::$calls);
+    $m->UpdateWallboxCount(1);
+    foreach (array_slice($m->formUpdates, -4) as $i => $update) {
+        check($update === ['field' => 'WallboxPanel' . ($i + 1), 'parameter' => 'visible', 'value' => $i === 0]);
+    }
+    check($m->properties === $before); check(count(Kernel::$calls) === $commands);
+    foreach ([0, 5] as $bad) {
+        try { $m->UpdateWallboxCount($bad); check(false); } catch (InvalidArgumentException $error) {}
+        check(count(\WBM\Validation::properties(array_replace($before, ['WallboxCount' => $bad]))) > 0);
+    }
+});
+test('Wallboxanzahl: ausgeblendete Plätze brauchen keine Links; alte Konfigurationen behalten vier Plätze', function () {
+    [$m] = fixture(2, ['WallboxCount' => 2, 'W3Enabled' => true, 'W3SetpointVar' => 0, 'W3PowerVar' => 0]);
+    $m->ApplyChanges(); check($m->status === 102, $m->GetValue('Status'));
+    check(!Schema::unpack($m->properties)['boxes'][3]['Enabled']); check($m->properties['W3Enabled']);
+    check(!isset(Schema::links($m->properties)['W3SetpointVar'])); check(!telemetryOf($m)['boxes'][3]['enabled']);
+    $legacy = Schema::defaults(); unset($legacy['WallboxCount']); $legacy['W4Enabled'] = true;
+    check(Schema::unpack($legacy)['boxes'][4]['Enabled']); check(isset(Schema::links($legacy)['W4SetpointVar']));
+});
+test('Wallboxanzahl: Reduzieren stoppt Geräte, wartet auf Rückmeldung und bewahrt Einstellungen', function () {
+    [$m, $ids] = fixture(2); $enable = Kernel::variable(true, true); $m->properties['W2DeviceEnableVar'] = $enable;
+    $m->ApplyChanges();
+    foreach ([1, 2] as $id) Kernel::update($ids[$id]['power'], 6000.0, microtime(true));
+    $m->Control(); check(GetValue($enable) === true);
+    $saved = array_filter($m->properties, fn($key) => str_starts_with($key, 'W2'), ARRAY_FILTER_USE_KEY);
+    $m->properties['WallboxCount'] = 1; $m->ApplyChanges();
+    closeTo(GetValue($ids[2]['setpoint']), 0.0); check(GetValue($enable) === false);
+    check(!telemetryOf($m)['boxes'][2]['enabled']); check(GetValue($ids[1]['setpoint']) <= 6000);
+    check(in_array($ids[2]['setpoint'], json_decode($m->ControlTargets(), true), true));
+    foreach ([1, 2] as $id) Kernel::update($ids[$id]['power'], 0.0, microtime(true));
+    $m->Control();
+    check(!in_array($ids[2]['setpoint'], json_decode($m->ControlTargets(), true), true));
+    check(!in_array($ids[2]['power'], $m->GetReferenceList(), true));
+    check(array_filter($m->properties, fn($key) => str_starts_with($key, 'W2'), ARRAY_FILTER_USE_KEY) === $saved);
+    $m->properties['WallboxCount'] = 2; $m->ApplyChanges();
+    check(telemetryOf($m)['boxes'][2]['enabled']); check(in_array($ids[2]['power'], $m->GetReferenceList(), true));
+    check(GetValue($ids[2]['setpoint']) > 0);
+});

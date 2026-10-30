@@ -127,7 +127,8 @@ final class Form
             }
             $title = 'Wallbox ' . $i;
             if ($flat['W' . $i . 'Name'] !== $title) $title .= ' – ' . $flat['W' . $i . 'Name'];
-            $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => $title, 'items' => $fields];
+            $form['elements'][] = ['type' => 'ExpansionPanel', 'name' => 'WallboxPanel' . $i, 'caption' => $title,
+                'visible' => $i <= ($flat['WallboxCount'] ?? 4), 'items' => $fields];
         }
         $fields = [];
         foreach (Schema::battery() as $key => $d) $fields[] = self::field('B' . $key, $d, $flat);
@@ -162,7 +163,9 @@ final class Form
             $options = [];
             $list = array_is_list($d[3]) && is_string($d[0]);
             foreach ($d[3] as $value => $caption) $options[] = ['caption' => (string)$caption, 'value' => $list ? $caption : (is_string($d[0]) ? (string)$value : $value)];
-            return $field + ['type' => 'Select', 'options' => $options];
+            $field += ['type' => 'Select', 'options' => $options];
+            if ($name === 'WallboxCount') $field['onChange'] = 'WBM_UpdateWallboxCount($id, $WallboxCount);';
+            return $field;
         }
         if (is_bool($d[0])) return $field + ['type' => 'CheckBox'];
         if (is_int($d[0])) return $field + ['type' => 'NumberSpinner', 'digits' => 0];

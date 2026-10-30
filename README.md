@@ -5,6 +5,13 @@ Wallboxen** in IP-Symcon ab Version 7.1. Er steuert vorhandene Gerätevariablen 
 Symcon-Aktionen und berücksichtigt die tatsächlich gemessene Ladeleistung.
 Optional kann ein Batteriespeicher zusätzliche Leistung bereitstellen.
 
+Unter **Allgemein und Budget → Anzahl Wallboxen** sind ein bis vier Plätze
+wählbar. Die passenden Konfigurationsbereiche erscheinen direkt bei der Auswahl.
+Mit „Übernehmen“ wird die Anzahl wirksam: Ausgeblendete Plätze werden gestoppt
+und aus der Regelung genommen. Ihre Einstellungen, Energiezähler und PDFs
+bleiben erhalten. Beim erneuten Einblenden stehen die bisherigen Einstellungen
+wieder zur Verfügung; jeder verwendete Platz muss zusätzlich aktiviert sein.
+
 ## Leistungsbudget und Verteilung
 
 Das Grundbudget beschreibt die insgesamt verfügbare Leistung für alle Wallboxen,

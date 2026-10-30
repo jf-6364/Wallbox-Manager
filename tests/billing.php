@@ -233,3 +233,20 @@ test('Adapter Abrechnung: native Medienwarnungen und false bleiben lokal; Fehler
         unset(Kernel::$failures['media']); $m->Control(); check(count(Kernel::$media) === 1); check($m->GetBillingPDF(1) !== '');
     }
 });
+
+test('Adapter Abrechnung: Reduzieren der Wallboxanzahl schließt Ladegang ab und bewahrt vorhandene PDFs', function () {
+    [$m, $ids] = fixture(2, ['W1BillingEnabled' => true, 'W2BillingEnabled' => true, 'W1BillingNormalPrice' => 0.30,
+        'W2BillingPVPrice' => 0.10, 'W1BillingIdleSeconds' => 60, 'EnergyMaxGap' => 3600]);
+    $m->ApplyChanges(); seedIdleBill($m); $m->Control(); $firstPDF = $m->GetBillingPDF(1);
+    check($firstPDF !== '');
+    $now = microtime(true); $c = Schema::unpack($m->properties)['boxes'][2]; $s = runtimeOf($m);
+    $s['billing'][2] = [];
+    Billing::observe(2, $c, $s['billing'][2], 3600.0, $now - 1000, $now - 1000, 3600, $now - 1000, true, 'Europe/Berlin');
+    Billing::observe(2, $c, $s['billing'][2], 3600.0, $now, $now, 3600, $now, true, 'Europe/Berlin');
+    setRuntime($m, $s); Kernel::update($ids[2]['power'], 0.0, $now);
+    $m->properties['WallboxCount'] = 1; $m->ApplyChanges();
+    $s = runtimeOf($m); check($s['billing'][2]['active'] === null); check($s['billing'][2]['last']['mediaID'] > 0);
+    check($s['billing'][2]['last']['reason'] === 'Abrechnung deaktiviert oder umkonfiguriert');
+    closeTo($s['billing'][2]['last']['pvEnergy'], 1.0); check(count(Kernel::$media) === 2);
+    check($m->GetBillingPDF(1) === $firstPDF); check($m->GetBillingPDF(2) !== ''); check($m->properties['W2BillingEnabled']);
+});

@@ -1,5 +1,6 @@
 {
     "Enabled": false,
+    "WallboxCount": 1,
     "BudgetVar": 12345,
     "BudgetUnit": "W",
     "W1Enabled": true,

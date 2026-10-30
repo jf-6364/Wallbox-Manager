@@ -7,6 +7,8 @@ Von Gerätemodulen angelegte Sollwertvariablen können als Objekt schreibgeschü
 
 Dezimaleinstellungen werden mit Komma eingegeben: Amperewerte mit einer, andere Werte mit höchstens zwei Nachkommastellen. Änderungen werden über „Übernehmen“ gespeichert. Die bisherigen numerischen Eigenschaften bleiben erhalten; Mess- und Rechenwerte werden intern nicht für die Anzeige gerundet.
 
+Die Anzahl der konfigurierbaren Wallboxen wird unter Allgemein und Budget mit WallboxCount auf 1 bis 4 begrenzt. Die Formularbereiche werden sofort ein-/ausgeblendet; erst Übernehmen ändert den Betrieb. Höhere Plätze werden gestoppt und deaktiviert, ihre gespeicherten Einstellungen, Variablen und PDFs bleiben erhalten. Innerhalb der gewählten Anzahl gilt weiterhin Platz aktiviert. Standardmäßig bleiben vier Plätze verfügbar, damit bestehende Installationen unverändert weiterarbeiten.
+
 ## Variablenverknüpfungen
 
 | Eigenschaft | Zweck | Datentyp | Einheit | Pflicht | Zugriff |
@@ -38,6 +40,7 @@ ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilli
 | Eigenschaft | Standard | Bedeutung / Einheit | Bereich |
 |---|---|---|---|
 | `Enabled` | `false` | Manager bei Erstkonfiguration aktivieren | Allgemein und Budget |
+| `WallboxCount` | `4` | Anzahl Wallboxen | Allgemein und Budget |
 | `BudgetVar` | `0` | Absolutes Grundbudget ohne Speicher | Allgemein und Budget |
 | `BudgetUnit` | `W` | Einheit Grundbudget | Allgemein und Budget |
 | `Interval` | `5` | Regelintervall (s) | Allgemein und Budget |

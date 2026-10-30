@@ -91,6 +91,20 @@ Button **Letzte Abrechnung als PDF** lädt das letzte gespeicherte Dokument
 herunter. Ältere PDFs bleiben im jeweiligen Symcon-Ordner erreichbar. Ein
 offener Browser ist für die automatische Erstellung nicht erforderlich.
 
+Zum Download in der Visualisierung die gewünschte **Wallbox → Abrechnung**
+aufklappen und **„Letzte Abrechnung als PDF“** anklicken. Der Browser speichert
+die Datei im Download-Ordner oder fragt nach einem Speicherort. Solange kein
+abgeschlossener Ladegang mit erfasster Energie vorliegt, ist der Button deaktiviert.
+Der Ladegang wird nach der eingestellten Ladepause abgeschlossen, standardmäßig
+nach 600 Sekunden. Bei einem PDF-Schreibfehler zeigt die Kachel den Fehler an.
+
+Im Symcon-Objektbaum die Managerinstanz und darunter **„Abrechnung – Wallbox n“**
+öffnen. Jedes dortige Dokument steht für einen abgeschlossenen Ladegang und kann
+über die Dokumentansicht geöffnet beziehungsweise heruntergeladen werden.
+Wird die Anzahl der Wallboxen reduziert, bleiben auch die PDFs ausgeblendeter
+Plätze in diesen Ordnern erhalten. Ein dabei noch laufender Ladegang wird mit
+der bisher erfassten Energie abgeschlossen.
+
 Kann ein PDF nicht gespeichert werden, bleibt die Abrechnung in einer
 persistenten Warteschlange. Der Fehler wird angezeigt; die Erstellung wird im
 nächsten Regeldurchlauf erneut versucht. Ein Dokumentfehler beendet die

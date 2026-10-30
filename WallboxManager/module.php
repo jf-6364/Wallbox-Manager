@@ -214,6 +214,13 @@ class WallboxManager extends IPSModule
         $this->UpdateFormField($Name, 'value', $number);
     }
 
+    public function UpdateWallboxCount(int $Count): void
+    {
+        if ($Count < 1 || $Count > 4) throw new InvalidArgumentException('Anzahl Wallboxen muss zwischen 1 und 4 liegen');
+        // Preview the form only; saving with Übernehmen applies the actual device change.
+        for ($i = 1; $i <= 4; $i++) $this->UpdateFormField('WallboxPanel' . $i, 'visible', $i <= $Count);
+    }
+
     public function GetVisualizationTile()
     {
         $html = file_get_contents(__DIR__ . '/tile.html');
