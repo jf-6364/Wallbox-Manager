@@ -1,8 +1,8 @@
-# Prüfbericht – 12.10.2026
+# Prüfbericht – 30.10.2026
 
 ## Ausgeführt
 
-- **76 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- **102 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
 - **10 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
@@ -25,7 +25,16 @@
 - Die zusätzliche archivierte Platzenergie verändert weder persistente
   Zählerstände noch Geräte-Sollwerte. Übertragung und bestätigter Reset sind
   durch einen Adaptertest geprüft.
-- Alle **16 PHP-Dateien** syntaktisch geprüft; alle **7 vorhandenen JSON-Dateien**
+- Ladeabrechnung geprüft: Ereignisgrenzen für PV-/Normalmodus, Preiswechsel,
+  kostenloser PV-Tarif, unabhängige Wallboxen, kurze/lange Pausen, Leistungsschwelle,
+  Messausfälle und veraltete Werte. Energie-Reset und Neustarts erhalten die
+  Abrechnung. PDF-Schreibfehler einschließlich einer Unterbrechung nach dem
+  Schreiben werden ohne doppelte Medien und ohne Sperre der Laderegelung behandelt.
+- Echte A4-PDFs mit deutschen Zeichen, Centbeträgen, Byte-Offsets und mehreren
+  Seiten geprüft. Eine Beispielabrechnung wurde zusätzlich mit `pdftotext`
+  gelesen und als Bild gerendert. Chromium prüft Abrechnungsanzeige und
+  PDF-Download ohne Geräteaktion sowie den Hell-/Dunkelmodus und kleine Kacheln.
+- Alle **19 PHP-Dateien** syntaktisch geprüft; alle **7 vorhandenen JSON-Dateien**
   syntaktisch geprüft (einschließlich lokalem Testergebnis).
 - Metadaten, unterschiedliche gültige GUIDs, Präfix, Modulstruktur,
   vollständige Formularfelder und Beispielkonfigurationen geprüft.

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../libs/bootstrap.php';
 
-use WBM\{Schema, Validation, Form, Setpoint, Engine, PhaseSwitch, Battery, Energy};
+use WBM\{Schema, Validation, Form, Setpoint, Engine, PhaseSwitch, Battery, Energy, Billing, BillingPdf};
 
 class WallboxManager extends IPSModule
 {
@@ -41,6 +41,8 @@ class WallboxManager extends IPSModule
             $state = $this->runtime();
             $now = microtime(true);
             $cold = $this->GetBuffer('ColdStart') === '1';
+            // Settle the previous tariff/settings at the edit boundary before using new ones.
+            if ($previous && !$cold) $this->accountBilling(Schema::unpack($previous), $state, $now);
             $this->profiles();
             $this->variables();
             foreach (['Enabled' => 'ManagerEnabled', 'Mode' => 'DistributionMode'] as $prop => $ident) {
@@ -64,6 +66,11 @@ class WallboxManager extends IPSModule
                 }
                 // Integration never bridges a Symcon outage. Device meters can bridge it.
                 if ($cold && !$c['EnergyVar']) unset($state['energy'][$i]['cursor']);
+                if ($cold && isset($state['billing'][$i])) {
+                    unset($state['billing'][$i]['integrator']['cursor']);
+                    $state['billing'][$i]['idleSince'] = null;
+                    if ($state['billing'][$i]['active'] ?? null) Billing::note($state['billing'][$i]['active'], 'Neustart: die Unterbrechung wurde nicht als Ladeenergie berechnet.');
+                }
             }
             $b = $cfg['battery'];
             $oldB = $old['battery'] ?? null;
@@ -102,7 +109,7 @@ class WallboxManager extends IPSModule
             $flat = $this->configuration();
             $isMeasurement = false;
             for ($i = 1; $i <= 4; $i++) {
-                if (in_array((int)$SenderID, [(int)$flat['W' . $i . 'PowerVar'], (int)$flat['W' . $i . 'EnergyVar']], true)) $isMeasurement = true;
+                if (in_array((int)$SenderID, [(int)$flat['W' . $i . 'PowerVar'], (int)$flat['W' . $i . 'EnergyVar'], (int)$flat['W' . $i . 'BillingPVVar']], true)) $isMeasurement = true;
             }
             if ($isMeasurement && IPS_SemaphoreEnter($this->lockName(), 0)) {
                 try {
@@ -166,6 +173,7 @@ class WallboxManager extends IPSModule
             $in['errors'] = array_merge($in['errors'], $validation, $retired);
             $plan = Engine::plan($cfg, $in, $state, $now);
             $this->outputs($cfg, $in, $plan, $state, $now);
+            $this->processBillingDocuments($state);
             $this->publish($cfg, $in, $plan, $state, $validation);
             $this->references($flat, $state);
             if (!$validation) $this->claimTargets($flat, $state);
@@ -253,6 +261,29 @@ class WallboxManager extends IPSModule
         return true;
     }
 
+    public function GetBillingStatus(int $Wallbox): string
+    {
+        if ($Wallbox < 1 || $Wallbox > 4) throw new InvalidArgumentException('Wallbox muss 1 bis 4 sein');
+        return $this->encode(Billing::summary($this->runtime()['billing'][$Wallbox] ?? []));
+    }
+
+    /** Returns the last completed PDF as base64, also usable from user scripts. */
+    public function GetBillingPDF(int $Wallbox): string
+    {
+        if ($Wallbox < 1 || $Wallbox > 4) throw new InvalidArgumentException('Wallbox muss 1 bis 4 sein');
+        $last = $this->runtime()['billing'][$Wallbox]['last'] ?? [];
+        $media = $last['mediaID'] ?? 0;
+        if (!$media || !IPS_MediaExists($media)) return '';
+        return $this->readBillingMedia($media);
+    }
+
+    private function readBillingMedia(int $media): string
+    {
+        set_error_handler(static function ($severity, $message, $file, $line) { throw new ErrorException($message, 0, $severity, $file, $line); });
+        try { return IPS_GetMediaContent($media); }
+        finally { restore_error_handler(); }
+    }
+
     public function Destroy()
     {
         // Destroy is also called on library updates, so explicitly release devices.
@@ -282,7 +313,7 @@ class WallboxManager extends IPSModule
 
     private function runtime(): array
     {
-        return $this->jsonAttribute('Runtime') + ['boxes' => [], 'battery' => [], 'commands' => [], 'history' => [], 'retired' => [], 'energy' => [], 'totalEnergy' => 0.0];
+        return $this->jsonAttribute('Runtime') + ['boxes' => [], 'battery' => [], 'commands' => [], 'history' => [], 'retired' => [], 'energy' => [], 'totalEnergy' => 0.0, 'billing' => []];
     }
     private function jsonAttribute(string $key): array { return json_decode($this->ReadAttributeString($key), true, 512, JSON_THROW_ON_ERROR) ?: []; }
     private function encode(array $value): string { return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR); }
@@ -715,6 +746,102 @@ class WallboxManager extends IPSModule
             $e['method'] = $result['method'];
             unset($e);
         }
+        $this->accountBilling($cfg, $state, $now);
+    }
+
+    private function accountBilling(array $cfg, array &$state, float $now): void
+    {
+        foreach ($cfg['boxes'] as $id => $c) {
+            if (!$c['BillingEnabled'] && !isset($state['billing'][$id])) continue;
+            $state['billing'][$id] ??= [];
+            [$power, $sample] = $this->number($c['PowerVar'], $c['HeartbeatVar'] ? 0 : $c['MaxAge'], $now);
+            $fresh = $sample;
+            if ($c['HeartbeatVar']) {
+                $heartbeat = $this->inspect($c['HeartbeatVar']);
+                $fresh = (float)($heartbeat['updated'] ?? 0.0);
+                if (!$heartbeat || $c['MaxAge'] > 0 && $now - $fresh > $c['MaxAge']) $power = null;
+            }
+            if (!in_array($c['PowerUnit'], ['W', 'kW'], true)) $power = null;
+            $power = $power === null ? null : Setpoint::watts($power, $c['PowerUnit']);
+            $pv = false;
+            if ($c['BillingPVVar']) {
+                $v = $this->inspect($c['BillingPVVar']);
+                $pv = $v !== null && $v['type'] === 0 && is_bool($v['value']) ? $v['value'] : null;
+            }
+            Billing::observe($id, $c, $state['billing'][$id], $power, $sample, $now, $cfg['global']['EnergyMaxGap'], $fresh, $pv, $cfg['global']['BillingTimezone']);
+        }
+    }
+
+    private function billingObject(int $parent, string $ident, string $name, int $type): int
+    {
+        foreach (IPS_GetChildrenIDs($parent) as $id) {
+            $object = IPS_GetObject($id);
+            if ($object['ObjectIdent'] !== $ident) continue;
+            if ($object['ObjectType'] !== $type) throw new RuntimeException('Abrechnungsobjekt hat einen unerwarteten Typ: ' . $ident);
+            return $id;
+        }
+        $id = $type === 0 ? IPS_CreateCategory() : IPS_CreateMedia(5);
+        IPS_SetParent($id, $parent); IPS_SetIdent($id, $ident); IPS_SetName($id, $name);
+        return $id;
+    }
+
+    private function processBillingDocuments(array &$state): void
+    {
+        $remaining = 5;
+        foreach ($state['billing'] as $id => &$billing) {
+            if (!($billing['pending'] ?? [])) continue;
+            // Persist the session/outbox before any media side effect. Ident retry is idempotent.
+            $this->saveRuntime($state);
+            foreach ($billing['pending'] as $key => $record) {
+                if ($remaining-- <= 0) break;
+                try {
+                    set_error_handler(static function ($severity, $message, $file, $line) { throw new ErrorException($message, 0, $severity, $file, $line); });
+                    try {
+                        $folder = $this->billingObject($this->InstanceID, 'W' . $id . 'BillingDocuments', 'Abrechnung – Wallbox ' . $id, 0);
+                        $title = $record['name'] . ' – ' . BillingPdf::date($record['started'], $record['timezone']);
+                        $media = $this->billingObject($folder, 'Bill_' . $record['id'], $title, 5);
+                        $file = 'wbm-' . $this->InstanceID . '-w' . $id . '-' . $record['id'] . '.pdf';
+                        $pdf = base64_encode(BillingPdf::create($record));
+                        if (IPS_SetMediaFile($media, 'media/' . $file, false) === false || IPS_SetMediaContent($media, $pdf) === false) throw new RuntimeException('PDF konnte nicht gespeichert werden');
+                    } finally { restore_error_handler(); }
+                    if (($billing['last']['id'] ?? '') === $key) {
+                        $billing['last']['mediaID'] = $media;
+                        $billing['last']['fileName'] = $file;
+                    }
+                    unset($billing['pending'][$key]);
+                    $billing['error'] = '';
+                    $this->SetBuffer('BillingPDF' . $media, $pdf);
+                    $this->saveRuntime($state);
+                } catch (Throwable $error) {
+                    // PDF/storage failures must not interrupt charging or discard the bill.
+                    $billing['error'] = 'PDF-Erstellung fehlgeschlagen; erneuter Versuch folgt: ' . $error->getMessage();
+                    $this->SendDebug('Abrechnung', $billing['error'], 0);
+                    break;
+                }
+            }
+        }
+        unset($billing);
+    }
+
+    private function billingTelemetry(array $billing, array $c): array
+    {
+        $summary = Billing::summary($billing);
+        $summary['enabled'] = $c['BillingEnabled'];
+        $summary['pvPrice'] = $c['BillingPVPrice'];
+        $summary['normalPrice'] = $c['BillingNormalPrice'];
+        $summary['idleSeconds'] = $c['BillingIdleSeconds'];
+        $summary['pdf'] = '';
+        $media = $summary['last']['mediaID'] ?? 0;
+        if ($media && IPS_MediaExists($media)) {
+            try {
+                $summary['pdf'] = $this->GetBuffer('BillingPDF' . $media);
+                if ($summary['pdf'] === '') {
+                    $summary['pdf'] = $this->readBillingMedia($media);
+                    $this->SetBuffer('BillingPDF' . $media, $summary['pdf']);
+                }
+            } catch (Throwable $error) { $summary['error'] = 'PDF kann nicht gelesen werden: ' . $error->getMessage(); }
+        }
+        return $summary;
     }
 
     private function publish(array $cfg, array $in, array $plan, array $state, array $validation): void
@@ -727,6 +854,15 @@ class WallboxManager extends IPSModule
             $row['energyMethod'] = $e['method'] ?? ($cfg['boxes'][$id]['EnergyVar'] ? 'Gerätezähler' : 'berechnet');
             $row['gap'] = $e['gap'] ?? '';
             $row['phaseStage'] = $state['boxes'][$id]['phase']['stage'] ?? '';
+            $row['billing'] = $this->billingTelemetry($state['billing'][$id] ?? [], $cfg['boxes'][$id]);
+            $billingTotals = $row['billing']['totals'];
+            foreach (['PVEnergy' => 'pvEnergy', 'NormalEnergy' => 'normalEnergy', 'UnassignedEnergy' => 'unassignedEnergy',
+                'PVCost' => 'pvCost', 'NormalCost' => 'normalCost', 'Cost' => 'totalCost', 'Sessions' => 'sessions'] as $suffix => $key) $this->SetValue('W' . $id . 'Billing' . $suffix, $billingTotals[$key]);
+            $currentBill = $row['billing']['active'] ?: $row['billing']['last'];
+            $billingStatus = ($currentBill['unassignedEnergy'] ?? 0.0) > 0 ? 'Tarif ungeklärt – Abrechnung prüfen' :
+                ($row['billing']['active'] ? 'Ladegang läuft' : ($row['billing']['pending'] ? 'PDF wird erstellt' : ($row['billing']['enabled'] ? 'Bereit' : 'Abrechnung ausgeschaltet')));
+            $this->SetValue('W' . $id . 'BillingStatus', $row['billing']['error'] ?: $billingStatus);
+            $this->SetValue('W' . $id . 'BillingLastPDF', $row['billing']['last']['mediaID'] ?? 0);
             if ($cfg['boxes'][$id]['Enabled'] && $row['measured'] !== null) $measured += max(0.0, $row['measured']);
             $prefix = 'W' . $id;
             foreach (['Power' => $row['measured'] ?? 0.0, 'Assigned' => $row['power'], 'Setpoint' => $row['command'], 'Phases' => $row['phases'],
@@ -756,7 +892,7 @@ class WallboxManager extends IPSModule
 
     private function profiles(): void
     {
-        $specs = ['WBM.Power' => [2, 1, ' W', 0, 0, 0], 'WBM.Energy' => [2, 2, ' kWh', 0, 0, 0],
+        $specs = ['WBM.Power' => [2, 1, ' W', 0, 0, 0], 'WBM.Energy' => [2, 2, ' kWh', 0, 0, 0], 'WBM.Money' => [2, 2, ' €', 0, 0, 0],
             'WBM.Setpoint.A' => [2, 1, ' A', 0, 0, 0], 'WBM.Setpoint.W' => [2, 2, ' W', 0, 0, 0], 'WBM.Setpoint.kW' => [2, 2, ' kW', 0, 0, 0],
             'WBM.Soc' => [2, 1, ' %', 0, 100, 0], 'WBM.Priority' => [1, 0, '', 1, 999, 1], 'WBM.Mode' => [1, 0, '', 0, 1, 1]];
         foreach ($specs as $name => $p) {
@@ -802,7 +938,13 @@ class WallboxManager extends IPSModule
                 'Setpoint' => [2, 'Sollwert (Einheit laut Konfiguration)', $setpointProfile, false, 0.0], 'Phases' => [1, 'Bestätigte / feste Phasen', '', false, 0],
                 'Energy' => [2, 'Geladene Energie', 'WBM.Energy', false, 0.0], 'ExternalLocked' => [0, 'Externe Sperre', '~Switch', false, false],
                 'State' => [3, 'Zustand / Wartegrund', '', false, ''], 'Remaining' => [1, 'Zeitbedingung (s)', '', false, 0],
-                'EnergyMethod' => [3, 'Energiezählverfahren', '', false, ''], 'MeasurementGap' => [3, 'Messlücke / Zählerhinweis', '', false, '']
+                'EnergyMethod' => [3, 'Energiezählverfahren', '', false, ''], 'MeasurementGap' => [3, 'Messlücke / Zählerhinweis', '', false, ''],
+                'BillingPVEnergy' => [2, 'PV-Abrechnungsenergie', 'WBM.Energy', false, 0.0],
+                'BillingNormalEnergy' => [2, 'Normal-Abrechnungsenergie', 'WBM.Energy', false, 0.0],
+                'BillingUnassignedEnergy' => [2, 'Unzugeordnete Abrechnungsenergie', 'WBM.Energy', false, 0.0],
+                'BillingPVCost' => [2, 'PV-Kosten', 'WBM.Money', false, 0.0], 'BillingNormalCost' => [2, 'Normalkosten', 'WBM.Money', false, 0.0],
+                'BillingCost' => [2, 'Abrechnung Gesamtkosten', 'WBM.Money', false, 0.0], 'BillingSessions' => [1, 'Abgeschlossene Ladegänge', '', false, 0],
+                'BillingStatus' => [3, 'Abrechnungsstatus', '', false, ''], 'BillingLastPDF' => [1, 'Letzte Abrechnung (Medien-ID)', '', false, 0]
             ];
             foreach ($wb as $key => $d) {
                 $d[1] = $name . ': ' . $d[1];

@@ -308,5 +308,66 @@ async function palette(page) {
         assert.equal(padded.height, 552);
         assert.equal(errors.length, 0, errors.join('\n'));
         console.log('OK  Host title and reserved SDK header space');
+        await page.setViewportSize({width: 800, height: 600});
+        await page.setContent(html('textcolor=%2324262b&backgroundColor=%23ffffff'));
+        const billed = structuredClone(data);
+        // Browser checks exercise transport/download; actual PDF bytes are validated in PHP and a PDF reader.
+        const documentBytes = Buffer.from('%PDF-1.4\n% Browser download transport fixture\n%%EOF\n');
+        const receipt = {id: 'abc123', started: 1791838054, ended: 1791840054,
+            pvEnergy: 1.25, normalEnergy: 2.5, totalEnergy: 3.75, pvCost: .13, normalCost: .8, totalCost: .93,
+            unassignedEnergy: 0, warnings: [], fileName: 'wbm-50-w1-abc123.pdf', mediaID: 12345};
+        billed.boxes[1].billing = {enabled: true, active: receipt, last: receipt,
+            pvPrice: .1, normalPrice: .32, mode: 'pv', idleSince: null, idleSeconds: 600,
+            pending: 0, error: '', pdf: documentBytes.toString('base64')};
+        billed.boxes[2].billing = {enabled: false};
+        await page.evaluate(value => window.handleMessage(value), billed);
+        assert.equal(await page.locator('.billing-details').last().isVisible(), false);
+        await page.locator('.billing-details summary').first().click();
+        assert.equal(await page.locator('[data-field="billingPV"]').first().innerText(), '1,25 kWh · 0,13 €');
+        assert.equal(await page.locator('[data-field="billingNormal"]').first().innerText(), '2,50 kWh · 0,80 €');
+        assert.equal(await page.locator('[data-field="billingCost"]').first().innerText(), '0,93 €');
+        assert.ok((await page.locator('[data-field="billingRates"]').first().innerText()).includes('PV-Überschussladen'));
+        assert.equal(await page.locator('[data-field="billingPDF"]').first().isEnabled(), true);
+        const actionsBeforePDF = await page.evaluate(() => actions.length);
+        const downloadEvent = page.waitForEvent('download');
+        await page.locator('[data-field="billingPDF"]').first().click();
+        const download = await downloadEvent;
+        assert.equal(download.suggestedFilename(), 'wbm-50-w1-abc123.pdf');
+        const stream = await download.createReadStream(); const chunks = [];
+        for await (const chunk of stream) chunks.push(chunk);
+        assert.deepEqual(Buffer.concat(chunks), documentBytes);
+        assert.equal(await page.evaluate(() => actions.length), actionsBeforePDF);
+        billed.boxes[1].billing.active = null;
+        billed.boxes[1].billing.last.unassignedEnergy = .25;
+        billed.boxes[1].billing.last.warnings = ['Messlücke'];
+        billed.boxes[1].billing.error = 'PDF-Erstellung fehlgeschlagen; erneuter Versuch folgt';
+        billed.boxes[1].billing.pdf = '';
+        await page.evaluate(value => window.handleMessage(value), billed);
+        assert.ok((await page.locator('[data-field="billingPeriod"]').first().innerText()).startsWith('Letzter Ladegang'));
+        assert.equal(await page.locator('[data-field="billingUnknown"]').first().isVisible(), true);
+        assert.ok((await page.locator('[data-field="billingState"]').first().innerText()).includes('PDF-Erstellung fehlgeschlagen'));
+        assert.equal(await page.locator('[data-field="billingPDF"]').first().isEnabled(), false);
+        for (const [width, height] of [[800, 600], [320, 360], [240, 260]]) {
+            await page.setViewportSize({width, height});
+            await layout(page);
+            await page.locator('[data-field="billingPDF"]').first().scrollIntoViewIfNeeded();
+            assert.equal(await page.locator('[data-field="billingPDF"]').first().isVisible(), true);
+        }
+        await page.emulateMedia({colorScheme: 'dark'});
+        await page.evaluate(() => {
+            document.documentElement.style.setProperty('--content-color', '#f0f0f3');
+            document.documentElement.style.setProperty('--card-color', '#1c1c21');
+        });
+        await page.waitForFunction(() => document.documentElement.dataset.wbTheme === 'dark');
+        assert.equal(await page.locator('.billing-details').first().evaluate(node => getComputedStyle(node).color), 'rgb(240, 240, 243)');
+        if (process.env.WBM_SCREENSHOT_DIR) {
+            await page.setViewportSize({width: 800, height: 600});
+            billed.boxes[1].billing.error = ''; billed.boxes[1].billing.last.unassignedEnergy = 0;
+            billed.boxes[1].billing.last.warnings = []; billed.boxes[1].billing.pdf = documentBytes.toString('base64');
+            await page.evaluate(value => window.handleMessage(value), billed);
+            await page.screenshot({path: path.join(process.env.WBM_SCREENSHOT_DIR, 'wallbox-billing-dark.png')});
+        }
+        assert.equal(errors.length, 0, errors.join('\n'));
+        console.log('OK  Billing tariffs, session/cost details, PDF download, pending errors and responsive dark theme');
     } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

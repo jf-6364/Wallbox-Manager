@@ -12,10 +12,11 @@ final class Energy
     {
         $s += ['energy' => 0.0];
         $delta = 0.0;
+        $segments = [];
         $gap = '';
         if (($s['source'] ?? '') !== $source || !isset($s['cursor'])) {
             $s = array_replace($s, ['source' => $source, 'cursor' => $now, 'sample' => $sample, 'power' => $power]);
-            return ['delta' => 0.0, 'gap' => 'Neue Messbasis', 'method' => 'berechnet'];
+            return ['delta' => 0.0, 'gap' => 'Neue Messbasis', 'method' => 'berechnet', 'segments' => []];
         }
         $cursor = $s['cursor'];
         if ($now < $cursor || $now - $cursor > $maxGap || $power === null || !is_finite($power) || $power < 0 || $sample > $now + 1 || $now - ($fresh ?? $sample) > $maxGap || ($s['power'] ?? null) === null) {
@@ -23,12 +24,15 @@ final class Energy
         } else {
             $change = max($cursor, min($now, $sample));
             $delta = (max(0.0, $s['power']) * ($change - $cursor) + $power * ($now - $change)) / 3600000.0;
+            foreach ([[$cursor, $change, max(0.0, $s['power'])], [$change, $now, $power]] as [$from, $to, $watts]) {
+                if ($to > $from && $watts > 0) $segments[] = ['from' => $from, 'to' => $to, 'energy' => $watts * ($to - $from) / 3600000.0];
+            }
         }
         $s['energy'] += max(0.0, $delta);
         $s['cursor'] = $now;
         $s['sample'] = $sample;
         $s['power'] = $power;
-        return ['delta' => max(0.0, $delta), 'gap' => $gap, 'method' => 'berechnet'];
+        return ['delta' => max(0.0, $delta), 'gap' => $gap, 'method' => 'berechnet', 'segments' => $segments];
     }
 
     public static function meter(array &$s, string $source, ?float $value, float $now, float $maxPower, float $factor, float $slack): array

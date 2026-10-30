@@ -18,6 +18,7 @@ final class Validation
         }
         $cfg = Schema::unpack($flat);
         $g = $cfg['global'];
+        if (!in_array($g['BillingTimezone'], \DateTimeZone::listIdentifiers(), true) && $g['BillingTimezone'] !== 'UTC') $errors[] = 'Abrechnung: ungültige Zeitzone';
         if ($g['Interval'] < 1 || $g['Interval'] > 3600) $errors[] = 'Regelintervall muss zwischen 1 und 3600 s liegen';
         foreach (['Hysteresis', 'HardLimitW', 'BudgetMaxAge', 'Rotation', 'OverrunW', 'Watchdog', 'FeedbackToleranceW', 'MeterJumpSlack'] as $k) {
             if ($g[$k] < 0) $errors[] = $k . ': darf nicht negativ sein';
@@ -30,6 +31,15 @@ final class Validation
             $prefix = 'Wallbox ' . $id . ': ';
             if (trim($c['Name']) === '') $errors[] = $prefix . 'Name fehlt';
             if ($c['Priority'] < 1 || $c['Priority'] > 999) $errors[] = $prefix . 'Priorität muss 1 bis 999 sein';
+            if ($c['BillingEnabled']) {
+                foreach (['BillingPVPrice', 'BillingNormalPrice', 'BillingMinPowerW'] as $key) {
+                    if ($c[$key] < 0) $errors[] = $prefix . $key . ' darf nicht negativ sein';
+                }
+                foreach (['BillingPVPrice', 'BillingNormalPrice'] as $key) {
+                    if (abs($c[$key] - round($c[$key], 2)) > 1e-8) $errors[] = $prefix . $key . ' erfordert höchstens zwei Nachkommastellen';
+                }
+                if ($c['BillingIdleSeconds'] < 1 || $c['BillingIdleSeconds'] > 604800) $errors[] = $prefix . 'Abrechnung: Ladepause muss 1 bis 604800 s betragen';
+            }
             if ($c['Voltage'] < 100 || $c['Voltage'] > 300) $errors[] = $prefix . 'Spannung muss 100 bis 300 V sein';
             if ($c['MinA'] <= 0 || $c['MaxA'] < $c['MinA'] || $c['MinKW'] <= 0 || $c['MaxKW'] < $c['MinKW'] || $c['Step'] <= 0) $errors[] = $prefix . 'Min-/Max-Grenzen oder Raster ungültig';
             foreach (['StartDelay', 'MinRun', 'StopDelay', 'MinPause', 'CommandGap', 'MaxAge', 'PhaseDelay', 'PhaseDwell', 'PhaseZeroSeconds', 'PhaseBefore', 'PhaseAfter', 'PhaseRestW', 'PhaseHysteresisW'] as $k) {
@@ -111,6 +121,7 @@ final class Form
             foreach (Schema::wallbox() as $key => $d) $sections[$d[2]][] = self::field('W' . $i . $key, $d, $flat);
             $fields = [];
             foreach ($sections as $caption => $items) {
+                if ($caption === 'Abrechnung') $items[] = ['type' => 'Label', 'caption' => 'Energie wird aus der gemessenen Ladeleistung berechnet. Ohne PV-Boolvariable gilt der Normalpreis. 0,00 EUR/kWh bedeutet kostenlos. PDFs werden nach der Ladepause unter dieser Instanz im Ordner „Abrechnung“ gespeichert.'];
                 if ($caption === 'Dynamische Phasenumschaltung') $caption .= ' (nur bei dynamischem Phasenbetrieb)';
                 $fields[] = ['type' => 'ExpansionPanel', 'caption' => $caption, 'items' => $items];
             }

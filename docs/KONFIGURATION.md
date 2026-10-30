@@ -19,6 +19,7 @@ Dezimaleinstellungen werden mit Komma eingegeben: Amperewerte mit einer, andere 
 | `WnDeviceEnableVar` | Separate Geräte-Ladefreigabe (optional) | Boolean | – | optional, 0 = unverbunden | Schreiben per Aktion; Lesen zur Diagnose |
 | `WnPowerVar` | Tatsächliche Ladeleistung | Integer/Float | W/kW (PowerUnit) | bei aktivem Manager/Platz | Lesen, nie Gerätebefehl |
 | `WnEnergyVar` | Kumulativer Geräte-Energiezähler (optional) | Integer/Float | Wh/kWh (EnergyUnit) | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
+| `WnBillingPVVar` | PV-Überschussladen (true = PV, false = Normal; optional) | Boolean | – | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
 | `WnHeartbeatVar` | Geräte-Heartbeat (optional; Aktualisierung zählt) | Boolean/Integer/Float/String | – | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
 | `WnPhaseCommandVar` | Phasenwechsel: Befehlsvariable | Integer/Float | Gerätewerte für 1/3 Phasen | nur dynamischer Betrieb | Schreiben per Aktion; Lesen zur Diagnose |
 | `WnPhaseFeedbackVar` | Phasenwechsel: tatsächliche Rückmeldung | Integer/Float | Wertezuordnung für 1/3 Phasen | nur dynamischer Betrieb | Lesen, nie Gerätebefehl |
@@ -56,6 +57,7 @@ ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilli
 | `EnergyMaxGap` | `120` | Maximale Integrationslücke (s) | Energiezählung |
 | `MeterJumpFactor` | `2` | Plausibilitätsfaktor für Zählersprünge | Energiezählung |
 | `MeterJumpSlack` | `0.02` | Zählersprung-Toleranz (kWh) | Energiezählung |
+| `BillingTimezone` | `Europe/Berlin` | Zeitzone der Ladeabrechnungen | Abrechnung |
 
 ## Wallbox Wn: sämtliche Einstellungen
 
@@ -82,6 +84,12 @@ ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilli
 | `WnPowerUnit` | `W` | Einheit Ladeleistungsmessung | Messwerte |
 | `WnEnergyVar` | `0` | Kumulativer Geräte-Energiezähler (optional) | Messwerte |
 | `WnEnergyUnit` | `kWh` | Einheit Geräte-Energiezähler | Messwerte |
+| `WnBillingEnabled` | `false` | Abrechnung für diese Wallbox aktivieren | Abrechnung |
+| `WnBillingPVVar` | `0` | PV-Überschussladen (true = PV, false = Normal; optional) | Abrechnung |
+| `WnBillingPVPrice` | `0` | PV-Preis (EUR/kWh) | Abrechnung |
+| `WnBillingNormalPrice` | `0` | Normalpreis (EUR/kWh) | Abrechnung |
+| `WnBillingIdleSeconds` | `600` | Ladepause bis zum Abschluss (s) | Abrechnung |
+| `WnBillingMinPowerW` | `50` | Leistungsschwelle für einen Ladegang (W) | Abrechnung |
 | `WnMaxAge` | `0` | Messwertalter / Heartbeat-Timeout (s; 0 = aus) | Messwerte |
 | `WnHeartbeatVar` | `0` | Geräte-Heartbeat (optional; Aktualisierung zählt) | Messwerte |
 | `WnVoltage` | `230` | Spannung Außenleiter–Neutralleiter (V) | Phasen |
@@ -173,8 +181,17 @@ Alle vier Plätze werden dauerhaft angelegt. Unverknüpfte / ungültige numerisc
 | `WnRemaining` | Integer | s | nein | Verbleibende Zeitbedingung |
 | `WnEnergyMethod` | String | – | nein | berechnet oder Gerätezähler |
 | `WnMeasurementGap` | String | – | nein | Messlücke, neue Zählerbasis oder Gerätewechsel |
+| `WnBillingPVEnergy` | Float | kWh | nein | Berechnete Energie während PV-Tarif, seit Aktivierung der Abrechnung |
+| `WnBillingNormalEnergy` | Float | kWh | nein | Berechnete Energie während Normaltarif, seit Aktivierung der Abrechnung |
+| `WnBillingUnassignedEnergy` | Float | kWh | nein | Unzugeordnete Energie bei ungültiger PV-Boolvariable |
+| `WnBillingPVCost` | Float | EUR | nein | PV-Kosten einschließlich laufendem Ladegang |
+| `WnBillingNormalCost` | Float | EUR | nein | Normalkosten einschließlich laufendem Ladegang |
+| `WnBillingCost` | Float | EUR | nein | Gesamtkosten einschließlich laufendem Ladegang |
+| `WnBillingSessions` | Integer | – | nein | Anzahl abgeschlossener Ladegänge mit Energie |
+| `WnBillingStatus` | String | – | nein | Abrechnungs- oder PDF-Fehlerstatus |
+| `WnBillingLastPDF` | Integer | Objekt-ID | nein | Medien-ID des letzten abgeschlossenen Ladegangs |
 
-Die 17 Manager-/Speichervariablen und 12 Variablen je Platz ergeben 65 Variablen. Statusvariablen haben keine Geräteaktion. Bedienvariablen verwenden RequestAction und behalten ihre Werte über Neustart / ApplyChanges; geänderte anfängliche Werte im Formular werden bewusst übernommen.
+Die 17 Manager-/Speichervariablen und 21 Variablen je Platz ergeben 101 Variablen. Statusvariablen haben keine Geräteaktion. Bedienvariablen verwenden RequestAction und behalten ihre Werte über Neustart / ApplyChanges; geänderte anfängliche Werte im Formular werden bewusst übernommen.
 
 ## Öffentliche Modulfunktionen
 
@@ -183,7 +200,9 @@ Die 17 Manager-/Speichervariablen und 12 Variablen je Platz ergeben 65 Variablen
 | `WBM_Control(int InstanceID)` | Einen Regeldurchlauf auslösen |
 | `WBM_Diagnose(int InstanceID)` | JSON mit Konfigurationsfehlern, Budget, Zuteilungen, Zuständen und letzten 40 Befehlen |
 | `WBM_ClearFaults(int InstanceID)` | Befehls-/Phasenfehler nach Ursachenprüfung quittieren |
-| `WBM_ResetEnergy(int InstanceID, string Confirmation)` | Alle Zähler nur bei exakt ENERGIE ZURÜCKSETZEN löschen |
+| `WBM_ResetEnergy(int InstanceID, string Confirmation)` | Platz-/Gesamtenergie nur bei exakt ENERGIE ZURÜCKSETZEN löschen; Abrechnung bleibt erhalten |
+| `WBM_GetBillingStatus(int InstanceID, int Wallbox)` | JSON mit laufendem/letztem Ladegang, Tarifmengen, Kosten, Summen und PDF-Status (Wallbox 1–4) |
+| `WBM_GetBillingPDF(int InstanceID, int Wallbox)` | Letzte gespeicherte PDF als Base64-String; leer, solange kein Dokument bereitliegt |
 | `WBM_ControlTargets(int InstanceID)` | Internes JSON der beanspruchten Steuerziele; dient Instanzkonfliktprüfung |
 
-Runtime, Configuration, Telemetry und OwnedTargets sind persistente String-Attribute. Puffer werden nur für flüchtige Startmarkierung verwendet. Steuerzielübernahme ist instanzübergreifend durch eine Semaphore geschützt.
+Runtime, Configuration, Telemetry und OwnedTargets sind persistente String-Attribute. Laufende Abrechnungen, Tarifpositionen und die PDF-Warteschlange liegen in Runtime. PDFs sind Dokumentmedien im Objektbaum und im media-Verzeichnis. Puffer halten flüchtige Startmarkierung und PDF-Kopien für die Kachel. Steuerzielübernahme ist instanzübergreifend durch eine Semaphore geschützt. Details: [Ladeabrechnung](ABRECHNUNG.md).

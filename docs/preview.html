@@ -140,6 +140,12 @@ body#wbm-page {
 #wbm .energy-row.is-active, #wbm .legend-button.is-active { color: var(--wb-accent); }
 #wbm .energy-note { font-size: .8em; color: var(--wb-muted); overflow-wrap: anywhere; margin: 12px 0 0; }
 #wbm #energy-empty { text-align: center; }
+#wbm .billing-details { margin: 0; min-width: 0; }
+#wbm .billing-details summary { color: var(--wb-muted); cursor: pointer; font-size: .8em; min-height: 28px; padding: 5px 0 0; width: fit-content; }
+#wbm .billing-details p { margin: 8px 0; font-size: .8em; color: var(--wb-muted); overflow-wrap: anywhere; }
+#wbm .billing-details .lock { color: var(--wb-default-warning); }
+#wbm .billing-details .wb-button { max-width: 100%; white-space: normal; font-size: .85em; }
+#wbm .wb-button:disabled { opacity: .5; cursor: default; }
 #wbm:fullscreen { background: var(--wb-surface); width: 100vw; height: 100vh; }
 @media (max-width: 600px) {
     #wbm .energy-layout { grid-template-columns: 1fr; gap: 16px; }
@@ -229,7 +235,7 @@ body#wbm-page {
   </div>
 </section>
 </main>
-<script>window.WBM_INITIAL = {"manager":true,"mode":0,"base":12000,"normalBudget":16000,"budget":16000,"assigned":15870,"overrun":0,"battery":{"theoretical":4000,"confirmed":4000,"energy":5.6,"soc":76,"reason":"Unterst\u00fctzung verf\u00fcgbar","external":true,"measured":4000,"requested":3870,"capacity":10,"commanded":4000},"boxes":{"1":{"id":1,"name":"Garage","enabled":true,"manual":true,"external":true,"priority":1,"measured":5500,"phases":3,"power":8280,"command":12,"unit":"A","status":"Laden","reason":"Laden","remaining":0,"phaseCommand":null,"fault":"","energy":82.183,"archivedEnergy":0,"energyMethod":"berechnet","gap":""},"2":{"id":2,"name":"Stellplatz","enabled":true,"manual":true,"external":true,"priority":2,"measured":5500,"phases":3,"power":7590,"command":11,"unit":"A","status":"Laden","reason":"Laden","remaining":0,"phaseCommand":null,"fault":"","energy":42.129,"archivedEnergy":0,"energyMethod":"berechnet","gap":""},"3":{"id":3,"name":"Wallbox 3","enabled":false,"manual":true,"external":true,"priority":3,"measured":null,"phases":3,"power":0,"command":0,"unit":"A","status":"Deaktiviert","reason":"Deaktiviert","remaining":0,"phaseCommand":null,"fault":"","energy":0,"archivedEnergy":0,"energyMethod":"berechnet","gap":""},"4":{"id":4,"name":"Wallbox 4","enabled":false,"manual":true,"external":true,"priority":4,"measured":null,"phases":3,"power":0,"command":0,"unit":"A","status":"Deaktiviert","reason":"Deaktiviert","remaining":0,"phaseCommand":null,"fault":"","energy":0,"archivedEnergy":0,"energyMethod":"berechnet","gap":""}},"errors":[],"time":1791841467,"managerEnabled":true,"measured":11000,"energy":124.312,"status":"Automatische Regelung aktiv","strict":true,"batteryEnabled":true,"batteryConfigured":true,"simulation":true};</script>
+<script>window.WBM_INITIAL = {"manager":true,"mode":0,"base":12000,"normalBudget":16000,"budget":16000,"assigned":15870,"overrun":0,"battery":{"theoretical":4000,"confirmed":4000,"energy":5.6,"soc":76,"reason":"Unterst\u00fctzung verf\u00fcgbar","external":true,"measured":4000,"requested":3870,"capacity":10,"commanded":4000},"boxes":{"1":{"id":1,"name":"Garage","enabled":true,"manual":true,"external":true,"priority":1,"measured":5500,"phases":3,"power":8280,"command":12,"unit":"A","status":"Laden","reason":"Laden","remaining":0,"phaseCommand":null,"fault":"","energy":82.183,"archivedEnergy":0,"energyMethod":"berechnet","gap":"","billing":{"enabled":true,"active":null,"last":{"id":"beispiel-w1","wallbox":1,"name":"Garage","device":"vorschau","started":1793340493,"timezone":"Europe\/Berlin","method":"berechnet","warnings":[],"lines":[{"mode":"pv","energy":8.5,"price":0.1,"cost":0.85},{"mode":"normal","energy":3.25,"price":0.32,"cost":1.04}],"pvEnergy":8.5,"normalEnergy":3.25,"unassignedEnergy":0,"pvCost":0.85,"normalCost":1.04,"totalEnergy":11.75,"totalCost":1.89,"ended":1793347693,"reason":"Eingestellte Ladepause erreicht","mediaID":0,"fileName":"Wallbox-1-Beispiel.pdf"},"totals":{"pvEnergy":0,"normalEnergy":0,"unassignedEnergy":0,"pvCost":0,"normalCost":0,"totalCost":0,"sessions":0},"idleSince":null,"mode":"normal","pvPrice":0.1,"normalPrice":0.32,"idleSeconds":600,"pending":0,"error":"","pdf":"JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9Db3VudCAxIC9LaWRzIFs1IDAgUl0gPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nID4+CmVuZG9iago0IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQgL0hlbHZldGljYS1Cb2xkIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nID4+CmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgNTk1IDg0Ml0gL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgMyAwIFIgL0YyIDQgMCBSID4+ID4+IC9Db250ZW50cyA2IDAgUiA+PgplbmRvYmoKNiAwIG9iago8PCAvTGVuZ3RoIDE4NzM+PgpzdHJlYW0KMC4wNSAwLjY1IDAuNTYgUkcgMSB3IDQ0IDc5MCBtIDU1MSA3OTAgbCBTCjAuMTIgMC4xMyAwLjE1IHJnCkJUIC9GMSAyMCBUZiAxIDAgMCAxIDQ0IDgwOSBUbSAoTGFkZWFicmVjaG51bmcpIFRqIEVUCkJUIC9GMSA5IFRmIDEgMCAwIDEgNDQgNzY5IFRtIChXYWxsYm94IE1hbmFnZXIgtyBiZWlzcGllbC13MSkgVGogRVQKQlQgL0YyIDE1IFRmIDEgMCAwIDEgNDQgNzQyIFRtIChHYXJhZ2UpIFRqIEVUCkJUIC9GMSAxMSBUZiAxIDAgMCAxIDQ0IDcxNiBUbSAoQmVnaW5uOiAzMC4xMC4yMDI2IDA3OjA4OjEzKSBUaiBFVApCVCAvRjEgMTEgVGYgMSAwIDAgMSA0NCA2OTggVG0gKEVuZGU6IDMwLjEwLjIwMjYgMDk6MDg6MTMpIFRqIEVUCkJUIC9GMSA5IFRmIDEgMCAwIDEgNDQgNjgwIFRtIChaZWl0em9uZTogRXVyb3BlL0JlcmxpbikgVGogRVQKQlQgL0YxIDkgVGYgMSAwIDAgMSA0NCA2NjIgVG0gKEFic2NobHVzczogRWluZ2VzdGVsbHRlIExhZGVwYXVzZSBlcnJlaWNodCkgVGogRVQKQlQgL0YyIDEwIFRmIDEgMCAwIDEgNDQgNjI2IFRtIChBYnJlY2hudW5nc21vZHVzKSBUaiBFVApCVCAvRjIgMTAgVGYgMSAwIDAgMSAyNDUgNjI2IFRtIChFbmVyZ2llKSBUaiBFVApCVCAvRjIgMTAgVGYgMSAwIDAgMSAzNTAgNjI2IFRtIChQcmVpcyAvIGtXaCkgVGogRVQKQlQgL0YyIDEwIFRmIDEgMCAwIDEgNDY1IDYyNiBUbSAoQmV0cmFnKSBUaiBFVAowLjc1IDAuNzUgMC43NSBSRyAwLjQgdyA0NCA2MTYgbSA1NTEgNjE2IGwgUwpCVCAvRjEgMTAgVGYgMSAwIDAgMSA0NCA1OTQgVG0gKFBWLdxiZXJzY2h1c3NsYWRlbikgVGogRVQKQlQgL0YxIDEwIFRmIDEgMCAwIDEgMjQ1IDU5NCBUbSAoOCw1MCBrV2gpIFRqIEVUCkJUIC9GMSAxMCBUZiAxIDAgMCAxIDM1MCA1OTQgVG0gKDAsMTAggCkgVGogRVQKQlQgL0YxIDEwIFRmIDEgMCAwIDEgNDY1IDU5NCBUbSAoMCw4NSCAKSBUaiBFVApCVCAvRjEgMTAgVGYgMSAwIDAgMSA0NCA1NjkgVG0gKE5vcm1hbGxhZGVuKSBUaiBFVApCVCAvRjEgMTAgVGYgMSAwIDAgMSAyNDUgNTY5IFRtICgzLDI1IGtXaCkgVGogRVQKQlQgL0YxIDEwIFRmIDEgMCAwIDEgMzUwIDU2OSBUbSAoMCwzMiCAKSBUaiBFVApCVCAvRjEgMTAgVGYgMSAwIDAgMSA0NjUgNTY5IFRtICgxLDA0IIApIFRqIEVUCkJUIC9GMSAxMSBUZiAxIDAgMCAxIDQ0IDUyOCBUbSAoUFYtRW5lcmdpZTogOCw1MCBrV2ggfCBOb3JtYWxlbmVyZ2llOiAzLDI1IGtXaCkgVGogRVQKQlQgL0YxIDEyIFRmIDEgMCAwIDEgNDQgNTEwIFRtIChHZXNhbXRlIExhZGVlbmVyZ2llOiAxMSw3NSBrV2gpIFRqIEVUCkJUIC9GMiAxNCBUZiAxIDAgMCAxIDQ0IDQ5MiBUbSAoR2VzYW10YmV0cmFnOiAxLDg5IIApIFRqIEVUCkJUIC9GMSA5IFRmIDEgMCAwIDEgNDQgNDU2IFRtIChFbmVyZ2llIGF1cyBnZW1lc3NlbmVyIExhZGVsZWlzdHVuZyBiZXJlY2huZXQuIEt1cnplKSBUaiBFVApCVCAvRjEgOSBUZiAxIDAgMCAxIDQ0IDQzOCBUbSAoTGFkZXBhdXNlbiBnZWj2cmVuIHp1bSBzZWxiZW4gTGFkZWdhbmcuKSBUaiBFVApCVCAvRjEgOSBUZiAxIDAgMCAxIDQ0IDQyMCBUbSAoUFYtVGFyaWYgZ2lsdCBiZWkgd2FocmVyIFBWLUJvb2x2YXJpYWJsZTsgc29uc3QgZ2lsdCBkZXIpIFRqIEVUCkJUIC9GMSA5IFRmIDEgMCAwIDEgNDQgNDAyIFRtIChOb3JtYWx0YXJpZi4gUHJlaXN3ZWNoc2VsIHdlcmRlbiBnZXRyZW5udCBhdXNnZXdpZXNlbi4pIFRqIEVUCkJUIC9GMSA5IFRmIDEgMCAwIDEgNDQgMzg0IFRtIChCZXRy5GdlIHNpbmQgamUgVGFyaWZwb3NpdGlvbiBhdWYgQ2VudCBnZXJ1bmRldC4pIFRqIEVUCkJUIC9GMSA5IFRmIDEgMCAwIDEgNDQgMzIgVG0gKExhZGVhYnJlY2hudW5nILcgU2VpdGUgMSAvIDEpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDcKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE1IDAwMDAwIG4gCjAwMDAwMDAwNjQgMDAwMDAgbiAKMDAwMDAwMDEyMSAwMDAwMCBuIAowMDAwMDAwMjE4IDAwMDAwIG4gCjAwMDAwMDAzMjAgMDAwMDAgbiAKMDAwMDAwMDQ1NiAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDcgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjIzNzkKJSVFT0YK"}},"2":{"id":2,"name":"Stellplatz","enabled":true,"manual":true,"external":true,"priority":2,"measured":5500,"phases":3,"power":7590,"command":11,"unit":"A","status":"Laden","reason":"Laden","remaining":0,"phaseCommand":null,"fault":"","energy":42.129,"archivedEnergy":0,"energyMethod":"berechnet","gap":"","billing":{"enabled":true,"active":null,"last":{"id":"beispiel-w2","wallbox":2,"name":"Stellplatz","device":"vorschau","started":1793340493,"timezone":"Europe\/Berlin","method":"berechnet","warnings":[],"lines":[{"mode":"pv","energy":4.2,"price":0.1,"cost":0.42},{"mode":"normal","energy":2,"price":0.32,"cost":0.64}],"pvEnergy":4.2,"normalEnergy":2,"unassignedEnergy":0,"pvCost":0.42,"normalCost":0.64,"totalEnergy":6.2,"totalCost":1.06,"ended":1793347693,"reason":"Eingestellte Ladepause erreicht","mediaID":0,"fileName":"Wallbox-2-Beispiel.pdf"},"totals":{"pvEnergy":0,"normalEnergy":0,"unassignedEnergy":0,"pvCost":0,"normalCost":0,"totalCost":0,"sessions":0},"idleSince":null,"mode":"normal","pvPrice":0.1,"normalPrice":0.32,"idleSeconds":600,"pending":0,"error":"","pdf":"JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9Db3VudCAxIC9LaWRzIFs1IDAgUl0gPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nID4+CmVuZG9iago0IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQgL0hlbHZldGljYS1Cb2xkIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nID4+CmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9QYWdlIC9QYXJlbnQgMiAwIFIgL01lZGlhQm94IFswIDAgNTk1IDg0Ml0gL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgMyAwIFIgL0YyIDQgMCBSID4+ID4+IC9Db250ZW50cyA2IDAgUiA+PgplbmRvYmoKNiAwIG9iago8PCAvTGVuZ3RoIDE4NzY+PgpzdHJlYW0KMC4wNSAwLjY1IDAuNTYgUkcgMSB3IDQ0IDc5MCBtIDU1MSA3OTAgbCBTCjAuMTIgMC4xMyAwLjE1IHJnCkJUIC9GMSAyMCBUZiAxIDAgMCAxIDQ0IDgwOSBUbSAoTGFkZWFicmVjaG51bmcpIFRqIEVUCkJUIC9GMSA5IFRmIDEgMCAwIDEgNDQgNzY5IFRtIChXYWxsYm94IE1hbmFnZXIgtyBiZWlzcGllbC13MikgVGogRVQKQlQgL0YyIDE1IFRmIDEgMCAwIDEgNDQgNzQyIFRtIChTdGVsbHBsYXR6KSBUaiBFVApCVCAvRjEgMTEgVGYgMSAwIDAgMSA0NCA3MTYgVG0gKEJlZ2lubjogMzAuMTAuMjAyNiAwNzowODoxMykgVGogRVQKQlQgL0YxIDExIFRmIDEgMCAwIDEgNDQgNjk4IFRtIChFbmRlOiAzMC4xMC4yMDI2IDA5OjA4OjEzKSBUaiBFVApCVCAvRjEgOSBUZiAxIDAgMCAxIDQ0IDY4MCBUbSAoWmVpdHpvbmU6IEV1cm9wZS9CZXJsaW4pIFRqIEVUCkJUIC9GMSA5IFRmIDEgMCAwIDEgNDQgNjYyIFRtIChBYnNjaGx1c3M6IEVpbmdlc3RlbGx0ZSBMYWRlcGF1c2UgZXJyZWljaHQpIFRqIEVUCkJUIC9GMiAxMCBUZiAxIDAgMCAxIDQ0IDYyNiBUbSAoQWJyZWNobnVuZ3Ntb2R1cykgVGogRVQKQlQgL0YyIDEwIFRmIDEgMCAwIDEgMjQ1IDYyNiBUbSAoRW5lcmdpZSkgVGogRVQKQlQgL0YyIDEwIFRmIDEgMCAwIDEgMzUwIDYyNiBUbSAoUHJlaXMgLyBrV2gpIFRqIEVUCkJUIC9GMiAxMCBUZiAxIDAgMCAxIDQ2NSA2MjYgVG0gKEJldHJhZykgVGogRVQKMC43NSAwLjc1IDAuNzUgUkcgMC40IHcgNDQgNjE2IG0gNTUxIDYxNiBsIFMKQlQgL0YxIDEwIFRmIDEgMCAwIDEgNDQgNTk0IFRtIChQVi3cYmVyc2NodXNzbGFkZW4pIFRqIEVUCkJUIC9GMSAxMCBUZiAxIDAgMCAxIDI0NSA1OTQgVG0gKDQsMjAga1doKSBUaiBFVApCVCAvRjEgMTAgVGYgMSAwIDAgMSAzNTAgNTk0IFRtICgwLDEwIIApIFRqIEVUCkJUIC9GMSAxMCBUZiAxIDAgMCAxIDQ2NSA1OTQgVG0gKDAsNDIggCkgVGogRVQKQlQgL0YxIDEwIFRmIDEgMCAwIDEgNDQgNTY5IFRtIChOb3JtYWxsYWRlbikgVGogRVQKQlQgL0YxIDEwIFRmIDEgMCAwIDEgMjQ1IDU2OSBUbSAoMiwwMCBrV2gpIFRqIEVUCkJUIC9GMSAxMCBUZiAxIDAgMCAxIDM1MCA1NjkgVG0gKDAsMzIggCkgVGogRVQKQlQgL0YxIDEwIFRmIDEgMCAwIDEgNDY1IDU2OSBUbSAoMCw2NCCAKSBUaiBFVApCVCAvRjEgMTEgVGYgMSAwIDAgMSA0NCA1MjggVG0gKFBWLUVuZXJnaWU6IDQsMjAga1doIHwgTm9ybWFsZW5lcmdpZTogMiwwMCBrV2gpIFRqIEVUCkJUIC9GMSAxMiBUZiAxIDAgMCAxIDQ0IDUxMCBUbSAoR2VzYW10ZSBMYWRlZW5lcmdpZTogNiwyMCBrV2gpIFRqIEVUCkJUIC9GMiAxNCBUZiAxIDAgMCAxIDQ0IDQ5MiBUbSAoR2VzYW10YmV0cmFnOiAxLDA2IIApIFRqIEVUCkJUIC9GMSA5IFRmIDEgMCAwIDEgNDQgNDU2IFRtIChFbmVyZ2llIGF1cyBnZW1lc3NlbmVyIExhZGVsZWlzdHVuZyBiZXJlY2huZXQuIEt1cnplKSBUaiBFVApCVCAvRjEgOSBUZiAxIDAgMCAxIDQ0IDQzOCBUbSAoTGFkZXBhdXNlbiBnZWj2cmVuIHp1bSBzZWxiZW4gTGFkZWdhbmcuKSBUaiBFVApCVCAvRjEgOSBUZiAxIDAgMCAxIDQ0IDQyMCBUbSAoUFYtVGFyaWYgZ2lsdCBiZWkgd2FocmVyIFBWLUJvb2x2YXJpYWJsZTsgc29uc3QgZ2lsdCBkZXIpIFRqIEVUCkJUIC9GMSA5IFRmIDEgMCAwIDEgNDQgNDAyIFRtIChOb3JtYWx0YXJpZi4gUHJlaXN3ZWNoc2VsIHdlcmRlbiBnZXRyZW5udCBhdXNnZXdpZXNlbi4pIFRqIEVUCkJUIC9GMSA5IFRmIDEgMCAwIDEgNDQgMzg0IFRtIChCZXRy5GdlIHNpbmQgamUgVGFyaWZwb3NpdGlvbiBhdWYgQ2VudCBnZXJ1bmRldC4pIFRqIEVUCkJUIC9GMSA5IFRmIDEgMCAwIDEgNDQgMzIgVG0gKExhZGVhYnJlY2hudW5nILcgU2VpdGUgMSAvIDEpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDcKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE1IDAwMDAwIG4gCjAwMDAwMDAwNjQgMDAwMDAgbiAKMDAwMDAwMDEyMSAwMDAwMCBuIAowMDAwMDAwMjE4IDAwMDAwIG4gCjAwMDAwMDAzMjAgMDAwMDAgbiAKMDAwMDAwMDQ1NiAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDcgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjIzODIKJSVFT0YK"}},"3":{"id":3,"name":"Wallbox 3","enabled":false,"manual":true,"external":true,"priority":3,"measured":null,"phases":3,"power":0,"command":0,"unit":"A","status":"Deaktiviert","reason":"Deaktiviert","remaining":0,"phaseCommand":null,"fault":"","energy":0,"archivedEnergy":0,"energyMethod":"berechnet","gap":""},"4":{"id":4,"name":"Wallbox 4","enabled":false,"manual":true,"external":true,"priority":4,"measured":null,"phases":3,"power":0,"command":0,"unit":"A","status":"Deaktiviert","reason":"Deaktiviert","remaining":0,"phaseCommand":null,"fault":"","energy":0,"archivedEnergy":0,"energyMethod":"berechnet","gap":""}},"errors":[],"time":1793348293,"managerEnabled":true,"measured":11000,"energy":124.312,"status":"Automatische Regelung aktiv","strict":true,"batteryEnabled":true,"batteryConfigured":true,"simulation":true};</script>
 <script>window.WBM_PREVIEW_ACTIONS = [];
 window.requestAction = function (ident, value) {
     window.WBM_PREVIEW_ACTIONS.push({ident: ident, value: value});
@@ -248,6 +254,7 @@ window.requestAction = function (ident, value) {
     var number = new Intl.NumberFormat('de-DE', { useGrouping: false, maximumFractionDigits: 2 });
     var energyFormat = new Intl.NumberFormat('de-DE', { useGrouping: false, minimumFractionDigits: 2, maximumFractionDigits: 2 });
     var ampereFormat = new Intl.NumberFormat('de-DE', { useGrouping: false, minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    var moneyFormat = new Intl.NumberFormat('de-DE', { useGrouping: false, minimumFractionDigits: 2, maximumFractionDigits: 2 });
     var dashboardOpen = false;
     var energyItems = new Map();
     var selectedEnergy = null;
@@ -334,6 +341,54 @@ window.requestAction = function (ident, value) {
         div.append(span, strong);
         return div;
     }
+    function downloadBilling(id) {
+        try {
+            var box = latest && latest.boxes[id];
+            var bill = box && box.billing;
+            if (!bill || !bill.pdf) return;
+            var bytes = Uint8Array.from(atob(bill.pdf), function (ch) { return ch.charCodeAt(0); });
+            var url = URL.createObjectURL(new Blob([bytes], {type: 'application/pdf'}));
+            var link = document.createElement('a');
+            link.href = url; link.download = (bill.last.fileName || 'Wallbox-' + id + '-Abrechnung.pdf').replace(/[^a-zA-Z0-9._-]/g, '_');
+            document.body.append(link); link.click(); link.remove();
+            setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+        } catch (error) { showError(error); }
+    }
+    function billingDetails(id) {
+        var details = document.createElement('details'); details.className = 'billing-details'; details.dataset.field = 'billing'; details.hidden = true;
+        var summary = document.createElement('summary'); summary.textContent = 'Abrechnung';
+        var period = document.createElement('p'); period.dataset.field = 'billingPeriod';
+        var values = document.createElement('div'); values.className = 'device-secondary';
+        values.append(metric('PV-Überschussladen', 'billingPV'), metric('Normalladen', 'billingNormal'), metric('Gesamtbetrag', 'billingCost'));
+        var rates = document.createElement('p'); rates.dataset.field = 'billingRates';
+        var unknown = document.createElement('p'); unknown.dataset.field = 'billingUnknown'; unknown.className = 'lock';
+        var status = document.createElement('p'); status.dataset.field = 'billingState';
+        var button = document.createElement('button'); button.type = 'button'; button.className = 'wb-button';
+        button.dataset.field = 'billingPDF'; button.textContent = 'Letzte Abrechnung als PDF'; button.disabled = true;
+        button.addEventListener('click', function () { downloadBilling(id); });
+        details.append(summary, period, values, rates, unknown, status, button);
+        return details;
+    }
+    function renderBilling(fields, billing) {
+        fields.billing.hidden = !billing || !billing.enabled;
+        if (!billing) return;
+        var session = billing.active || billing.last;
+        var money = function (v) { return moneyFormat.format(v || 0) + ' €'; };
+        fields.billingPeriod.textContent = session ? (billing.active ? 'Laufender Ladegang seit ' : 'Letzter Ladegang vom ') + new Date(session.started * 1000).toLocaleString('de-DE') : 'Noch kein Ladegang erfasst';
+        fields.billingPV.textContent = energy(session && session.pvEnergy) + ' · ' + money(session && session.pvCost);
+        fields.billingNormal.textContent = energy(session && session.normalEnergy) + ' · ' + money(session && session.normalCost);
+        fields.billingCost.textContent = money(session && session.totalCost);
+        var mode = billing.mode === 'pv' ? 'PV-Überschussladen' : (billing.mode === 'unassigned' ? 'Ungeklärt' : 'Normalladen');
+        fields.billingRates.textContent = 'Tarif: ' + mode + ' · Aktuelle Preise: PV ' + money(billing.pvPrice) + '/kWh · Normal ' + money(billing.normalPrice) + '/kWh';
+        fields.billingUnknown.hidden = !(session && session.unassignedEnergy > 0);
+        fields.billingUnknown.textContent = 'Tarif ungeklärt: ' + energy(session && session.unassignedEnergy) + ' – Abrechnung prüfen';
+        fields.billingState.textContent = billing.error || (billing.pending ? 'PDF wird erstellt …' : 'Energie aus gemessener Ladeleistung berechnet.');
+        if (session && session.warnings && session.warnings.length) fields.billingState.textContent += ' Hinweise im PDF beachten.';
+        if (billing.active && billing.idleSince !== null && billing.idleSince !== undefined) {
+            fields.billingState.textContent += ' Ladepause: Abschluss nach ' + number.format(billing.idleSeconds) + ' s ohne Ladeleistung.';
+        }
+        fields.billingPDF.disabled = !billing.pdf;
+    }
     function createCard(id) {
         var card = document.createElement('article');
         card.className = 'box';
@@ -397,7 +452,7 @@ window.requestAction = function (ident, value) {
         reason.className = 'reason'; reason.dataset.field = 'reason';
         var gap = document.createElement('p');
         gap.className = 'gap'; gap.dataset.field = 'gap';
-        card.append(head, lock, reason, gap, details);
+        card.append(head, lock, reason, gap, details, billingDetails(id));
         var fields = {};
         card.querySelectorAll('[data-field]').forEach(function (node) { fields[node.dataset.field] = node; });
         cards.set(id, { node: card, fields: fields, details: details });
@@ -443,6 +498,7 @@ window.requestAction = function (ident, value) {
             f.reason.textContent = box.reason;
             f.gap.textContent = box.gap || '';
             f.gap.hidden = !box.gap;
+            renderBilling(f, box.billing);
         });
         el('boxes').dataset.count = String(Object.values(data.boxes).filter(function (box) { return box.enabled; }).length);
         el('battery').hidden = !data.batteryConfigured;

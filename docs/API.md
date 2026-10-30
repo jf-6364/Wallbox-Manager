@@ -78,6 +78,22 @@ Array-Variablendarstellungen (8.0), IPSModuleStrict (8.1), openObject (8.2) und 
 
 ## Auslegungsdetails
 
+### Dokumentmedien für die Ladeabrechnung
+
+Die Signaturen von `IPS_CreateCategory`, `IPS_CreateMedia`, `IPS_SetParent`,
+`IPS_SetIdent`, `IPS_SetName`, `IPS_MediaExists`, `IPS_SetMediaFile`,
+`IPS_SetMediaContent` und `IPS_GetMediaContent` wurden an den offiziellen
+[SymconStubs](https://github.com/symcon/SymconStubs) geprüft. Dokumentmedien
+verwenden Typ **5**; Medieninhalte werden als Base64 übergeben und gelesen.
+Die automatische PDF-Erzeugung benötigt keine zusätzliche PHP-Erweiterung,
+keine externe Bibliothek und keinen Webhook. Native Speicherung und
+Kacheleinbettung sind weiterhin an einer laufenden Symcon-Installation zu prüfen.
+
+Die öffentlichen Wrapper `WBM_GetBillingStatus` und `WBM_GetBillingPDF` sind
+eigene Modulfunktionen. Der zweite liefert Base64; die Kachel erstellt daraus
+bei einem Benutzerklick einen lokalen PDF-Download. Die Daten werden über die
+vorhandene Symcon-Kachelverbindung übertragen.
+
 - Komma-Eingaben werden über `UpdateFormField` in den numerischen Formularentwurf übernommen. Gespeichert wird erst über „Übernehmen“. Die Methode entspricht der [offiziellen SDK-Referenz](https://github.com/symcon/SymconStubs/blob/master/ModuleStrictStubs.php); die numerischen Eigenschaften behalten ihren bisherigen Typ.
 
 - RegisterVariable nutzt bei IPSModule Profilnamen als String; Array-Darstellungen setzen 8.0 voraus.

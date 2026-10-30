@@ -15,10 +15,11 @@ final class Kernel
     public static array $calls = [];
     public static array $failures = [];
     public static array $locks = [];
+    public static array $media = [];
     public static int $next = 1000;
     public static function reset(): void
     {
-        self::$variables = self::$objects = self::$instances = self::$profiles = self::$calls = self::$failures = self::$locks = [];
+        self::$variables = self::$objects = self::$instances = self::$profiles = self::$calls = self::$failures = self::$locks = self::$media = [];
         self::$next = 1000;
     }
     public static function variable($value, bool $action = false, int $parent = 0): int
@@ -109,6 +110,34 @@ function IPS_VariableExists($id) { return isset(Kernel::$variables[$id]); }
 function IPS_GetVariable($id) { return Kernel::$variables[$id]; }
 function IPS_GetObject($id) { return Kernel::$objects[$id]; }
 function IPS_GetChildrenIDs($parent) { return array_keys(array_filter(Kernel::$objects, fn($v) => $v['ParentID'] === $parent)); }
+function IPS_CreateCategory() {
+    $id = Kernel::$next++;
+    Kernel::$objects[$id] = ['ParentID' => 0, 'ObjectType' => 0, 'ObjectIdent' => '', 'ObjectName' => ''];
+    return $id;
+}
+function IPS_CreateMedia(int $type) {
+    if ($type !== 5) throw new RuntimeException('Expected document media type');
+    $id = Kernel::$next++;
+    Kernel::$objects[$id] = ['ParentID' => 0, 'ObjectType' => 5, 'ObjectIdent' => '', 'ObjectName' => ''];
+    Kernel::$media[$id] = ['MediaType' => $type, 'MediaFile' => '', 'content' => ''];
+    return $id;
+}
+function IPS_SetParent(int $id, int $parent) { Kernel::$objects[$id]['ParentID'] = $parent; return true; }
+function IPS_SetIdent(int $id, string $ident) { Kernel::$objects[$id]['ObjectIdent'] = $ident; return true; }
+function IPS_SetName(int $id, string $name) { Kernel::$objects[$id]['ObjectName'] = $name; return true; }
+function IPS_MediaExists(int $id) { return isset(Kernel::$media[$id]); }
+function IPS_GetMedia(int $id) { return Kernel::$media[$id]; }
+function IPS_SetMediaFile(int $id, string $file, bool $mustExist) { Kernel::$media[$id]['MediaFile'] = $file; return true; }
+function IPS_SetMediaContent(int $id, string $content) {
+    if ((Kernel::$failures['media'] ?? '') === 'false') return false;
+    if ((Kernel::$failures['media'] ?? '') === 'warning') { trigger_error('Dateizugriff verweigert', E_USER_WARNING); return false; }
+    if (isset(Kernel::$failures['media'])) throw new RuntimeException(Kernel::$failures['media']);
+    if (base64_decode($content, true) === false) throw new RuntimeException('Expected base64 media content');
+    Kernel::$media[$id]['content'] = $content;
+    if (Kernel::$failures['mediaAfterWrite'] ?? false) { unset(Kernel::$failures['mediaAfterWrite']); throw new RuntimeException('Unterbrechung nach PDF-Schreiben'); }
+    return true;
+}
+function IPS_GetMediaContent(int $id) { return Kernel::$media[$id]['content']; }
 function IPS_GetInstanceListByModuleID($id) { return array_keys(Kernel::$instances); }
 function IPS_GetProperty($id, $name) { return Kernel::$instances[$id]->properties[$name]; }
 function GetValue($id) { return Kernel::$variables[$id]['value']; }

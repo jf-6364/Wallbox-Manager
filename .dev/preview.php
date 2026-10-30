@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/../libs/bootstrap.php';
-use WBM\{Schema, Engine, Setpoint};
+use WBM\{Schema, Engine, Setpoint, Billing, BillingPdf};
 $cfg = Schema::unpack(Schema::defaults());
 $cfg['global']['Hysteresis'] = 0.0;
 for ($i = 1; $i <= 2; $i++) $cfg['boxes'][$i] = array_replace($cfg['boxes'][$i], ['Enabled' => true, 'Name' => $i === 1 ? 'Garage' : 'Stellplatz', 'StartDelay' => 0, 'MinPause' => 0]);
@@ -16,6 +16,15 @@ $plan['status'] = 'Automatische Regelung aktiv'; $plan['strict'] = true; $plan['
 $plan['battery']['capacity'] = 10.0; $plan['battery']['commanded'] = 4000.0; $plan['simulation'] = true;
 foreach ($plan['boxes'] as $id => &$row) { $row['energy'] = $id === 1 ? 82.183 : ($id === 2 ? 42.129 : 0.0); $row['archivedEnergy'] = 0.0; $row['energyMethod'] = 'berechnet'; $row['gap'] = ''; }
 unset($row);
+foreach ([1, 2] as $id) {
+    $session = ['id' => 'beispiel-w' . $id, 'wallbox' => $id, 'name' => $plan['boxes'][$id]['name'], 'device' => 'vorschau',
+        'started' => $time - 7800, 'timezone' => 'Europe/Berlin', 'method' => 'berechnet', 'warnings' => [],
+        'lines' => [['mode' => 'pv', 'energy' => $id === 1 ? 8.5 : 4.2, 'price' => 0.10], ['mode' => 'normal', 'energy' => $id === 1 ? 3.25 : 2.0, 'price' => 0.32]]];
+    $record = Billing::record($session) + ['ended' => $time - 600, 'reason' => 'Eingestellte Ladepause erreicht', 'mediaID' => 0, 'fileName' => 'Wallbox-' . $id . '-Beispiel.pdf'];
+    $plan['boxes'][$id]['billing'] = ['enabled' => true, 'active' => null, 'last' => $record, 'totals' => Billing::totals(),
+        'idleSince' => null, 'mode' => 'normal', 'pvPrice' => 0.10, 'normalPrice' => 0.32, 'idleSeconds' => 600,
+        'pending' => 0, 'error' => '', 'pdf' => base64_encode(BillingPdf::create($record))];
+}
 $html = file_get_contents(__DIR__ . '/../WallboxManager/tile.html');
 $mock = <<<'JS'
 window.WBM_PREVIEW_ACTIONS = [];

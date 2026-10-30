@@ -6,6 +6,7 @@
     var number = new Intl.NumberFormat('de-DE', { useGrouping: false, maximumFractionDigits: 2 });
     var energyFormat = new Intl.NumberFormat('de-DE', { useGrouping: false, minimumFractionDigits: 2, maximumFractionDigits: 2 });
     var ampereFormat = new Intl.NumberFormat('de-DE', { useGrouping: false, minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    var moneyFormat = new Intl.NumberFormat('de-DE', { useGrouping: false, minimumFractionDigits: 2, maximumFractionDigits: 2 });
     var dashboardOpen = false;
     var energyItems = new Map();
     var selectedEnergy = null;
@@ -92,6 +93,54 @@
         div.append(span, strong);
         return div;
     }
+    function downloadBilling(id) {
+        try {
+            var box = latest && latest.boxes[id];
+            var bill = box && box.billing;
+            if (!bill || !bill.pdf) return;
+            var bytes = Uint8Array.from(atob(bill.pdf), function (ch) { return ch.charCodeAt(0); });
+            var url = URL.createObjectURL(new Blob([bytes], {type: 'application/pdf'}));
+            var link = document.createElement('a');
+            link.href = url; link.download = (bill.last.fileName || 'Wallbox-' + id + '-Abrechnung.pdf').replace(/[^a-zA-Z0-9._-]/g, '_');
+            document.body.append(link); link.click(); link.remove();
+            setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+        } catch (error) { showError(error); }
+    }
+    function billingDetails(id) {
+        var details = document.createElement('details'); details.className = 'billing-details'; details.dataset.field = 'billing'; details.hidden = true;
+        var summary = document.createElement('summary'); summary.textContent = 'Abrechnung';
+        var period = document.createElement('p'); period.dataset.field = 'billingPeriod';
+        var values = document.createElement('div'); values.className = 'device-secondary';
+        values.append(metric('PV-Überschussladen', 'billingPV'), metric('Normalladen', 'billingNormal'), metric('Gesamtbetrag', 'billingCost'));
+        var rates = document.createElement('p'); rates.dataset.field = 'billingRates';
+        var unknown = document.createElement('p'); unknown.dataset.field = 'billingUnknown'; unknown.className = 'lock';
+        var status = document.createElement('p'); status.dataset.field = 'billingState';
+        var button = document.createElement('button'); button.type = 'button'; button.className = 'wb-button';
+        button.dataset.field = 'billingPDF'; button.textContent = 'Letzte Abrechnung als PDF'; button.disabled = true;
+        button.addEventListener('click', function () { downloadBilling(id); });
+        details.append(summary, period, values, rates, unknown, status, button);
+        return details;
+    }
+    function renderBilling(fields, billing) {
+        fields.billing.hidden = !billing || !billing.enabled;
+        if (!billing) return;
+        var session = billing.active || billing.last;
+        var money = function (v) { return moneyFormat.format(v || 0) + ' €'; };
+        fields.billingPeriod.textContent = session ? (billing.active ? 'Laufender Ladegang seit ' : 'Letzter Ladegang vom ') + new Date(session.started * 1000).toLocaleString('de-DE') : 'Noch kein Ladegang erfasst';
+        fields.billingPV.textContent = energy(session && session.pvEnergy) + ' · ' + money(session && session.pvCost);
+        fields.billingNormal.textContent = energy(session && session.normalEnergy) + ' · ' + money(session && session.normalCost);
+        fields.billingCost.textContent = money(session && session.totalCost);
+        var mode = billing.mode === 'pv' ? 'PV-Überschussladen' : (billing.mode === 'unassigned' ? 'Ungeklärt' : 'Normalladen');
+        fields.billingRates.textContent = 'Tarif: ' + mode + ' · Aktuelle Preise: PV ' + money(billing.pvPrice) + '/kWh · Normal ' + money(billing.normalPrice) + '/kWh';
+        fields.billingUnknown.hidden = !(session && session.unassignedEnergy > 0);
+        fields.billingUnknown.textContent = 'Tarif ungeklärt: ' + energy(session && session.unassignedEnergy) + ' – Abrechnung prüfen';
+        fields.billingState.textContent = billing.error || (billing.pending ? 'PDF wird erstellt …' : 'Energie aus gemessener Ladeleistung berechnet.');
+        if (session && session.warnings && session.warnings.length) fields.billingState.textContent += ' Hinweise im PDF beachten.';
+        if (billing.active && billing.idleSince !== null && billing.idleSince !== undefined) {
+            fields.billingState.textContent += ' Ladepause: Abschluss nach ' + number.format(billing.idleSeconds) + ' s ohne Ladeleistung.';
+        }
+        fields.billingPDF.disabled = !billing.pdf;
+    }
     function createCard(id) {
         var card = document.createElement('article');
         card.className = 'box';
@@ -155,7 +204,7 @@
         reason.className = 'reason'; reason.dataset.field = 'reason';
         var gap = document.createElement('p');
         gap.className = 'gap'; gap.dataset.field = 'gap';
-        card.append(head, lock, reason, gap, details);
+        card.append(head, lock, reason, gap, details, billingDetails(id));
         var fields = {};
         card.querySelectorAll('[data-field]').forEach(function (node) { fields[node.dataset.field] = node; });
         cards.set(id, { node: card, fields: fields, details: details });
@@ -201,6 +250,7 @@
             f.reason.textContent = box.reason;
             f.gap.textContent = box.gap || '';
             f.gap.hidden = !box.gap;
+            renderBilling(f, box.billing);
         });
         el('boxes').dataset.count = String(Object.values(data.boxes).filter(function (box) { return box.enabled; }).length);
         el('battery').hidden = !data.batteryConfigured;

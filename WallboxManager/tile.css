@@ -134,6 +134,12 @@ body#wbm-page {
 #wbm .energy-row.is-active, #wbm .legend-button.is-active { color: var(--wb-accent); }
 #wbm .energy-note { font-size: .8em; color: var(--wb-muted); overflow-wrap: anywhere; margin: 12px 0 0; }
 #wbm #energy-empty { text-align: center; }
+#wbm .billing-details { margin: 0; min-width: 0; }
+#wbm .billing-details summary { color: var(--wb-muted); cursor: pointer; font-size: .8em; min-height: 28px; padding: 5px 0 0; width: fit-content; }
+#wbm .billing-details p { margin: 8px 0; font-size: .8em; color: var(--wb-muted); overflow-wrap: anywhere; }
+#wbm .billing-details .lock { color: var(--wb-default-warning); }
+#wbm .billing-details .wb-button { max-width: 100%; white-space: normal; font-size: .85em; }
+#wbm .wb-button:disabled { opacity: .5; cursor: default; }
 #wbm:fullscreen { background: var(--wb-surface); width: 100vw; height: 100vh; }
 @media (max-width: 600px) {
     #wbm .energy-layout { grid-template-columns: 1fr; gap: 16px; }

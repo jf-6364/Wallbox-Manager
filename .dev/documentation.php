@@ -65,15 +65,26 @@ $status = [
 'WnState' => ['String', '–', 'nein', 'Betriebszustand / Wartegrund'],
 'WnRemaining' => ['Integer', 's', 'nein', 'Verbleibende Zeitbedingung'],
 'WnEnergyMethod' => ['String', '–', 'nein', 'berechnet oder Gerätezähler'],
-'WnMeasurementGap' => ['String', '–', 'nein', 'Messlücke, neue Zählerbasis oder Gerätewechsel']
+'WnMeasurementGap' => ['String', '–', 'nein', 'Messlücke, neue Zählerbasis oder Gerätewechsel'],
+'WnBillingPVEnergy' => ['Float', 'kWh', 'nein', 'Berechnete Energie während PV-Tarif, seit Aktivierung der Abrechnung'],
+'WnBillingNormalEnergy' => ['Float', 'kWh', 'nein', 'Berechnete Energie während Normaltarif, seit Aktivierung der Abrechnung'],
+'WnBillingUnassignedEnergy' => ['Float', 'kWh', 'nein', 'Unzugeordnete Energie bei ungültiger PV-Boolvariable'],
+'WnBillingPVCost' => ['Float', 'EUR', 'nein', 'PV-Kosten einschließlich laufendem Ladegang'],
+'WnBillingNormalCost' => ['Float', 'EUR', 'nein', 'Normalkosten einschließlich laufendem Ladegang'],
+'WnBillingCost' => ['Float', 'EUR', 'nein', 'Gesamtkosten einschließlich laufendem Ladegang'],
+'WnBillingSessions' => ['Integer', '–', 'nein', 'Anzahl abgeschlossener Ladegänge mit Energie'],
+'WnBillingStatus' => ['String', '–', 'nein', 'Abrechnungs- oder PDF-Fehlerstatus'],
+'WnBillingLastPDF' => ['Integer', 'Objekt-ID', 'nein', 'Medien-ID des letzten abgeschlossenen Ladegangs']
 ];
 foreach ($status as $ident => $r) $md .= "| $t$ident$t | " . implode(' | ', $r) . " |\n";
-$md .= "\nDie 17 Manager-/Speichervariablen und 12 Variablen je Platz ergeben 65 Variablen. Statusvariablen haben keine Geräteaktion. Bedienvariablen verwenden RequestAction und behalten ihre Werte über Neustart / ApplyChanges; geänderte anfängliche Werte im Formular werden bewusst übernommen.\n";
+$md .= "\nDie 17 Manager-/Speichervariablen und 21 Variablen je Platz ergeben 101 Variablen. Statusvariablen haben keine Geräteaktion. Bedienvariablen verwenden RequestAction und behalten ihre Werte über Neustart / ApplyChanges; geänderte anfängliche Werte im Formular werden bewusst übernommen.\n";
 $md .= "\n## Öffentliche Modulfunktionen\n\n| Funktion | Zweck |\n|---|---|\n";
 foreach (['WBM_Control(int InstanceID)' => 'Einen Regeldurchlauf auslösen', 'WBM_Diagnose(int InstanceID)' => 'JSON mit Konfigurationsfehlern, Budget, Zuteilungen, Zuständen und letzten 40 Befehlen',
-'WBM_ClearFaults(int InstanceID)' => 'Befehls-/Phasenfehler nach Ursachenprüfung quittieren', 'WBM_ResetEnergy(int InstanceID, string Confirmation)' => 'Alle Zähler nur bei exakt ENERGIE ZURÜCKSETZEN löschen',
+'WBM_ClearFaults(int InstanceID)' => 'Befehls-/Phasenfehler nach Ursachenprüfung quittieren', 'WBM_ResetEnergy(int InstanceID, string Confirmation)' => 'Platz-/Gesamtenergie nur bei exakt ENERGIE ZURÜCKSETZEN löschen; Abrechnung bleibt erhalten',
+'WBM_GetBillingStatus(int InstanceID, int Wallbox)' => 'JSON mit laufendem/letztem Ladegang, Tarifmengen, Kosten, Summen und PDF-Status (Wallbox 1–4)',
+'WBM_GetBillingPDF(int InstanceID, int Wallbox)' => 'Letzte gespeicherte PDF als Base64-String; leer, solange kein Dokument bereitliegt',
 'WBM_ControlTargets(int InstanceID)' => 'Internes JSON der beanspruchten Steuerziele; dient Instanzkonfliktprüfung'] as $name => $purpose) $md .= "| $t$name$t | $purpose |\n";
-$md .= "\nRuntime, Configuration, Telemetry und OwnedTargets sind persistente String-Attribute. Puffer werden nur für flüchtige Startmarkierung verwendet. Steuerzielübernahme ist instanzübergreifend durch eine Semaphore geschützt.\n";
+$md .= "\nRuntime, Configuration, Telemetry und OwnedTargets sind persistente String-Attribute. Laufende Abrechnungen, Tarifpositionen und die PDF-Warteschlange liegen in Runtime. PDFs sind Dokumentmedien im Objektbaum und im media-Verzeichnis. Puffer halten flüchtige Startmarkierung und PDF-Kopien für die Kachel. Steuerzielübernahme ist instanzübergreifend durch eine Semaphore geschützt. Details: [Ladeabrechnung](ABRECHNUNG.md).\n";
 file_put_contents(__DIR__ . '/../docs/KONFIGURATION.md', $md);
 
 $two = [

@@ -110,6 +110,34 @@ der Manager zunächst den Stopp der Geräte. Zwei Managerinstanzen dürfen diese
 Steuerziele nicht gleichzeitig beanspruchen. Ein Energie-Reset benötigt eine
 explizite Bestätigung.
 
+## Ladeabrechnung je Wallbox
+
+Jede Wallbox kann geladene Energie getrennt nach **PV-Überschussladen** und
+**Normalladen** abrechnen. Eine verknüpfte Boolvariable legt den Tarif fest:
+`true` zählt zum PV-Tarif, `false` zum Normaltarif. Für beide gelten separat
+einstellbare Preise in EUR/kWh. Ohne verknüpfte Boolvariable gilt der Normaltarif.
+Die Boolvariable bestimmt die Abrechnung; die Leistungsregelung erfolgt weiterhin
+über das Budget und die Freigaben.
+
+Ein Ladegang beginnt bei gemessener Ladeleistung oberhalb der einstellbaren
+Schwelle. Er endet nach einer **einstellbaren Zeit ohne Ladeleistung**, standardmäßig
+600 Sekunden. Kürzere Pausen bleiben Teil desselben Ladegangs. Nach dem Abschluss
+entsteht automatisch eine PDF mit Zeitraum, beiden Energiemengen, Tarifpositionen
+und Gesamtkosten. Alle PDFs bleiben unter der Instanz im jeweiligen Ordner
+„Abrechnung – Wallbox n“; die letzte PDF ist auch in der Kachel herunterladbar.
+
+Für eine zeitliche Tarifaufteilung wird die Abrechnungsenergie **aus der gemessenen
+Ladeleistung berechnet**, auch bei verknüpftem Geräte-Energiezähler. PV-Wechsel
+werden als Ereignisse verarbeitet; Messlücken werden nicht mit angenommener
+Ladeleistung aufgefüllt. Daher können Abrechnung und Geräte-Energiezähler
+voneinander abweichen. Die Aufzeichnung beginnt mit aktivierter Abrechnung.
+
+Preise sind standardmäßig 0,00 EUR/kWh und vor der Nutzung einzustellen.
+Preisänderungen gelten für kommende Energieintervalle. Laufende Ladegänge und
+PDFs bleiben bei Neustarts erhalten; der Gesamtenergie-Reset verändert sie nicht.
+Weitere Details und ein Rechenbeispiel stehen in der
+[Dokumentation zur Ladeabrechnung](docs/ABRECHNUNG.md).
+
 ## Kachelvisualisierung
 
 Die eigene Symcon-Kachel zeigt Budget, aktuelle Ladeleistung und Gesamtenergie

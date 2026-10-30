@@ -27,7 +27,8 @@ final class Schema
             'FeedbackToleranceW' => [100.0, 'Toleranz Lastabbau (W)', 'Diagnose'],
             'EnergyMaxGap' => [120, 'Maximale Integrationslücke (s)', 'Energiezählung'],
             'MeterJumpFactor' => [2.0, 'Plausibilitätsfaktor für Zählersprünge', 'Energiezählung'],
-            'MeterJumpSlack' => [0.02, 'Zählersprung-Toleranz (kWh)', 'Energiezählung']
+            'MeterJumpSlack' => [0.02, 'Zählersprung-Toleranz (kWh)', 'Energiezählung'],
+            'BillingTimezone' => ['Europe/Berlin', 'Zeitzone der Ladeabrechnungen', 'Abrechnung']
         ];
     }
 
@@ -55,6 +56,12 @@ final class Schema
             'PowerUnit' => ['W', 'Einheit Ladeleistungsmessung', 'Messwerte', ['W', 'kW']],
             'EnergyVar' => [0, 'Kumulativer Geräte-Energiezähler (optional)', 'Messwerte', 'read', [1, 2], false],
             'EnergyUnit' => ['kWh', 'Einheit Geräte-Energiezähler', 'Messwerte', ['Wh', 'kWh']],
+            'BillingEnabled' => [false, 'Abrechnung für diese Wallbox aktivieren', 'Abrechnung'],
+            'BillingPVVar' => [0, 'PV-Überschussladen (true = PV, false = Normal; optional)', 'Abrechnung', 'read', [0], false],
+            'BillingPVPrice' => [0.0, 'PV-Preis (EUR/kWh)', 'Abrechnung'],
+            'BillingNormalPrice' => [0.0, 'Normalpreis (EUR/kWh)', 'Abrechnung'],
+            'BillingIdleSeconds' => [600, 'Ladepause bis zum Abschluss (s)', 'Abrechnung'],
+            'BillingMinPowerW' => [50.0, 'Leistungsschwelle für einen Ladegang (W)', 'Abrechnung'],
             'MaxAge' => [0, 'Messwertalter / Heartbeat-Timeout (s; 0 = aus)', 'Messwerte'],
             'HeartbeatVar' => [0, 'Geräte-Heartbeat (optional; Aktualisierung zählt)', 'Messwerte', 'read', [0, 1, 2, 3], false],
             'Voltage' => [230.0, 'Spannung Außenleiter–Neutralleiter (V)', 'Phasen'],
@@ -151,6 +158,7 @@ final class Schema
             $active = true;
             if (preg_match('/^W([1-4])(.+)$/', $key, $m)) {
                 $active = (bool)$flat['W' . $m[1] . 'Enabled'];
+                if (str_starts_with($m[2], 'Billing')) $active = $active && $flat['W' . $m[1] . 'BillingEnabled'];
                 if (str_starts_with($m[2], 'Phase') && in_array($m[2], ['PhaseCommandVar', 'PhaseFeedbackVar'], true)) {
                     $active = $active && $flat['W' . $m[1] . 'PhaseMode'] === 'dynamic';
                 }
