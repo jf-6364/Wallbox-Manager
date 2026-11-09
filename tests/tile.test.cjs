@@ -13,6 +13,8 @@ class Element {
     }
     append(...elements) { this.children.push(...elements); }
     addEventListener(name, callback) { this.listeners[name] = callback; }
+    removeEventListener(name, callback) { if (this.listeners[name] === callback) delete this.listeners[name]; }
+    getAttribute(name) { return this[name] ?? null; }
     setAttribute(name, value) { this[name] = value; }
     querySelectorAll(selector) {
         assert.equal(selector, '[data-field]');
@@ -25,7 +27,7 @@ class Element {
     click() { this.listeners.click.call(this); }
 }
 const ids = ['wbm', 'manager', 'mode-even', 'mode-priority', 'budget-label', 'base', 'support-metric', 'support', 'measured', 'energy', 'overrun', 'status', 'errors', 'boxes', 'battery',
-    'battery-enable', 'battery-lock', 'soc', 'capacity', 'reserve-energy', 'battery-request', 'battery-power', 'battery-state', 'simulation',
+    'battery-enable', 'battery-lock', 'soc', 'capacity', 'reserve-energy', 'battery-request', 'battery-power', 'battery-state', 'simulation', 'simulation-footer',
     'energy-open', 'energy-close'];
 const elements = Object.fromEntries(ids.map(id => [id, new Element()]));
 const document = {getElementById: id => {assert.ok(elements[id], id); return elements[id];}, createElement: tag => new Element(tag), activeElement: null};
@@ -39,7 +41,22 @@ const data = {
         2:{id:2, name:'Stellplatz', enabled:true, manual:true, external:true, priority:2, measured:null, power:0, command:1, unit:'A', energy:0, energyMethod:'Gerätezähler', phases:1, status:'Einschaltverzögerung', reason:'Einschaltverzögerung', remaining:20, gap:'Messlücke'}
     }
 };
-const context = {document, window:{WBM_INITIAL:data}, Map, Intl, Date, Number, Object, JSON, Error, String, setInterval:fn => {context.tick = fn;},
+let now = 1700000000000, nextTimer = 1;
+const timers = new Map();
+class ClockDate extends Date { static now() { return now; } }
+function advance(ms) {
+    const end = now + ms;
+    while (true) {
+        const due = [...timers].filter(([, timer]) => timer.at <= end).sort((a, b) => a[1].at - b[1].at)[0];
+        if (!due) break;
+        now = due[1].at; timers.delete(due[0]); due[1].fn();
+    }
+    now = end;
+}
+function deliver(message) { context.window.handleMessage(message); advance(2500); }
+const context = {document, window:{WBM_INITIAL:data}, Map, Intl, Date:ClockDate, Number, Object, JSON, Error, String,
+    setTimeout:(fn, delay) => { const id = nextTimer++; timers.set(id, {fn, at:now + delay}); return id; },
+    clearTimeout:id => timers.delete(id),
     requestAction:(ident,value) => actions.push({ident,value})};
 vm.createContext(context);
 const source = fs.readFileSync(path.join(__dirname, '../WallboxManager/tile.js'), 'utf8');
@@ -73,26 +90,26 @@ test('Manager-, Modus-, Speicher- und Prioritätsaktionen sind korrekt typisiert
 test('Ungültige Priorität sendet keine Geräteaktion', () => {
     const n = actions.length; fields1.priority.value = '0'; fields1.priority.change(); assert.equal(actions.length,n); assert.equal(elements.errors.hidden,false);
 });
-test('handleMessage aktualisiert Karten ohne Neuerzeugung', () => {
-    const before = elements.boxes.children[0]; data.boxes[1].measured = 4100;
-    context.window.handleMessage(JSON.stringify(data)); assert.equal(elements.boxes.children[0],before); assert.equal(fields1.measured.textContent,'4,1 kW');
-    data.pvActive = true; context.window.handleMessage(data); assert.equal(elements['budget-label'].textContent, 'PV-Budget');
-    data.pvActive = false; context.window.handleMessage(data); assert.equal(elements['budget-label'].textContent, 'Budget');
-});
 test('Zeitbedingung und Messlücke erscheinen als Text', () => {
     assert.ok(fields2.reason.textContent.includes('Start in 20 s')); assert.equal(fields2.gap.textContent,'Messlücke');
 });
+test('handleMessage aktualisiert Karten ohne Neuerzeugung', () => {
+    const before = elements.boxes.children[0]; data.boxes[1].measured = 4100;
+    deliver(JSON.stringify(data)); assert.equal(elements.boxes.children[0],before); assert.equal(fields1.measured.textContent,'4,1 kW');
+    data.pvActive = true; deliver(data); assert.equal(elements['budget-label'].textContent, 'PV-Budget');
+    data.pvActive = false; deliver(data); assert.equal(elements['budget-label'].textContent, 'Budget');
+});
 test('Fehler-, Überziehungs- und Speicherzustände werden angezeigt', () => {
-    data.errors = ['Speicher offline']; data.overrun = 500; data.battery.external = false; context.window.handleMessage(data);
+    data.errors = ['Speicher offline']; data.overrun = 500; data.battery.external = false; deliver(data);
     assert.equal(elements.errors.textContent,'Speicher offline'); assert.equal(elements.overrun.hidden,false); assert.equal(elements['battery-lock'].hidden,false);
 });
 test('Deaktivierte Plätze und optionaler Speicher werden ausgeblendet', () => {
-    data.boxes[2].enabled = false; data.batteryConfigured = false; context.window.handleMessage(data);
+    data.boxes[2].enabled = false; data.batteryConfigured = false; deliver(data);
     assert.equal(card2.hidden,true); assert.equal(elements.battery.hidden,true);
     assert.equal(elements['support-metric'].hidden,true);
 });
 test('Flache Hauptansicht zeigt bestätigten Modus, manuelle Freigabe und Sollstrom je Phase', () => {
-    data.mode = 1; data.boxes[1].manual = false; context.window.handleMessage(data);
+    data.mode = 1; data.boxes[1].manual = false; deliver(data);
     assert.equal(elements['mode-priority']['aria-pressed'], 'true');
     assert.equal(elements['mode-even']['aria-pressed'], 'false');
     assert.equal(fields1.manualText.textContent, 'Aus');
@@ -102,15 +119,44 @@ test('Flache Hauptansicht zeigt bestätigten Modus, manuelle Freigabe und Sollst
 test('Tarife und Ladegangkosten sind ohne Abrechnungsdetails sichtbar und unterscheiden fehlende Preise', () => {
     data.boxes[1].billing = {enabled: true, mode: 'pv', pvPrice: .10, normalPrice: .32,
         active: {started: 1700000000, totalCost: 1.23, totalEnergy: 4.567}, last: null, pending: 0};
-    context.window.handleMessage(data);
+    deliver(data);
     assert.equal(fields1.billingRates.textContent, 'PV 10 ct/kWh · Normal 32 ct/kWh');
     assert.equal(fields1.billingMode.textContent, 'PV-Überschussladen');
     assert.equal(fields1.billingCostSummary.textContent, 'Ladegang 1,23 € · 4,57 kWh');
     assert.equal(fields1.billingCostSummary.hidden, false);
-    data.boxes[1].billing.mode = 'unassigned'; context.window.handleMessage(data);
+    data.boxes[1].billing.mode = 'unassigned'; deliver(data);
     assert.equal(fields1.billingMode.textContent, 'Ungeklärt');
-    data.boxes[1].billing.enabled = false; context.window.handleMessage(data);
+    data.boxes[1].billing.enabled = false; deliver(data);
     assert.equal(fields1.billingRates.textContent, 'Preise nicht eingerichtet');
     assert.equal(fields1.billingCostSummary.hidden, true);
+});
+test('Eingehende Signalfolgen werden alle 2500 ms auf den neuesten Stand zusammengefasst', () => {
+    const before = fields1.measured.textContent;
+    const snapshot = JSON.parse(JSON.stringify(data));
+    const actionCount = actions.length;
+    for (let i = 1; i <= 200; i++) {
+        snapshot.boxes[1].measured = i * 10;
+        context.window.handleMessage(JSON.stringify(snapshot));
+    }
+    assert.equal(fields1.measured.textContent, before);
+    advance(2499); assert.equal(fields1.measured.textContent, before);
+    advance(1); assert.equal(fields1.measured.textContent, '2 kW');
+    assert.equal(timers.size, 1); assert.equal(actions.length, actionCount);
+});
+test('Verzögert angezeigte Countdown-Werte berücksichtigen die Empfangszeit', () => {
+    const snapshot = JSON.parse(JSON.stringify(data));
+    snapshot.boxes[2].remaining = 20;
+    snapshot.boxes[2].enabled = true;
+    deliver(JSON.stringify(snapshot));
+    assert.ok(fields2.reason.textContent.includes('Start in 18 s'));
+});
+test('Aufräumen beendet den Anzeigetimer und entfernt Bedienereignisse', () => {
+    context.window.WBM_TILE_CLEANUP();
+    assert.equal(timers.size, 0);
+    assert.equal(elements.manager.listeners.change, undefined);
+    const before = fields1.measured.textContent;
+    data.boxes[1].measured = 9999;
+    context.window.handleMessage(JSON.stringify(data)); advance(10000);
+    assert.equal(fields1.measured.textContent, before);
 });
 console.log(count + ' JavaScript-Tests, 0 Fehler');

@@ -28,6 +28,10 @@ function html(parameters = '') {
         .replace('/*__DATA__*/', () => JSON.stringify(data))
         .replace('/*__JS__*/', () => bridge + '\n' + js);
 }
+async function deliver(page, value) {
+    await page.evaluate(message => window.handleMessage(message), value);
+    await page.clock.runFor(2500);
+}
 async function layout(page) {
     const result = await page.evaluate(() => {
         const main = document.getElementById('wbm');
@@ -68,6 +72,7 @@ async function palette(page) {
     const browser = await chromium.launch(options);
     try {
         const page = await browser.newPage({viewport: {width: 1280, height: 720}, colorScheme: 'light'});
+        await page.clock.install();
         const errors = [];
         page.on('pageerror', error => errors.push(error.message));
         await page.setContent(html('textcolor=%23f0f0f3&backgroundColor=%231c1c21&accentColor=%2300bfa5'));
@@ -85,12 +90,18 @@ async function palette(page) {
         assert.equal(await page.locator('#energy-open').innerText(), 'Energie-Dashboard');
         assert.equal(await page.locator('#wbm').getAttribute('data-header-space'), '64'); // Also reserve a native/WebView header outside this DOM.
         assert.equal(await page.locator('#policy, #updated').count(), 0);
-        assert.equal(await page.locator('footer').innerText(), 'Energie-Dashboard');
+        assert.equal(await page.locator('footer').isVisible(), false);
+        assert.equal(await page.locator('.toolbar-buttons > #energy-open').count(), 1);
+        const buttonStyles = await page.locator('.mode-button').evaluateAll(nodes => nodes.map(node => {
+            const style = getComputedStyle(node);
+            return [style.fontSize, style.borderRadius, style.padding, style.borderWidth].join('|');
+        }));
+        assert.equal(new Set(buttonStyles).size, 1);
         const pvView = structuredClone(data); pvView.pvActive = true; pvView.base = 7000;
-        await page.evaluate(value => window.handleMessage(value), pvView);
+        await deliver(page, pvView);
         assert.equal(await page.locator('#budget-label').innerText(), 'PV-Budget');
         assert.equal(await page.locator('#base').innerText(), '7 kW');
-        await page.evaluate(value => window.handleMessage(value), data);
+        await deliver(page, data);
         assert.equal(await page.locator('#budget-label').innerText(), 'Budget');
         assert.equal(await page.locator('#support-metric').isVisible(), false);
         assert.equal(await page.locator('#energy').textContent(), '2,41 kWh');
@@ -122,7 +133,7 @@ async function palette(page) {
             {ident: 'ManagerEnabled', value: false}, {ident: 'DistributionMode', value: 1}, {ident: 'W1Manual', value: false}
         ]);
         const confirmed = structuredClone(data); confirmed.mode = 1; confirmed.boxes[1].manual = false;
-        await page.evaluate(value => window.handleMessage(value), confirmed);
+        await deliver(page, confirmed);
         assert.equal(await page.locator('#mode-priority').getAttribute('aria-pressed'), 'true');
         assert.equal(await page.locator('[data-field="manualText"]').first().innerText(), 'Aus');
         assert.equal(await page.locator('[data-field="manual"]').last().isChecked(), true);
@@ -145,7 +156,7 @@ async function palette(page) {
         console.log('OK  Live Symcon color changes override the browser theme');
         if (process.env.WBM_SCREENSHOT_DIR) {
             fs.mkdirSync(process.env.WBM_SCREENSHOT_DIR, {recursive: true});
-            await page.evaluate(value => window.handleMessage(JSON.stringify(value)), data);
+            await deliver(page, JSON.stringify(data));
             await page.screenshot({path: path.join(process.env.WBM_SCREENSHOT_DIR, 'wallbox-dark.png')});
         }
         await page.setContent(html('textcolor=%2324262b&backgroundColor=%23ffffff'));
@@ -167,17 +178,20 @@ async function palette(page) {
         const angle = data.boxes[1].energy / data.energy * Math.PI;
         await page.mouse.move(chart.x + (200 + 145 * Math.sin(angle)) / 400 * chart.width,
             chart.y + (200 - 145 * Math.cos(angle)) / 400 * chart.height);
+        await page.clock.runFor(20);
         assert.equal(await page.locator('#energy-tooltip').isVisible(), true);
         assert.equal(await page.locator('#energy-tooltip').innerText(), 'Wallbox 1: 1,68 kWh\n69,54 %');
         assert.equal(await page.locator('.energy-segment.is-active').getAttribute('data-energy-key'), '1');
         if (process.env.WBM_SCREENSHOT_DIR) await page.screenshot({path: path.join(process.env.WBM_SCREENSHOT_DIR, 'energy-dashboard-light.png')});
         await page.locator('.legend-button').last().hover();
+        await page.clock.runFor(20);
         assert.equal(await page.locator('#energy-tooltip').innerText(), 'Wallbox 2: 0,73 kWh\n30,46 %');
         await page.locator('.energy-row').first().focus();
+        await page.clock.runFor(20);
         assert.equal(await page.locator('.energy-segment.is-active').getAttribute('data-energy-key'), '1');
         const live = structuredClone(data);
         live.energy = 2.6; live.boxes[1].energy = 1.8; live.boxes[2].energy = .8;
-        await page.evaluate(value => window.handleMessage(value), live);
+        await deliver(page, live);
         assert.equal(await page.locator('#dashboard-total').textContent(), '2,60 kWh');
         assert.equal(await page.locator('#energy-tooltip').innerText(), 'Wallbox 1: 1,80 kWh\n69,23 %');
         assert.equal(await page.evaluate(() => firstEnergySegment === document.querySelector('.energy-segment')), true);
@@ -203,7 +217,8 @@ async function palette(page) {
             await page.locator('.energy-row').last().scrollIntoViewIfNeeded();
             assert.equal(await page.locator('.energy-row').last().isVisible(), true);
             await page.locator('.energy-row').last().click();
-            assert.equal(await page.locator('#energy-tooltip').isVisible(), true);
+            await page.clock.runFor(20);
+        assert.equal(await page.locator('#energy-tooltip').isVisible(), true);
         }
         await page.keyboard.press('Escape');
         assert.equal(await page.locator('#energy-dashboard').isVisible(), false);
@@ -213,35 +228,36 @@ async function palette(page) {
         await page.setViewportSize({width: 1280, height: 720});
         const historic = structuredClone(data);
         historic.boxes[1].archivedEnergy = 2; historic.boxes[2].enabled = false; historic.energy = 4.41;
-        await page.evaluate(value => window.handleMessage(value), historic);
+        await deliver(page, historic);
         await page.locator('#energy-open').click();
         assert.ok((await page.locator('.energy-row').first().innerText()).includes('3,68 kWh'));
         assert.ok((await page.locator('.energy-row').last().innerText()).includes('deaktiviert'));
         assert.ok((await page.locator('#energy-note').innerText()).includes('Frühere Geräte'));
         const old = structuredClone(data); old.energy = 3.41;
-        await page.evaluate(value => window.handleMessage(value), old);
+        await deliver(page, old);
         assert.equal(await page.locator('.energy-row').count(), 3);
         assert.ok((await page.locator('.energy-row').last().innerText()).includes('Weitere / archivierte Energie'));
         const zero = structuredClone(data);
         zero.energy = 0; zero.boxes[1].energy = 0; zero.boxes[2].energy = 0;
-        await page.evaluate(value => window.handleMessage(value), zero);
+        await deliver(page, zero);
         assert.equal(await page.locator('#dashboard-total').textContent(), '0,00 kWh');
         assert.equal(await page.locator('.energy-segment:visible').count(), 0);
         assert.equal(await page.locator('#energy-empty').isVisible(), true);
         await page.locator('.energy-row').first().click();
+        await page.clock.runFor(20);
         assert.ok((await page.locator('#energy-tooltip').innerText()).includes('0 %'));
         const single = structuredClone(data);
         single.boxes[2].enabled = false; single.boxes[2].energy = 0; single.energy = single.boxes[1].energy;
-        await page.evaluate(value => window.handleMessage(value), single);
+        await deliver(page, single);
         assert.equal(await page.locator('.energy-segment:visible').count(), 1);
         assert.ok((await page.locator('.energy-row').innerText()).includes('100 %'));
         console.log('OK  Archived and disabled devices, older telemetry, zero energy and a full ring');
         const unsafe = structuredClone(data);
         unsafe.boxes[1].name = '<img src=x onerror="throw new Error(\'Unsafe name\')">';
-        await page.evaluate(value => window.handleMessage(value), unsafe);
+        await deliver(page, unsafe);
         assert.equal(await page.locator('.energy-row img').count(), 0);
         assert.ok((await page.locator('.energy-row').first().innerText()).includes('<img src=x'));
-        await page.evaluate(value => window.handleMessage(value), data);
+        await deliver(page, data);
         await page.evaluate(() => {
             document.documentElement.style.setProperty('--content-color', '#f0f0f3');
             document.documentElement.style.setProperty('--card-color', '#1c1c21');
@@ -269,7 +285,7 @@ async function palette(page) {
         extended.boxes[3] = {...extended.boxes[1], id: 3, name: 'Sehr langer Wallboxname im Außenbereich / Stellplatz 3'};
         extended.boxes[4] = {...extended.boxes[2], id: 4, name: 'Wallbox 4'};
         extended.errors = ['Geräteverbindung unterbrochen: ' + 'x'.repeat(180)];
-        await page.evaluate(value => window.handleMessage(JSON.stringify(value)), extended);
+        await deliver(page, JSON.stringify(extended));
         for (const [width, height] of [[1280, 720], [320, 360]]) {
             await page.setViewportSize({width, height});
             await layout(page);
@@ -277,7 +293,7 @@ async function palette(page) {
         assert.equal(await page.locator('#battery').isVisible(), true);
         assert.equal(await page.locator('#errors').isVisible(), true);
         extended.energy = Object.values(extended.boxes).reduce((sum, box) => sum + box.energy, 0);
-        await page.evaluate(value => window.handleMessage(value), extended);
+        await deliver(page, extended);
         await page.locator('#energy-open').click();
         assert.equal(await page.locator('.energy-segment:visible').count(), 4);
         assert.equal(await page.locator('.energy-row').count(), 4);
@@ -289,14 +305,17 @@ async function palette(page) {
         console.log('OK  Four wallboxes, storage and long error messages');
         const touchContext = await browser.newContext({hasTouch: true, viewport: {width: 390, height: 844}});
         const touchPage = await touchContext.newPage();
+        await touchPage.clock.install();
         await touchPage.setContent(html());
         await touchPage.locator('#energy-open').tap();
         const touchChart = await touchPage.locator('#energy-chart').boundingBox();
         await touchPage.touchscreen.tap(touchChart.x + (200 + 145 * Math.sin(angle)) / 400 * touchChart.width,
             touchChart.y + (200 - 145 * Math.cos(angle)) / 400 * touchChart.height);
+        await touchPage.clock.runFor(20);
         assert.equal(await touchPage.locator('#energy-tooltip').innerText(), 'Wallbox 1: 1,68 kWh\n69,54 %');
         assert.equal(await touchPage.locator('#energy-tooltip').isVisible(), true);
         await touchPage.locator('.energy-row').last().tap();
+        await touchPage.clock.runFor(20);
         assert.ok((await touchPage.locator('#energy-tooltip').innerText()).startsWith('Wallbox 2:'));
         await touchPage.locator('#energy-close').tap();
         assert.equal(await touchPage.locator('#tile-view').isVisible(), true);
@@ -353,8 +372,10 @@ async function palette(page) {
             await page.locator('#energy-close').click();
         }
         await page.evaluate(() => { document.getElementById('host-header').style.height = '90px'; });
+        await page.clock.runFor(2500);
         await page.waitForFunction(() => document.getElementById('wbm').dataset.headerSpace === '90');
         await page.evaluate(() => { document.getElementById('host-header').hidden = true; });
+        await page.clock.runFor(2500);
         await page.waitForFunction(() => document.getElementById('wbm').dataset.headerSpace === '0');
         console.log('OK  Overlay header, dynamic height, hidden header and dashboard clearance');
         // A host header outside the iframe cannot be queried by the module (including sandboxed origins).
@@ -382,7 +403,7 @@ async function palette(page) {
             pvPrice: .1, normalPrice: .32, mode: 'pv', idleSince: null, idleSeconds: 600,
             pending: 0, error: '', pdf: documentBytes.toString('base64')};
         billed.boxes[2].billing = {enabled: false};
-        await page.evaluate(value => window.handleMessage(value), billed);
+        await deliver(page, billed);
         assert.equal(await page.locator('.billing-details').last().isVisible(), false);
         assert.equal(await page.locator('[data-field="billingRates"]').first().innerText(), 'PV 10 ct/kWh · Normal 32 ct/kWh');
         assert.equal(await page.locator('[data-field="billingCostSummary"]').first().innerText(), 'Ladegang 0,93 € · 3,75 kWh');
@@ -410,7 +431,7 @@ async function palette(page) {
         billed.boxes[1].billing.last.warnings = ['Messlücke'];
         billed.boxes[1].billing.error = 'PDF-Erstellung fehlgeschlagen; erneuter Versuch folgt';
         billed.boxes[1].billing.pdf = '';
-        await page.evaluate(value => window.handleMessage(value), billed);
+        await deliver(page, billed);
         assert.ok((await page.locator('[data-field="billingPeriod"]').first().innerText()).startsWith('Letzter Ladegang'));
         assert.equal(await page.locator('[data-field="billingUnknown"]').first().isVisible(), true);
         assert.ok((await page.locator('[data-field="billingState"]').first().innerText()).includes('PDF-Erstellung fehlgeschlagen'));
@@ -432,10 +453,89 @@ async function palette(page) {
             await page.setViewportSize({width: 800, height: 600});
             billed.boxes[1].billing.error = ''; billed.boxes[1].billing.last.unassignedEnergy = 0;
             billed.boxes[1].billing.last.warnings = []; billed.boxes[1].billing.pdf = documentBytes.toString('base64');
-            await page.evaluate(value => window.handleMessage(value), billed);
+            await deliver(page, billed);
             await page.screenshot({path: path.join(process.env.WBM_SCREENSHOT_DIR, 'wallbox-billing-dark.png')});
         }
         assert.equal(errors.length, 0, errors.join('\n'));
         console.log('OK  Billing tariffs, session/cost details, PDF download, pending errors and responsive dark theme');
+        // Deterministic workload checks, without wall-clock performance thresholds.
+        const perf = await browser.newPage({viewport: {width: 800, height: 600}});
+        const fixed = new Date('2026-11-09T12:00:00Z');
+        await perf.clock.install({time: fixed}); await perf.clock.pauseAt(fixed);
+        await perf.setContent(html()); await perf.clock.runFor(20);
+        await perf.evaluate(value => {
+            window.parseCount = 0;
+            const parse = JSON.parse;
+            JSON.parse = function (raw, reviver) {
+                if (typeof raw === 'string' && raw.includes('"boxes"')) window.parseCount++;
+                return parse(raw, reviver);
+            };
+            window.mutations = [];
+            window.testObserver = new MutationObserver(records => window.mutations.push(...records));
+            window.testObserver.observe(document.getElementById('wbm'), {subtree:true, childList:true, characterData:true, attributes:true});
+            for (let i = 1; i <= 200; i++) {
+                value.measured = i * 10;
+                window.handleMessage(JSON.stringify(value));
+            }
+            window.lastSnapshot = value;
+        }, data);
+        await perf.clock.runFor(100);
+        assert.equal(await perf.locator('#measured').innerText(), '12 kW');
+        assert.equal(await perf.evaluate(() => parseCount), 0);
+        await perf.clock.runFor(2400);
+        assert.equal(await perf.locator('#measured').innerText(), '2 kW');
+        assert.equal(await perf.evaluate(() => parseCount), 1);
+        await perf.evaluate(() => { mutations = []; window.handleMessage(JSON.stringify(lastSnapshot)); });
+        await perf.clock.runFor(2500);
+        assert.equal(await perf.evaluate(() => mutations.length), 0, 'Unchanged telemetry should not mutate the DOM');
+        await perf.evaluate(() => document.getElementById('energy-open').click());
+        await perf.clock.runFor(20);
+        await perf.evaluate(() => { mutations = []; window.handleMessage(JSON.stringify(lastSnapshot)); });
+        await perf.clock.runFor(2500);
+        assert.equal(await perf.evaluate(() => mutations.length), 0, 'Unchanged energy must keep the graph and tooltip stable');
+        await perf.evaluate(() => {
+            const wrap = document.getElementById('energy-chart-wrap');
+            const bounds = wrap.getBoundingClientRect.bind(wrap); const rect = bounds();
+            window.chartReads = 0; wrap.getBoundingClientRect = () => { chartReads++; return bounds(); };
+            const segment = document.querySelector('.energy-segment');
+            window.moveBurst = () => {
+                for (let i = 0; i < 200; i++) segment.dispatchEvent(new PointerEvent('pointermove', {
+                    clientX: rect.left + rect.width * .4 + i / 100, clientY: rect.top + rect.height * .3
+                }));
+            };
+            mutations = []; moveBurst();
+        });
+        assert.equal(await perf.evaluate(() => chartReads), 0, 'Hover work should be deferred to the next frame');
+        await perf.clock.runFor(20);
+        assert.equal(await perf.evaluate(() => chartReads), 1, '200 pointer moves need just one chart measurement');
+        assert.equal(await perf.locator('#energy-tooltip').isVisible(), true);
+        await perf.evaluate(() => { mutations = []; moveBurst(); }); await perf.clock.runFor(20);
+        assert.equal(await perf.evaluate(() => chartReads), 1, 'Reusing the same geometry avoids repeated layout reads');
+        assert.equal(await perf.evaluate(() => mutations.filter(record => record.attributeName === 'class' || record.type === 'childList').length), 0);
+        await perf.evaluate(() => {
+            document.getElementById('energy-close').click();
+            window.testHidden = true;
+            Object.defineProperty(document, 'hidden', {configurable:true, get:() => testHidden});
+            document.dispatchEvent(new Event('visibilitychange'));
+            lastSnapshot.measured = 9000; window.handleMessage(JSON.stringify(lastSnapshot));
+            window.beforeHiddenParse = parseCount;
+        });
+        await perf.clock.runFor(10000);
+        assert.equal(await perf.locator('#measured').innerText(), '2 kW');
+        assert.equal(await perf.evaluate(() => parseCount), await perf.evaluate(() => beforeHiddenParse));
+        await perf.evaluate(() => { testHidden = false; document.dispatchEvent(new Event('visibilitychange')); });
+        assert.equal(await perf.locator('#measured').innerText(), '9 kW');
+        assert.equal(await perf.evaluate(() => actions.length), 1); // Display updates never control the wallboxes.
+        await perf.evaluate(() => {
+            window.WBM_TILE_CLEANUP();
+            lastSnapshot.measured = 1000; window.handleMessage(JSON.stringify(lastSnapshot));
+            document.getElementById('manager').dispatchEvent(new Event('change'));
+        });
+        await perf.clock.runFor(10000);
+        assert.equal(await perf.locator('#measured').innerText(), '9 kW');
+        assert.equal(await perf.evaluate(() => actions.length), 1);
+        await perf.close();
+        console.log('OK  200 telemetry events coalesce into one parse/render, unchanged DOM stays stable, hover uses one layout read per burst, hidden views pause and cleanup stops work');
+
     } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

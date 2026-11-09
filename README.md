@@ -238,11 +238,20 @@ Kacheln stehen zwei Wallboxen nebeneinander, auf schmalen untereinander.
 Bei wenig Höhe scrollt der Inhalt innerhalb der Kachel; alle Schalter bleiben
 erreichbar.
 
-Der Button **„Energie-Dashboard“** am unteren Rand öffnet ein Ringdiagramm mit der Gesamtenergie
+Der Button **„Energie-Dashboard“** steht oben neben **„Gleichmäßig“** und
+**„Priorität“**, im gleichen runden Buttonstil. Er öffnet ein Ringdiagramm mit der Gesamtenergie
 und den Anteilen der einzelnen Wallboxen. Beim Bewegen des Mauszeigers über
 Diagramm, Legende oder Verbrauchsliste werden Wallbox, kWh und Prozentanteil
-hervorgehoben. Auch Berührung und Tastaturbedienung sind möglich. Live-Werte
-aktualisieren das geöffnete Dashboard. Titel und Vergrößern-Pfeil werden
+hervorgehoben. Auch Berührung und Tastaturbedienung sind möglich.
+
+Die Anzeige übernimmt alle **2,5 Sekunden** den neuesten eingegangenen Stand,
+auch im geöffneten Dashboard. Unveränderte Werte werden nicht neu gezeichnet;
+Mausbewegungen im Diagramm werden pro Bildaufbau gebündelt. In ausgeblendeten
+Ansichten pausiert die Anzeige und holt beim Öffnen den neuesten Stand nach.
+Bedienaktionen werden sofort gesendet; Laderegelung, Messwerterfassung und
+Abrechnung arbeiten weiterhin unabhängig im konfigurierten Regelintervall.
+
+Titel und Vergrößern-Pfeil werden
 ausschließlich von Symcon dargestellt; die Modulansicht fügt keine zweite
 Kopfzeile hinzu. Der Inhalt hält Platz für die Kopfzeile frei, auch wenn ältere
 Symcon-Versionen sie über die Kachel legen. Bereits vom Host reservierter Platz

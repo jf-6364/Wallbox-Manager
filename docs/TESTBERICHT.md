@@ -5,7 +5,7 @@
 - **133 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
-- **12 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
+- **15 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
 - PV-Budgetumschaltung geprüft: eigener Formularbereich, Bool unverbunden/false/
   true, wiederholter Wechsel und Rückkehr zum Normalbudget. Nur die gewählte
   Budgetquelle wird ausgewertet; ungültige inaktive Daten stören die Regelung
@@ -42,6 +42,15 @@
 - Zusätzliche Chromium-Prüfung der tatsächlichen HTML/CSS/JS-Kachel: acht Größen
   von 240 × 260 bis 1440 × 900 Pixeln, flache Hauptansicht, eine aufklappbare
   Detailebene, erreichbare Bedienung und keine horizontale Überbreite.
+- Anzeigenaktualisierung mit kontrollierter Uhr geprüft: 200 eingehende
+  Telemetrie-Meldungen werden erst beim 2,5-Sekunden-Takt einmal geparst und
+  angezeigt; dabei gilt der neueste Stand. Identische Werte verursachen in
+  Hauptansicht und Dashboard keine DOM-Änderungen. Countdown-Werte berücksichtigen
+  die Empfangszeit. 200 Mausbewegungen vor einem Bildaufbau benötigen nur eine
+  Diagramm-Geometriemessung; weitere Bewegungen nutzen den Cache. Ausgeblendete
+  Ansichten pausieren und übernehmen beim Sichtbarwerden den neuesten Stand.
+  Aufräumen beendet Timer und Listener. Der Dashboard-Button ist oben mit
+  identischer Buttonformatierung erreichbar, auch unter der Symcon-Kopfzeile.
 - Helle/dunkle Symcon-Farbparameter und CSS-Variablen als Testvorgaben,
   Wechsel ohne Neuladen und Browser-Fallback geprüft; zusätzlich vier Wallboxen,
   optionaler Speicher und lange Fehlertexte.

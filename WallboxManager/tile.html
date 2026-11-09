@@ -11,9 +11,12 @@
 <div id="tile-view" class="tile-view">
   <div class="wb-content">
   <div class="toolbar">
-    <div id="mode" class="mode-options" role="group" aria-label="Verteilungsart">
-      <button id="mode-even" class="mode-button" type="button" aria-pressed="false">Gleichmäßig</button>
-      <button id="mode-priority" class="mode-button" type="button" aria-pressed="false">Priorität</button>
+    <div class="toolbar-buttons">
+      <div id="mode" class="mode-options" role="group" aria-label="Verteilungsart">
+        <button id="mode-even" class="mode-button" type="button" aria-pressed="false">Gleichmäßig</button>
+        <button id="mode-priority" class="mode-button" type="button" aria-pressed="false">Priorität</button>
+      </div>
+      <button id="energy-open" class="mode-button" type="button" aria-haspopup="dialog" aria-expanded="false">Energie-Dashboard</button>
     </div>
     <label class="switch manager-switch"><input id="manager" type="checkbox" aria-label="Manager aktiv"><span>Manager</span></label>
   </div>
@@ -39,7 +42,7 @@
     <p id="battery-state"></p>
   </section>
   </div>
-  <footer><button id="energy-open" class="wb-button dashboard-link" type="button" aria-haspopup="dialog">Energie-Dashboard</button><span id="simulation" hidden>SIMULATION</span></footer>
+  <footer id="simulation-footer" hidden><span id="simulation">SIMULATION</span></footer>
 </div>
 <section id="energy-dashboard" class="energy-dashboard" role="dialog" aria-modal="true" aria-labelledby="dashboard-title" hidden>
   <header class="dashboard-header">

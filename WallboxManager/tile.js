@@ -1,5 +1,14 @@
 (function () {
     'use strict';
+    if (typeof window.WBM_TILE_CLEANUP === 'function') window.WBM_TILE_CLEANUP();
+    // Keep only the newest SDK snapshot; device control runs independently in PHP.
+    var DISPLAY_INTERVAL = 2500;
+    var displayTimer = null;
+    var pendingMessage = null;
+    var pendingAt = 0;
+    var disposed = false;
+    var inView = true;
+    var cleanup = [];
     var cards = new Map();
     var latest = null;
     var receivedAt = 0;
@@ -8,12 +17,34 @@
     var ampereFormat = new Intl.NumberFormat('de-DE', { useGrouping: false, minimumFractionDigits: 1, maximumFractionDigits: 1 });
     var moneyFormat = new Intl.NumberFormat('de-DE', { useGrouping: false, minimumFractionDigits: 2, maximumFractionDigits: 2 });
     var priceFormat = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
+    var dateFormat = new Intl.DateTimeFormat('de-DE', {year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'});
     var dashboardOpen = false;
     var energyItems = new Map();
     var selectedEnergy = null;
     var tooltipPoint = {x: .6, y: .4};
+    var tooltipClient = null;
+    var highlightFrame = 0;
+    var highlightedEnergy;
+    var chartBounds = null;
+    var tooltipSize = null;
+    var energySignature = '';
+    var themeSignature = '';
+    var brightnessCache = new Map();
+    var colorContext = null;
+    function on(target, name, callback, options, disposers) {
+        target.addEventListener(name, callback, options);
+        (disposers || cleanup).push(function () { if (target.removeEventListener) target.removeEventListener(name, callback, options); });
+    }
+    function frame(callback) {
+        if (window.requestAnimationFrame) return window.requestAnimationFrame(callback);
+        callback(); return 0;
+    }
     function el(id) { return document.getElementById(id); }
-    function text(id, value) { el(id).textContent = value; }
+    function put(node, value) { value = value == null ? '' : String(value); if (node.textContent !== value) node.textContent = value; }
+    function assign(node, name, value) { if (node[name] !== value) node[name] = value; }
+    function attribute(node, name, value) { if (node.getAttribute(name) !== value) node.setAttribute(name, value); }
+    function datum(node, name, value) { if (node.dataset[name] !== value) node.dataset[name] = value; }
+    function text(id, value) { put(el(id), value); }
     function power(value) { return value === null || value === undefined ? 'Keine Messung' : ampereFormat.format(value) + ' W'; }
     function chargingPower(value) { return value === null || value === undefined ? 'Keine Messung' : number.format(value / 1000) + ' kW'; }
     function energy(value) { return energyFormat.format(value || 0) + ' kWh'; }
@@ -25,7 +56,8 @@
     }
     function updateLayout() {
         syncHeaderSpace();
-        if (dashboardOpen) highlightEnergy();
+        chartBounds = tooltipSize = null;
+        if (dashboardOpen) scheduleHighlight();
         var root = document.getElementById('wbm');
         if (!root) return;
         var compact = compactLayout();
@@ -47,7 +79,7 @@
         var space = found ? Math.max(0, bottom - top) : (top < 32 ? Math.max(0, 64 - top) : 0);
         var value = Math.ceil(space) + 'px';
         if (root.style.getPropertyValue('--wb-header-space') !== value) root.style.setProperty('--wb-header-space', value);
-        root.dataset.headerSpace = String(Math.ceil(space));
+        datum(root, 'headerSpace', String(Math.ceil(space)));
     }
     function themeParameter(names) {
         var parameters = typeof queryParameters !== 'undefined' ? queryParameters : null;
@@ -66,13 +98,14 @@
     }
     function brightness(value) {
         if (!value) return null;
-        var canvas = document.createElement('canvas');
-        var context = canvas.getContext('2d');
-        if (!context) return null;
-        context.fillStyle = value;
-        context.fillRect(0, 0, 1, 1);
-        var pixel = context.getImageData(0, 0, 1, 1).data;
-        return pixel[3] === 0 ? null : (pixel[0] * .299 + pixel[1] * .587 + pixel[2] * .114);
+        if (brightnessCache.has(value)) return brightnessCache.get(value);
+        if (!colorContext) colorContext = document.createElement('canvas').getContext('2d', {willReadFrequently: true});
+        if (!colorContext) return null;
+        colorContext.clearRect(0, 0, 1, 1); colorContext.fillStyle = value; colorContext.fillRect(0, 0, 1, 1);
+        var pixel = colorContext.getImageData(0, 0, 1, 1).data;
+        var result = pixel[3] === 0 ? null : (pixel[0] * .299 + pixel[1] * .587 + pixel[2] * .114);
+        if (brightnessCache.size >= 32) brightnessCache.clear();
+        brightnessCache.set(value, result); return result;
     }
     function syncTheme() {
         if (!document.documentElement || typeof getComputedStyle !== 'function') return;
@@ -81,6 +114,10 @@
         var foreground = validColor(styles.getPropertyValue('--content-color')) || validColor(themeParameter(['textcolor', 'textColor', 'contentColor']));
         var surface = validColor(styles.getPropertyValue('--card-color')) || validColor(themeParameter(['backgroundColor', 'backgroundcolor', 'cardColor']));
         var accent = validColor(styles.getPropertyValue('--accent-color')) || validColor(themeParameter(['accentColor', 'accentcolor']));
+        var preferredDark = !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        var signature = [foreground, surface, accent, preferredDark].join('|');
+        if (signature === themeSignature) return;
+        themeSignature = signature;
         [['--wb-host-text', foreground], ['--wb-host-surface', surface], ['--wb-host-accent', accent]].forEach(function (pair) {
             if (root.style.getPropertyValue(pair[0]) !== pair[1]) {
                 if (pair[1]) root.style.setProperty(pair[0], pair[1]);
@@ -89,7 +126,7 @@
         });
         var backgroundBrightness = brightness(surface);
         var textBrightness = brightness(foreground);
-        var dark = backgroundBrightness !== null ? backgroundBrightness < 128 : (textBrightness !== null ? textBrightness > 128 : !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches));
+        var dark = backgroundBrightness !== null ? backgroundBrightness < 128 : (textBrightness !== null ? textBrightness > 128 : preferredDark);
         var theme = dark ? 'dark' : 'light';
         if (root.dataset.wbTheme !== theme) root.dataset.wbTheme = theme;
         var onAccent = accent && brightness(accent) < 110 ? '#fff' : '#123b33';
@@ -104,12 +141,12 @@
     }
     function showError(error) {
         text('errors', 'Bedienaktion fehlgeschlagen: ' + (error.message || error));
-        el('errors').hidden = false;
+        assign(el('errors'), 'hidden', false);
     }
     function metric(label, key) {
         var div = document.createElement('div');
         var span = document.createElement('span');
-        span.textContent = label;
+        put(span, label);
         var strong = document.createElement('strong');
         strong.dataset.field = key;
         div.append(span, strong);
@@ -129,46 +166,46 @@
         } catch (error) { showError(error); }
     }
     function billingDetails(id) {
-        var details = document.createElement('section'); details.className = 'billing-details'; details.dataset.field = 'billing'; details.hidden = true;
+        var details = document.createElement('section'); details.className = 'billing-details'; details.dataset.field = 'billing'; assign(details, 'hidden', true);
         var period = document.createElement('p'); period.dataset.field = 'billingPeriod';
         var values = document.createElement('div'); values.className = 'device-secondary';
         values.append(metric('PV-Überschussladen', 'billingPV'), metric('Normalladen', 'billingNormal'), metric('Gesamtbetrag', 'billingCost'));
         var unknown = document.createElement('p'); unknown.dataset.field = 'billingUnknown'; unknown.className = 'lock';
         var status = document.createElement('p'); status.dataset.field = 'billingState';
         var button = document.createElement('button'); button.type = 'button'; button.className = 'wb-button';
-        button.dataset.field = 'billingPDF'; button.textContent = 'Letzte Abrechnung als PDF'; button.disabled = true;
-        button.addEventListener('click', function () { downloadBilling(id); });
+        button.dataset.field = 'billingPDF'; put(button, 'Letzte Abrechnung als PDF'); assign(button, 'disabled', true);
+        on(button, 'click', function () { downloadBilling(id); });
         details.append(period, values, unknown, status, button);
         return details;
     }
     function renderBilling(fields, billing) {
         var enabled = !!(billing && billing.enabled);
-        fields.billing.hidden = !enabled;
-        fields.billingCostSummary.hidden = !enabled;
-        fields.billingMode.hidden = !enabled;
-        fields.detailsLabel.textContent = enabled ? 'Details & Rechnung' : 'Details';
-        fields.billingRates.textContent = 'Preise nicht eingerichtet';
-        if (!enabled) return;
+        assign(fields.billing, 'hidden', !enabled);
+        assign(fields.billingCostSummary, 'hidden', !enabled);
+        assign(fields.billingMode, 'hidden', !enabled);
+        put(fields.detailsLabel, enabled ? 'Details & Rechnung' : 'Details');
+        if (!enabled) { put(fields.billingRates, 'Preise nicht eingerichtet'); return; }
         var session = billing.active || billing.last;
         var money = function (v) { return moneyFormat.format(v || 0) + ' €'; };
-        fields.billingPeriod.textContent = session ? (billing.active ? 'Laufender Ladegang seit ' : 'Letzter Ladegang vom ') + new Date(session.started * 1000).toLocaleString('de-DE') : 'Noch kein Ladegang erfasst';
-        fields.billingPV.textContent = energy(session && session.pvEnergy) + ' · ' + money(session && session.pvCost);
-        fields.billingNormal.textContent = energy(session && session.normalEnergy) + ' · ' + money(session && session.normalCost);
-        fields.billingCost.textContent = money(session && session.totalCost);
+        put(fields.billingPeriod, session ? (billing.active ? 'Laufender Ladegang seit ' : 'Letzter Ladegang vom ') + dateFormat.format(new Date(session.started * 1000)) : 'Noch kein Ladegang erfasst');
+        put(fields.billingPV, energy(session && session.pvEnergy) + ' · ' + money(session && session.pvCost));
+        put(fields.billingNormal, energy(session && session.normalEnergy) + ' · ' + money(session && session.normalCost));
+        put(fields.billingCost, money(session && session.totalCost));
         var mode = billing.mode === 'pv' ? 'PV-Überschussladen' : (billing.mode === 'unassigned' ? 'Ungeklärt' : 'Normalladen');
-        fields.billingMode.textContent = mode;
-        fields.billingMode.dataset.mode = billing.mode;
-        fields.billingRates.textContent = 'PV ' + priceFormat.format(billing.pvPrice * 100) + ' ct/kWh · Normal ' + priceFormat.format(billing.normalPrice * 100) + ' ct/kWh';
-        fields.billingCostSummary.textContent = session ? (billing.active ? 'Ladegang ' : 'Letzter Ladegang ') + money(session.totalCost) + ' · ' + energy(session.totalEnergy) : 'Noch kein Ladegang erfasst';
-        fields.billingUnknown.hidden = !(session && session.unassignedEnergy > 0);
-        fields.billingUnknown.textContent = 'Tarif ungeklärt: ' + energy(session && session.unassignedEnergy) + ' – Abrechnung prüfen';
-        fields.billingState.textContent = billing.error || (billing.pending ? 'PDF wird erstellt …' : 'Energie aus gemessener Ladeleistung berechnet.');
-        if (session && session.warnings && session.warnings.length) fields.billingState.textContent += ' Hinweise im PDF beachten.';
+        put(fields.billingMode, mode);
+        datum(fields.billingMode, 'mode', billing.mode);
+        put(fields.billingRates, 'PV ' + priceFormat.format(billing.pvPrice * 100) + ' ct/kWh · Normal ' + priceFormat.format(billing.normalPrice * 100) + ' ct/kWh');
+        put(fields.billingCostSummary, session ? (billing.active ? 'Ladegang ' : 'Letzter Ladegang ') + money(session.totalCost) + ' · ' + energy(session.totalEnergy) : 'Noch kein Ladegang erfasst');
+        assign(fields.billingUnknown, 'hidden', !(session && session.unassignedEnergy > 0));
+        put(fields.billingUnknown, 'Tarif ungeklärt: ' + energy(session && session.unassignedEnergy) + ' – Abrechnung prüfen');
+        var billingState = billing.error || (billing.pending ? 'PDF wird erstellt …' : 'Energie aus gemessener Ladeleistung berechnet.');
+        if (session && session.warnings && session.warnings.length) billingState += ' Hinweise im PDF beachten.';
         if (billing.active && billing.idleSince !== null && billing.idleSince !== undefined) {
-            fields.billingState.textContent += ' Ladepause: Abschluss nach ' + number.format(billing.idleSeconds) + ' s ohne Ladeleistung.';
+            billingState += ' Ladepause: Abschluss nach ' + number.format(billing.idleSeconds) + ' s ohne Ladeleistung.';
         }
-        fields.billingPDF.disabled = !billing.pdf;
-        fields.billingPDF.textContent = billing.last && billing.last.invoice ? 'Rechnung ' + billing.last.invoice.number + ' als PDF' : 'Letzte Abrechnung als PDF';
+        put(fields.billingState, billingState);
+        assign(fields.billingPDF, 'disabled', !billing.pdf);
+        put(fields.billingPDF, billing.last && billing.last.invoice ? 'Rechnung ' + billing.last.invoice.number + ' als PDF' : 'Letzte Abrechnung als PDF');
     }
     function createCard(id) {
         var card = document.createElement('article');
@@ -189,7 +226,7 @@
         var lock = document.createElement('p');
         lock.className = 'lock';
         lock.dataset.field = 'lock';
-        lock.textContent = 'Extern gesperrt – manuelle Freigabe hebt die Sperre nicht auf';
+        put(lock, 'Extern gesperrt – manuelle Freigabe hebt die Sperre nicht auf');
         var metrics = document.createElement('div');
         metrics.className = 'device-metrics';
         metrics.append(metric('Sollwert', 'command'), metric('Aktive Phasen', 'phases'));
@@ -197,7 +234,7 @@
         details.className = 'device-details';
         details.open = false;
         var summary = document.createElement('summary');
-        summary.textContent = 'Details';
+        put(summary, 'Details');
         summary.dataset.field = 'detailsLabel';
         var secondary = document.createElement('div');
         secondary.className = 'device-secondary';
@@ -208,20 +245,20 @@
         manualLabel.className = 'switch';
         var manual = document.createElement('input');
         manual.type = 'checkbox';
-        manual.setAttribute('aria-label', 'Wallbox ' + id + ' freigeben');
+        attribute(manual, 'aria-label', 'Wallbox ' + id + ' freigeben');
         manual.dataset.field = 'manual';
-        manual.addEventListener('change', function () { action('W' + id + 'Manual', manual.checked); });
+        on(manual, 'change', function () { action('W' + id + 'Manual', manual.checked); });
         var manualText = document.createElement('span');
-        manualText.textContent = 'Ein'; manualText.dataset.field = 'manualText';
+        put(manualText, 'Ein'); manualText.dataset.field = 'manualText';
         manualLabel.append(manual, manualText);
         var priorityLabel = document.createElement('label');
         priorityLabel.className = 'priority-label';
-        priorityLabel.textContent = 'Priorität';
+        put(priorityLabel, 'Priorität');
         var priority = document.createElement('input');
         priority.type = 'number';
         priority.min = '1'; priority.max = '999'; priority.step = '1';
         priority.dataset.field = 'priority';
-        priority.addEventListener('change', function () {
+        on(priority, 'change', function () {
             var v = Number(priority.value);
             if (Number.isInteger(v) && v >= 1 && v <= 999) action('W' + id + 'Priority', v);
             else showError(new Error('Priorität muss zwischen 1 und 999 liegen'));
@@ -247,63 +284,60 @@
         el('boxes').append(card);
         return cards.get(id);
     }
-    function render(data) {
+    function render(data, arrival) {
         if (!data || !data.boxes) return;
         latest = data;
-        receivedAt = Date.now();
-        el('manager').checked = !!data.managerEnabled;
-        if (data.managerEnabled === undefined) el('manager').checked = !!data.manager;
-        el('mode-even').setAttribute('aria-pressed', String(data.mode === 0));
-        el('mode-priority').setAttribute('aria-pressed', String(data.mode === 1));
+        receivedAt = arrival;
+        assign(el('manager'), 'checked', !!(data.managerEnabled === undefined ? data.manager : data.managerEnabled));
+        attribute(el('mode-even'), 'aria-pressed', String(data.mode === 0));
+        attribute(el('mode-priority'), 'aria-pressed', String(data.mode === 1));
         text('budget-label', data.pvActive ? 'PV-Budget' : 'Budget');
         text('base', chargingPower(data.base));
         text('support', chargingPower(data.battery.confirmed));
-        el('support-metric').hidden = !data.batteryConfigured;
+        assign(el('support-metric'), 'hidden', !data.batteryConfigured);
         text('measured', chargingPower(data.measured));
         text('energy', energy(data.energy));
         text('status', data.status);
-        el('status').dataset.active = String(el('manager').checked);
-        el('status').dataset.error = String(!!(data.errors && data.errors.length));
-        el('errors').hidden = !data.errors || data.errors.length === 0;
+        datum(el('status'), 'active', String(el('manager').checked));
+        datum(el('status'), 'error', String(!!(data.errors && data.errors.length)));
+        assign(el('errors'), 'hidden', !data.errors || data.errors.length === 0);
         text('errors', (data.errors || []).join('\n'));
-        el('overrun').hidden = !(data.overrun > 0);
+        assign(el('overrun'), 'hidden', !(data.overrun > 0));
         text('overrun', 'Zeitweilige Budgetüberschreitung: ' + power(data.overrun));
         Object.values(data.boxes).forEach(function (box) {
             var item = cards.get(box.id) || createCard(box.id);
-            item.node.hidden = !box.enabled;
-            item.node.dataset.state = box.status;
+            assign(item.node, 'hidden', !box.enabled);
+            datum(item.node, 'state', box.status);
             var f = item.fields;
-            f.name.textContent = box.name;
-            f.status.textContent = box.status;
-            f.lock.hidden = box.external;
-            f.manual.checked = box.manual;
-            f.manualText.textContent = box.manual ? 'Ein' : 'Aus';
-            f.manual.disabled = !box.enabled;
-            if (document.activeElement !== f.priority) f.priority.value = box.priority;
-            f.measured.textContent = chargingPower(box.measured);
-            f.command.textContent = (box.unit === 'kW' ? number : ampereFormat).format(box.command) + ' ' + box.unit;
-            f.setpoint.textContent = 'Soll ' + f.command.textContent + (box.phases ? ' · ' + box.phases + (box.phases === 1 ? ' Phase' : ' Phasen') : '');
-            f.manual.setAttribute('aria-label', box.name + ' freigeben');
-            f.energy.textContent = energy(box.energy) + (box.energyMethod === 'berechnet' ? ' (berechnet)' : '');
-            f.phases.textContent = box.phases ? String(box.phases) : 'Unbestätigt';
-            f.reason.textContent = box.reason;
-            f.gap.textContent = box.gap || '';
-            f.gap.hidden = !box.gap;
+            put(f.name, box.name);
+            put(f.status, box.status);
+            assign(f.lock, 'hidden', box.external);
+            assign(f.manual, 'checked', box.manual);
+            put(f.manualText, box.manual ? 'Ein' : 'Aus');
+            assign(f.manual, 'disabled', !box.enabled);
+            if (document.activeElement !== f.priority) assign(f.priority, 'value', String(box.priority));
+            put(f.measured, chargingPower(box.measured));
+            put(f.command, (box.unit === 'kW' ? number : ampereFormat).format(box.command) + ' ' + box.unit);
+            put(f.setpoint, 'Soll ' + f.command.textContent + (box.phases ? ' · ' + box.phases + (box.phases === 1 ? ' Phase' : ' Phasen') : ''));
+            attribute(f.manual, 'aria-label', box.name + ' freigeben');
+            put(f.energy, energy(box.energy) + (box.energyMethod === 'berechnet' ? ' (berechnet)' : ''));
+            put(f.phases, box.phases ? String(box.phases) : 'Unbestätigt');
+            put(f.gap, box.gap || '');
+            assign(f.gap, 'hidden', !box.gap);
             renderBilling(f, box.billing);
         });
-        el('boxes').dataset.count = String(Object.values(data.boxes).filter(function (box) { return box.enabled; }).length);
-        el('battery').hidden = !data.batteryConfigured;
-        el('battery-enable').checked = !!data.batteryEnabled;
-        el('battery-lock').hidden = data.battery.external;
+        datum(el('boxes'), 'count', String(Object.values(data.boxes).filter(function (box) { return box.enabled; }).length));
+        assign(el('battery'), 'hidden', !data.batteryConfigured);
+        assign(el('battery-enable'), 'checked', !!data.batteryEnabled);
+        assign(el('battery-lock'), 'hidden', data.battery.external);
         text('soc', data.battery.soc === null ? 'Keine Messung' : number.format(data.battery.soc) + ' %');
         text('capacity', energy(data.battery.capacity));
         text('reserve-energy', energy(data.battery.energy));
         text('battery-request', power(data.battery.commanded));
         text('battery-power', power(data.battery.measured));
         text('battery-state', data.battery.reason);
-        el('simulation').hidden = !data.simulation;
+        assign(el('simulation-footer'), 'hidden', !data.simulation);
         countdown();
-        updateLayout();
         if (dashboardOpen) renderEnergyDashboard();
     }
     function nonnegative(value) { return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0; }
@@ -334,69 +368,91 @@
     function selectEnergy(key, event) {
         selectedEnergy = energyItems.has(key) ? key : null;
         if (event && typeof event.clientX === 'number') {
-            var bounds = el('energy-chart-wrap').getBoundingClientRect();
-            tooltipPoint = {x: (event.clientX - bounds.left) / bounds.width, y: (event.clientY - bounds.top) / bounds.height};
-        } else tooltipPoint = {x: .55, y: .3};
-        highlightEnergy();
+            tooltipClient = {x: event.clientX, y: event.clientY};
+        } else { tooltipClient = null; tooltipPoint = {x: .55, y: .3}; }
+        scheduleHighlight();
+    }
+    function scheduleHighlight() {
+        if (highlightFrame || paused() || !dashboardOpen) return;
+        highlightFrame = frame(function () { highlightFrame = 0; highlightEnergy(); });
     }
     function highlightEnergy() {
-        energyItems.forEach(function (item, key) {
-            item.segment.classList.toggle('is-active', key === selectedEnergy);
-            item.segment.classList.toggle('is-muted', selectedEnergy !== null && key !== selectedEnergy);
-            item.legend.classList.toggle('is-active', key === selectedEnergy);
-            item.row.classList.toggle('is-active', key === selectedEnergy);
-        });
+        if (selectedEnergy !== highlightedEnergy) {
+            energyItems.forEach(function (item, key) {
+                item.segment.classList.toggle('is-active', key === selectedEnergy);
+                item.segment.classList.toggle('is-muted', selectedEnergy !== null && key !== selectedEnergy);
+                item.legend.classList.toggle('is-active', key === selectedEnergy);
+                item.row.classList.toggle('is-active', key === selectedEnergy);
+            });
+            highlightedEnergy = selectedEnergy;
+        }
         var tooltip = el('energy-tooltip');
         var item = energyItems.get(selectedEnergy);
-        tooltip.hidden = !item;
+        assign(tooltip, 'hidden', !item);
         if (!item) return;
-        tooltip.textContent = item.data.name + ': ' + energy(item.data.value) + '\n' + number.format(item.data.percent) + ' %';
-        var bounds = el('energy-chart-wrap').getBoundingClientRect();
-        var left = Math.min(Math.max(8, tooltipPoint.x * bounds.width + 12), Math.max(8, bounds.width - tooltip.offsetWidth - 8));
-        var top = Math.min(Math.max(8, tooltipPoint.y * bounds.height + 12), Math.max(8, bounds.height - tooltip.offsetHeight - 8));
-        tooltip.style.left = left + 'px'; tooltip.style.top = top + 'px';
+        var label = item.data.name + ': ' + energy(item.data.value) + '\n' + number.format(item.data.percent) + ' %';
+        if (tooltip.textContent !== label) { put(tooltip, label); tooltipSize = null; }
+        var bounds = chartBounds || (chartBounds = el('energy-chart-wrap').getBoundingClientRect());
+        if (tooltipClient) {
+            tooltipPoint = {x: (tooltipClient.x - bounds.left) / bounds.width, y: (tooltipClient.y - bounds.top) / bounds.height};
+            tooltipClient = null;
+        }
+        var size = tooltipSize || (tooltipSize = {width: tooltip.offsetWidth, height: tooltip.offsetHeight});
+        var left = Math.min(Math.max(8, tooltipPoint.x * bounds.width + 12), Math.max(8, bounds.width - size.width - 8));
+        var top = Math.min(Math.max(8, tooltipPoint.y * bounds.height + 12), Math.max(8, bounds.height - size.height - 8));
+        var transform = 'translate(' + Math.round(left) + 'px,' + Math.round(top) + 'px)';
+        if (tooltip.style.transform !== transform) tooltip.style.transform = transform;
     }
     function makeEnergyItem(row) {
+        var events = [];
         var segment = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        segment.setAttribute('class', 'energy-segment');
-        segment.setAttribute('fill', 'none'); segment.setAttribute('stroke-width', '56');
-        segment.setAttribute('tabindex', '0'); segment.setAttribute('role', 'img');
+        attribute(segment, 'class', 'energy-segment');
+        attribute(segment, 'fill', 'none'); attribute(segment, 'stroke-width', '56');
+        attribute(segment, 'tabindex', '0'); attribute(segment, 'role', 'img');
         segment.dataset.energyKey = row.key;
         var legend = document.createElement('button');
         legend.type = 'button'; legend.className = 'legend-button';
-        var dot = document.createElement('span'); dot.className = 'energy-dot'; dot.setAttribute('aria-hidden', 'true');
+        var dot = document.createElement('span'); dot.className = 'energy-dot'; attribute(dot, 'aria-hidden', 'true');
         var name = document.createElement('span'); name.className = 'legend-label';
         legend.append(dot, name);
         var line = document.createElement('button');
         line.type = 'button'; line.className = 'energy-row';
         var rowName = document.createElement('span'); rowName.className = 'energy-row-name';
-        var rowDot = document.createElement('span'); rowDot.className = 'energy-dot'; rowDot.setAttribute('aria-hidden', 'true');
+        var rowDot = document.createElement('span'); rowDot.className = 'energy-dot'; attribute(rowDot, 'aria-hidden', 'true');
         var label = document.createElement('span'); rowName.append(rowDot, label);
         var values = document.createElement('span'); values.className = 'energy-row-values';
         var amount = document.createElement('span'); var detail = document.createElement('small');
         values.append(amount, detail); line.append(rowName, values);
         [segment, legend, line].forEach(function (node) {
-            node.addEventListener('pointerenter', function (event) { selectEnergy(row.key, node === segment ? event : null); });
-            node.addEventListener('pointermove', function (event) { if (node === segment) selectEnergy(row.key, event); });
-            node.addEventListener('pointerleave', function () { if (selectedEnergy === row.key && document.activeElement !== node) selectEnergy(null); });
-            node.addEventListener('focus', function () { selectEnergy(row.key); });
-            node.addEventListener('blur', function () { if (selectedEnergy === row.key) selectEnergy(null); });
-            node.addEventListener('click', function () { selectEnergy(row.key); });
+            on(node, 'pointerenter', function (event) { selectEnergy(row.key, node === segment ? event : null); }, undefined, events);
+            on(node, 'pointermove', function (event) { if (node === segment) selectEnergy(row.key, event); }, undefined, events);
+            on(node, 'pointerleave', function () { if (selectedEnergy === row.key && document.activeElement !== node) selectEnergy(null); }, undefined, events);
+            on(node, 'focus', function () { selectEnergy(row.key); }, undefined, events);
+            on(node, 'blur', function () { if (selectedEnergy === row.key) selectEnergy(null); }, undefined, events);
+            on(node, 'click', function () { selectEnergy(row.key); }, undefined, events);
         });
         el('energy-segments').append(segment); el('energy-legend').append(legend); el('energy-rows').append(line);
-        var item = {segment: segment, legend: legend, row: line, name: name, label: label, amount: amount, detail: detail, data: row};
+        var item = {segment: segment, legend: legend, row: line, name: name, label: label, amount: amount, detail: detail, data: row, dispose: function () { events.forEach(function (stop) { stop(); }); }};
         energyItems.set(row.key, item);
         return item;
     }
     function renderEnergyDashboard() {
         if (!latest) return;
         var data = dashboardData();
+        data.rows.forEach(function (row) { var item = energyItems.get(row.key); if (item) item.data = row; });
+        var signature = JSON.stringify([energy(data.total), data.inconsistent, data.rows.map(function (row) {
+            return [row.key, row.name, energy(row.value), number.format(row.percent), row.enabled, row.archived > 0, row.method];
+        })]);
+        // Keep SVG nodes and focus stable when the displayed energy values did not change.
+        if (signature === energySignature) return;
+        energySignature = signature;
+        chartBounds = tooltipSize = null; highlightedEnergy = undefined;
         text('dashboard-total', energy(data.total)); text('dashboard-summary-total', energy(data.total));
-        el('energy-empty').hidden = data.denominator > 0;
+        assign(el('energy-empty'), 'hidden', data.denominator > 0);
         var keys = data.rows.map(function (row) { return row.key; });
         energyItems.forEach(function (item, key) {
             if (keys.indexOf(key) !== -1) return;
-            item.segment.remove(); item.legend.remove(); item.row.remove(); energyItems.delete(key);
+            item.dispose(); item.segment.remove(); item.legend.remove(); item.row.remove(); energyItems.delete(key);
             if (selectedEnergy === key) selectedEnergy = null;
         });
         var start = 0;
@@ -404,31 +460,34 @@
             var item = energyItems.get(row.key) || makeEnergyItem(row);
             item.data = row;
             var angle = row.percent / 100 * Math.PI * 2;
-            item.segment.setAttribute('d', segmentPath(start, start + angle)); start += angle;
+            attribute(item.segment, 'd', segmentPath(start, start + angle)); start += angle;
             item.segment.style.display = row.value > 0 ? '' : 'none';
-            item.segment.setAttribute('stroke', row.color);
+            attribute(item.segment, 'stroke', row.color);
             var description = row.name + ': ' + energy(row.value) + ', ' + number.format(row.percent) + ' %';
-            item.segment.setAttribute('aria-label', description);
-            item.legend.setAttribute('aria-label', description); item.row.setAttribute('aria-label', description);
+            attribute(item.segment, 'aria-label', description);
+            attribute(item.legend, 'aria-label', description); attribute(item.row, 'aria-label', description);
             item.legend.style.setProperty('--segment-color', row.color); item.row.style.setProperty('--segment-color', row.color);
-            item.name.textContent = row.name; item.label.textContent = row.name;
-            item.amount.textContent = energy(row.value);
-            item.detail.textContent = number.format(row.percent) + ' %' + (row.method === 'berechnet' ? ' · berechnet' : '') + (row.enabled === false ? ' · deaktiviert' : '');
+            put(item.name, row.name); put(item.label, row.name);
+            put(item.amount, energy(row.value));
+            put(item.detail, number.format(row.percent) + ' %' + (row.method === 'berechnet' ? ' · berechnet' : '') + (row.enabled === false ? ' · deaktiviert' : ''));
         });
         var note = 'Fortlaufende Zählerstände bis zur letzten Aktualisierung. Ein Energie-Reset beginnt den Zählzeitraum neu.';
         if (data.rows.some(function (row) { return row.archived > 0; })) note += ' Frühere Geräte am selben Wallbox-Platz sind enthalten.';
         if (data.inconsistent) note += ' Die Wallbox-Summe weicht vom Gesamtzähler ab; die Anteile beziehen sich auf die Wallbox-Summe.';
         text('energy-note', note);
-        highlightEnergy();
+        scheduleHighlight();
     }
     function openDashboard() {
         dashboardOpen = true;
-        el('tile-view').hidden = true; el('energy-dashboard').hidden = false;
+        attribute(el('energy-open'), 'aria-expanded', 'true');
+        chartBounds = tooltipSize = null; energySignature = '';
+        assign(el('tile-view'), 'hidden', true); assign(el('energy-dashboard'), 'hidden', false);
         renderEnergyDashboard(); el('energy-close').focus();
     }
     function closeDashboard() {
-        dashboardOpen = false; selectEnergy(null);
-        el('energy-dashboard').hidden = true; el('tile-view').hidden = false;
+        selectEnergy(null); highlightEnergy(); dashboardOpen = false;
+        attribute(el('energy-open'), 'aria-expanded', 'false');
+        assign(el('energy-dashboard'), 'hidden', true); assign(el('tile-view'), 'hidden', false);
         el('energy-open').focus();
     }
     function countdown() {
@@ -440,22 +499,47 @@
             var remaining = Math.max(0, box.remaining - elapsed);
             var reason = box.reason || box.status;
             if (remaining > 0) reason += box.status === 'Einschaltverzögerung' ? ' – Start in ' + remaining + ' s' : ' – noch ' + remaining + ' s';
-            item.fields.reason.textContent = reason;
-            item.fields.reason.hidden = remaining === 0 && reason === box.status;
+            put(item.fields.reason, reason);
+            assign(item.fields.reason, 'hidden', remaining === 0 && reason === box.status);
         });
     }
+    function paused() { return disposed || !inView || document.hidden === true; }
+    function pauseDisplay() {
+        if (displayTimer !== null) clearTimeout(displayTimer);
+        displayTimer = null;
+        if (highlightFrame && window.cancelAnimationFrame) window.cancelAnimationFrame(highlightFrame);
+        highlightFrame = 0;
+    }
+    function updateDisplay() {
+        displayTimer = null;
+        if (paused()) return;
+        if (pendingMessage !== null) {
+            var message = pendingMessage; pendingMessage = null;
+            try { render(typeof message === 'string' ? JSON.parse(message) : message, pendingAt); }
+            catch (error) { showError(error); }
+        } else countdown();
+        syncTheme(); syncHeaderSpace();
+        displayTimer = setTimeout(updateDisplay, DISPLAY_INTERVAL);
+    }
+    function resumeDisplay() {
+        if (paused()) return;
+        pauseDisplay(); updateDisplay();
+        if (dashboardOpen) scheduleHighlight();
+    }
     window.handleMessage = function (message) {
-        try { render(typeof message === 'string' ? JSON.parse(message) : message); }
-        catch (error) { showError(error); }
+        if (disposed) return;
+        // Defer parsing too: telemetry may contain a large PDF payload.
+        pendingMessage = message; pendingAt = Date.now();
+        if (!latest && !paused()) resumeDisplay();
     };
-    el('manager').addEventListener('change', function () { action('ManagerEnabled', this.checked); });
-    el('mode-even').addEventListener('click', function () { action('DistributionMode', 0); });
-    el('mode-priority').addEventListener('click', function () { action('DistributionMode', 1); });
-    el('battery-enable').addEventListener('change', function () { action('BatteryEnabled', this.checked); });
-    el('energy-open').addEventListener('click', openDashboard);
-    el('energy-close').addEventListener('click', closeDashboard);
+    on(el('manager'), 'change', function () { action('ManagerEnabled', this.checked); });
+    on(el('mode-even'), 'click', function () { action('DistributionMode', 0); });
+    on(el('mode-priority'), 'click', function () { action('DistributionMode', 1); });
+    on(el('battery-enable'), 'change', function () { action('BatteryEnabled', this.checked); });
+    on(el('energy-open'), 'click', openDashboard);
+    on(el('energy-close'), 'click', closeDashboard);
     if (typeof document.addEventListener === 'function') {
-        document.addEventListener('keydown', function (event) {
+        on(document, 'keydown', function (event) {
             if (!dashboardOpen) return;
             if (event.key === 'Escape') { event.preventDefault(); closeDashboard(); }
             if (event.key === 'Tab') {
@@ -467,14 +551,16 @@
         });
     }
     syncTheme();
+    updateLayout();
     if (typeof ResizeObserver === 'function' && document.getElementById('wbm')) {
-        new ResizeObserver(updateLayout).observe(document.getElementById('wbm'));
+        var resizeObserver = new ResizeObserver(updateLayout); resizeObserver.observe(el('wbm'));
+        cleanup.push(function () { resizeObserver.disconnect(); });
     }
     if (typeof window.addEventListener === 'function') {
-        window.addEventListener('resize', function () { updateLayout(); syncTheme(); });
+        on(window, 'resize', function () { updateLayout(); syncTheme(); });
         if (window.matchMedia) {
             var scheme = window.matchMedia('(prefers-color-scheme: dark)');
-            if (scheme.addEventListener) scheme.addEventListener('change', syncTheme);
+            if (scheme.addEventListener) on(scheme, 'change', syncTheme);
         }
     }
     if (typeof MutationObserver === 'function' && document.documentElement) {
@@ -482,8 +568,25 @@
         observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class', 'data-theme'] });
         observer.observe(document.body, { attributes: true, childList: true, attributeFilter: ['style', 'class', 'data-theme'] });
         observer.observe(document.head, { childList: true, subtree: true, characterData: true });
+        cleanup.push(function () { observer.disconnect(); });
     }
-    render(window.WBM_INITIAL);
+    if (typeof document.addEventListener === 'function') {
+        on(document, 'visibilitychange', function () { if (document.hidden) pauseDisplay(); else resumeDisplay(); });
+        on(el('energy-dashboard').querySelector('.dashboard-scroll'), 'scroll', function () { chartBounds = null; }, {passive: true});
+    }
+    if (typeof IntersectionObserver === 'function') {
+        var visibilityObserver = new IntersectionObserver(function (entries) {
+            var visible = entries[0].isIntersecting;
+            if (inView === visible) return;
+            inView = visible; if (visible) resumeDisplay(); else pauseDisplay();
+        });
+        visibilityObserver.observe(el('wbm')); cleanup.push(function () { visibilityObserver.disconnect(); });
+    }
+    window.WBM_TILE_CLEANUP = function () {
+        disposed = true; pauseDisplay();
+        energyItems.forEach(function (item) { item.dispose(); });
+        cleanup.forEach(function (stop) { stop(); });
+    };
+    window.handleMessage(window.WBM_INITIAL);
     action('Refresh', 0);
-    setInterval(function () { countdown(); syncTheme(); syncHeaderSpace(); }, 1000);
 }());
