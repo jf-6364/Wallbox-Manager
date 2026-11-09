@@ -39,7 +39,7 @@ if (is_file($stateFile)) {
 }
 $path=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH); $found=false;
 foreach (json_decode($hooks->properties['Hooks'],true) as $hook) {
-    if (($path===$hook['Hook'] || str_starts_with($path,$hook['Hook'].'/')) && (int)$hook['Target']===50) { $found=true; break; }
+    if (($path===$hook['Hook'] || str_starts_with($path,$hook['Hook'].'/')) && (int)$hook['TargetID']===50) { $found=true; break; }
 }
 if ($found) $m->serve(); else { http_response_code(404); echo 'Not found'; }
 $module=[]; foreach (['properties','attributes','buffers','references','messages','timers','idents','status','visualType','visualUpdates','debug'] as $name) $module[$name]=$m->$name;

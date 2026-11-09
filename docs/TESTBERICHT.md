@@ -2,10 +2,18 @@
 
 ## Ausgeführt
 
-- **169 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- **173 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
 - **18 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
+- WebHook-Registrierung gegen das offizielle Symcon-Beispiel abgeglichen: `Hook`
+  und ganzzahlige `TargetID`. Das Testdouble lehnt die fehlerhafte Struktur aus
+  Build 20 mit der gemeldeten nativen Warnung ab; die Regression schlug vor der
+  Korrektur fehl. Reparatur bereits gespeicherter eigener Alteinträge, abweichender
+  neuer Pfad, Abschalten und Destroy erhalten fremde Einträge. Native Warnungen und
+  false-Rückgaben bleiben lokal und stellen den bisherigen PHP-Fehlerhandler wieder
+  her. Erneutes Übernehmen funktioniert auch ohne JSON-Änderung; Umbenennen oder
+  Abschalten nach einer fehlgeschlagenen Übernahme hinterlassen keine alten Pfade.
 - Optionale Webansicht geprüft: eigene WebHook-Registrierung, Umbenennen,
   Abschalten und Destroy erhalten fremde Einträge; Pfadkonflikte und ungültige
   Zugangsdaten beeinträchtigen keine Laderegelung. HTML, JSON und PDFs erfordern

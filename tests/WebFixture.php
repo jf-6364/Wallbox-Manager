@@ -11,7 +11,15 @@ class TestHookControl extends IPSModule
 {
     public string $moduleID = WebView::HOOK_MODULE;
     public int $applied = 0;
-    public function ApplyChanges() { $this->applied++; }
+    public function ApplyChanges() {
+        foreach (json_decode($this->properties['Hooks'], true, 512, JSON_THROW_ON_ERROR) as $hook) {
+            if (!is_int($hook['TargetID'] ?? null)) { trigger_error('Expected value of type int for TargetID', E_USER_WARNING); return false; }
+        }
+        if ((Kernel::$failures['webHookApply'] ?? '') === 'warning') { trigger_error('WebHook-Konfiguration konnte nicht übernommen werden', E_USER_WARNING); return false; }
+        if ((Kernel::$failures['webHookApply'] ?? '') === 'false') return false;
+        $this->applied++;
+        return true;
+    }
 }
 function webFixture(bool $enabled = true): array
 {

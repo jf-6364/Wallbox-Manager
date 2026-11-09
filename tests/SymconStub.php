@@ -143,7 +143,7 @@ function IPS_GetMediaContent(int $id) { return Kernel::$media[$id]['content']; }
 function IPS_GetInstanceListByModuleID($id) { return array_keys(array_filter(Kernel::$instances, static fn($instance) => $instance->moduleID === $id)); }
 function IPS_GetProperty($id, $name) { return Kernel::$instances[$id]->properties[$name]; }
 function IPS_SetProperty($id, $name, $value) { Kernel::$instances[$id]->properties[$name] = $value; return true; }
-function IPS_ApplyChanges($id) { Kernel::$instances[$id]->ApplyChanges(); return true; }
+function IPS_ApplyChanges($id) { return Kernel::$instances[$id]->ApplyChanges() !== false; }
 function GetValue($id) { Kernel::$reads[] = $id; return Kernel::$variables[$id]['value']; }
 function SetValue($id, $value) { Kernel::update($id, $value); return true; }
 function HasAction($id)

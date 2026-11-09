@@ -114,10 +114,17 @@ beim Energiezähler-Reset zurückgesetzt.
 
 Die Webansicht verwendet die bestehende Symcon-Instanz **WebHook Control**
 (Modul-ID `{015A6EB8-D6E5-4B93-B496-0D3F77AE9FE1}`). Ihre Eigenschaft `Hooks`
-enthält Einträge mit `Hook` und `Target`; Ziel ist die Managerinstanz. Änderungen
+enthält Einträge mit `Hook` und einer ganzzahligen `TargetID`; Ziel ist die Managerinstanz. Änderungen
 verwenden `IPS_GetProperty`, `IPS_SetProperty` und `IPS_ApplyChanges`. Registrierung,
 Umbenennen und Entfernen werden instanzübergreifend mit einer Semaphore geschützt;
 fremde Einträge bleiben erhalten. Das Formular verwendet `PasswordTextBox`.
+Die Feldnamen wurden am 09.11.2026 mit dem offiziellen
+[WebHookModule-Beispiel](https://github.com/symcon/SymconMisc/blob/7842e50535d4f7c96d44a18935b019027ae24e12/libs/WebHookModule.php#L53)
+abgeglichen. Build 21 repariert eigene, mit `Target` statt `TargetID` gespeicherte
+Entwürfe aus Build 20. Native Übernahmewarnungen bleiben im Webansicht-Status;
+fehlgeschlagene Übernahmen werden auch bei unverändertem JSON erneut versucht.
+Noch nicht bestätigte Pfade bleiben bis zur erfolgreichen Übernahme für die
+Bereinigung beim Umbenennen oder Abschalten vorgemerkt.
 
 Der geschützte SDK-Einstieg `ProcessHookData()` beantwortet HTML-, JSON- und
 PDF-Anfragen. Unter dem konfigurierten Basispfad gelten folgende Routen:

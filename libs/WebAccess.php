@@ -17,40 +17,58 @@ trait WebAccess
     {
         $flat = $this->configuration(); $old = $this->jsonAttribute('WebHookState');
         $enabled = !$remove && $flat['WebEnabled'];
-        if (!$enabled && empty($old['path'])) return;
         $errors = $enabled ? WebView::errors($flat) : [];
         if ($errors) { $this->WriteAttributeString('WebHookState', $this->encode(array_replace($old, ['error' => implode(' ', $errors)]))); return; }
         if (!IPS_SemaphoreEnter('WBM_WebHooks', 1000)) {
             $this->WriteAttributeString('WebHookState', $this->encode(array_replace($old, ['error' => 'WebHook-Verwaltung beschäftigt; Einstellungen erneut übernehmen.']))); return;
         }
+        set_error_handler(static function ($severity, $message, $file, $line) { throw new \ErrorException($message, 0, $severity, $file, $line); });
         try {
             $controllers = IPS_GetInstanceListByModuleID(WebView::HOOK_MODULE);
-            if (!$controllers) throw new \RuntimeException('Die Symcon-Instanz WebHook Control fehlt.');
+            if (!$controllers) {
+                if (!$enabled) return;
+                throw new \RuntimeException('Die Symcon-Instanz WebHook Control fehlt.');
+            }
             $controller = (int)$controllers[0];
             $hooks = json_decode(IPS_GetProperty($controller, 'Hooks'), true, 512, JSON_THROW_ON_ERROR);
             if (!is_array($hooks)) throw new \RuntimeException('WebHook-Liste ist ungültig.');
-            if ($enabled) foreach ($hooks as $hook) {
-                if ($hook['Hook'] === $flat['WebPath'] && (int)$hook['Target'] !== $this->InstanceID) throw new \RuntimeException('Der URL-Pfad wird bereits von einer anderen Instanz verwendet. Bitte einen anderen Pfad wählen.');
-            }
-            $next = [];
+            // Build 20 used Target instead of the native TargetID. SetProperty may
+            // have saved that invalid draft even though ApplyChanges rejected it.
+            $prepared = [];
             foreach ($hooks as $hook) {
-                if (!empty($old['path']) && $hook['Hook'] === $old['path'] && (int)$hook['Target'] === $this->InstanceID
-                    && (!$enabled || $old['path'] !== $flat['WebPath'])) continue;
+                if (!isset($hook['TargetID']) && ($hook['Target'] ?? null) === $this->InstanceID) {
+                    if (!$enabled || $hook['Hook'] !== $flat['WebPath']) continue;
+                    $hook['TargetID'] = $this->InstanceID;
+                    unset($hook['Target']);
+                }
+                $prepared[] = $hook;
+            }
+            if ($enabled) foreach ($prepared as $hook) {
+                if ($hook['Hook'] === $flat['WebPath'] && (int)($hook['TargetID'] ?? 0) !== $this->InstanceID) throw new \RuntimeException('Der URL-Pfad wird bereits von einer anderen Instanz verwendet. Bitte einen anderen Pfad wählen.');
+            }
+            $ownedPaths = array_values(array_unique(array_filter(array_merge([$old['path'] ?? '', $flat['WebPath']], $old['pendingPaths'] ?? []))));
+            $next = [];
+            foreach ($prepared as $hook) {
+                if (in_array($hook['Hook'], $ownedPaths, true) && (int)($hook['TargetID'] ?? 0) === $this->InstanceID
+                    && (!$enabled || $hook['Hook'] !== $flat['WebPath'])) continue;
                 $next[] = $hook;
             }
             if ($enabled) {
                 $exists = false;
-                foreach ($next as $hook) if ($hook['Hook'] === $flat['WebPath'] && (int)$hook['Target'] === $this->InstanceID) $exists = true;
-                if (!$exists) $next[] = ['Hook' => $flat['WebPath'], 'Target' => $this->InstanceID];
+                foreach ($next as $hook) if ($hook['Hook'] === $flat['WebPath'] && (int)($hook['TargetID'] ?? 0) === $this->InstanceID) $exists = true;
+                if (!$exists) $next[] = ['Hook' => $flat['WebPath'], 'TargetID' => $this->InstanceID];
             }
-            if ($next !== $hooks) {
+            if ($next !== $hooks || !empty($old['pending']) || !empty($old['error'])) {
+                $old['pending'] = true;
+                $old['pendingPaths'] = $ownedPaths;
+                $this->WriteAttributeString('WebHookState', $this->encode($old));
                 if (IPS_SetProperty($controller, 'Hooks', $this->encode($next)) === false || IPS_ApplyChanges($controller) === false) throw new \RuntimeException('WebHook konnte nicht registriert werden.');
             }
             $this->WriteAttributeString('WebHookState', $this->encode(['path' => $enabled ? $flat['WebPath'] : '', 'error' => '']));
         } catch (\Throwable $error) {
             $this->WriteAttributeString('WebHookState', $this->encode(array_replace($old, ['error' => $error->getMessage()])));
             $this->SendDebug('Webansicht', $error->getMessage(), 0);
-        } finally { IPS_SemaphoreLeave('WBM_WebHooks'); }
+        } finally { restore_error_handler(); IPS_SemaphoreLeave('WBM_WebHooks'); }
     }
 
     protected function ProcessHookData()

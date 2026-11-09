@@ -34,6 +34,15 @@ Andere registrierte WebHooks werden nicht verändert. Ausschalten der Webansicht
 entfernt ihre Registrierung und beendet den Browserzugriff; die Laderegelung und
 die gespeicherten Daten bleiben erhalten.
 
+## Fehler beim Übernehmen: TargetID
+
+Build 20 verwendete bei der Registrierung versehentlich `Target` statt der von
+Symcon erwarteten ganzzahligen `TargetID`. Dadurch konnte „Expected value of type
+int for TargetID“ erscheinen. **Ab Build 21 ist das korrigiert.** Nach dem Update
+im Modul erneut **Übernehmen** drücken. Bereits gespeicherte fehlerhafte Einträge
+dieses Managers werden automatisch repariert; die Instanz muss nicht neu angelegt
+werden. Fremde WebHooks bleiben unverändert.
+
 ## Dashboard
 
 **Energie-Dashboard** oben rechts öffnet die erweiterte Ansicht. Die Sprungbuttons
