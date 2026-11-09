@@ -108,6 +108,18 @@ Neustart oder Gerätewechsel beginnt die Verteilung erst nach erfolgreichem
 Stoppbefehl und frischer Leistungsrückmeldung nahe 0 W. Ein manuell festgehaltener
 Messwert von beispielsweise 11.040 W bestätigt diesen Stillstand nicht.
 
+Nach einer Leistungsreduzierung wartet der Manager auf die gemessene Rückmeldung.
+Ein verknüpfter, gültiger Geräte-Heartbeat kann dabei die Aktualität eines
+unveränderten Leistungswerts bestätigen. Ohne rechtzeitige Bestätigung wird der
+konfigurierte Stoppwert angefordert. Ein **„Timeout: Lastabbau nicht bestätigt“**
+hebt sich automatisch auf, sobald eine gültige Rückmeldung nach dem Stopp die
+Leistung innerhalb der Stillstandstoleranz bestätigt. Das gilt auch für bereits
+gespeicherte Lastabbau-Timeouts; ein erneutes manuelles Quittieren ist dann nicht
+nötig. Bei einem zuvor nur teilweise reduzierten Sollwert genügt die alte
+Teilreduzierung nicht: Nach dem Timeout muss zunächst Stillstand bestätigt sein.
+Andere Geräteaktions- und Phasenfehler bleiben separat zu quittieren. Der
+Start-/Stoppzustand und eine laufende Abrechnung bleiben bei der Erholung erhalten.
+
 ## Grenzen, Zeiten und Freigaben
 
 Jede Wallbox besitzt eigene Strom- und Leistungsgrenzen, ein Sollwertraster und
@@ -223,8 +235,9 @@ Preisänderungen berechnen frühere Energieintervalle nicht neu.
 
 Die Kachel zeigt eine gemeinsame Übersicht für **aktuelle Ladeleistung,
 Gesamtenergie und Budget** sowie den aktuellen Managerstatus. Darunter stehen
-abgerundete Wallbox-Karten mit feinen Rahmen, dezenten Schatten und türkisen
-Linienicons. Große Leistungswerte, Statusmarkierungen und getrennte Bereiche für
+abgerundete Wallbox-Karten mit feinen Rahmen, dezenten Schatten und direkt
+lesbaren Wallbox-Namen. Die großen Symbole neben den Namen entfallen; die
+kleinen Symbole für Leistung, Sollwert und Tarife bleiben erhalten. Große Leistungswerte, Statusmarkierungen und getrennte Bereiche für
 Sollwert, Lademodus und Preise folgen der Dashboard-Vorlage.
 
 Oben links ändern **„Gleichmäßig“ / „Priorität“** die Verteilungsart direkt.

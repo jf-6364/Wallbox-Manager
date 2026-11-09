@@ -224,13 +224,12 @@
         var card = document.createElement('article'); card.className = 'box';
         var head = document.createElement('div'); head.className = 'box-top';
         var heading = document.createElement('div'); heading.className = 'box-heading';
-        var symbol = document.createElement('span'); symbol.className = 'box-symbol'; symbol.append(icon('wallbox'));
         var identity = document.createElement('div'); identity.className = 'box-identity';
         var title = document.createElement('h2'); title.className = 'box-title'; title.dataset.field = 'name';
         var badge = document.createElement('span'); badge.className = 'badge';
         var badgeIcon = icon('circle'); badgeIcon.firstChild.dataset.field = 'statusIcon';
         var badgeText = document.createElement('span'); badgeText.dataset.field = 'status';
-        badge.append(badgeIcon, badgeText); identity.append(title, badge); heading.append(symbol, identity);
+        badge.append(badgeIcon, badgeText); identity.append(title, badge); heading.append(identity);
         var manual = document.createElement('button'); manual.type = 'button'; manual.className = 'wb-button session-button'; manual.dataset.field = 'manual';
         var manualIcon = icon('play'); manualIcon.firstChild.dataset.field = 'manualIcon';
         var manualText = document.createElement('span'); manualText.dataset.field = 'manualText'; manual.append(manualIcon, manualText);

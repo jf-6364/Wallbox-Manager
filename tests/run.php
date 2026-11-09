@@ -259,6 +259,7 @@ require __DIR__ . '/billing.php';
 require __DIR__ . '/invoice.php';
 require __DIR__ . '/pv.php';
 require __DIR__ . '/sessions.php';
+require __DIR__ . '/feedback.php';
 
 $results = [];
 foreach ($tests as $name => $fn) {

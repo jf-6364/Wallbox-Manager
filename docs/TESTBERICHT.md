@@ -2,10 +2,21 @@
 
 ## Ausgeführt
 
-- **146 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- **159 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
 - **18 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
+- Lastabbau-Timeouts geprüft: automatisches Aufheben nach später gültiger
+  Nullrückmeldung, auch für bereits gespeicherte Timeouts ohne offenen Auftrag.
+  Bestätigung erfolgt vor der erneuten Verteilung, der Fall 1-A-Mennekes-Stopp
+  bleibt wirksam. Nach einem Timeout einer Teilreduzierung genügt der frühere
+  Teilzielwert nicht; zuerst muss der Stopp bestätigt sein. Ein gültiger
+  Geräte-Heartbeat bestätigt unveränderte Nullleistung. Alte, zukünftige,
+  fehlende, negative, nichtendliche oder gemäß MaxAge veraltete Daten heben
+  keinen Timeout auf. Geräteaktions-, Überschreitungs- und Phasenfehler sowie
+  ein aktives Gerätefehlersignal bleiben gesperrt. Vier Plätze erholen sich
+  unabhängig; manuelle Sperre, Managerfreigabe, externe Sperre und Budget gelten
+  weiterhin. Laufender Ladegang und Rechnung bleiben erhalten.
 - Manuelle Ladevorgänge geprüft: kein Start durch hohes Budget, einzelne
   Start-/Stoppaktionen je Wallbox, unmittelbarer Stopp trotz Mindestlaufzeit,
   Erhalt über PV-Wechsel, Nullbudget, ApplyChanges und Neustart. Mennekes-Stopp
@@ -102,14 +113,16 @@
   des bisherigen Manager-Schalters. Der Managerzustand wird weiterhin korrekt
   angezeigt, ohne dabei eine Manageraktion zu senden. Bei 1672 × 941 stehen
   vier Karten in zwei Spalten und die drei Informationsbereiche je Karte
-  nebeneinander. Alle SVG-Verweise werden ohne externe Dateien aufgelöst. Eine
+  nebeneinander. Die großen Symbole neben den vier Wallbox-Namen sind entfernt;
+  kleine Status- und Messwerticons bleiben erhalten. Alle SVG-Verweise werden
+  ohne externe Dateien aufgelöst. Eine
   nachgestellte Symcon-Kopfzeile wird genau einmal angezeigt.
 - Überlagernde Symcon-Kopfzeile nachgestellt: Bedienelemente und Dashboard bleiben
   bei 938 × 782, 430 × 375 und 240 × 260 Pixeln unter der Kopfzeile erreichbar.
   Geänderte/ausgeblendete Kopfzeilen und bereits vorhandene Abstände sind geprüft;
   ein Sandbox-iframe verwendet den Abstand auch bei einer außerhalb liegenden
   Kopfzeile. Budgetmodus und Aktualisierungszeit werden nicht mehr im Footer gerendert.
-- Alle **24 PHP-Dateien** syntaktisch geprüft; alle **7 vorhandenen JSON-Dateien**
+- Alle **25 PHP-Dateien** syntaktisch geprüft; alle **7 vorhandenen JSON-Dateien**
   syntaktisch geprüft (einschließlich lokalem Testergebnis).
 - Metadaten, unterschiedliche gültige GUIDs, Präfix, Modulstruktur,
   vollständige Formularfelder und Beispielkonfigurationen geprüft.

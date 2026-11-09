@@ -188,6 +188,8 @@ ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilli
 
 Raster beginnt bei 0 in der Sollwerteinheit. Stop ist unabhängig vom aktiven Raster; ein mit einem aktiven zulässigen Rasterwert kollidierender Wallbox-Stoppwert wird abgelehnt. Negative eigene Hysterese ist nur als -1 (global) erlaubt.
 
+Lastabbau: Eine Reduzierung wird nur durch einen gültigen Leistungswert mit Aktualisierung ab dem Befehl bestätigt. Ein verknüpfter, gültiger Geräte-Heartbeat kann die Aktualität eines unveränderten Werts bestätigen. Nach FeedbackTimeout wird der konfigurierte Stoppwert angefordert. Ein Lastabbau-Timeout wird nach bestätigtem Stillstand innerhalb FeedbackToleranceW automatisch aufgehoben, auch wenn der alte Reduzierungsauftrag bereits erledigt ist. Bei einem Timeout nach einer Teilreduzierung muss zuerst der anschließende Stopp bestätigt sein. Andere Geräteaktions- und Phasenfehler werden nicht automatisch quittiert. Messungen oder Heartbeats aus der Zukunft, vor dem Befehl sowie gemäß MaxAge veraltete oder anderweitig ungültige Daten bestätigen keinen Stillstand.
+
 ## Automatisch erzeugte Status- und Bedienvariablen
 
 Alle vier Plätze werden dauerhaft angelegt. Unverknüpfte / ungültige numerische Messungen erscheinen in numerischen Statusvariablen als 0; die Kachel zeigt stattdessen fehlende Messung und Fehlertexte. Verfügbarer Speicher ist theoretisch; Confirmed ist die tatsächlich zur Planung verwendete Bestätigung.

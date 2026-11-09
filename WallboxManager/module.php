@@ -9,6 +9,7 @@ class WallboxManager extends IPSModule
     private const MODULE_ID = '{8EDC0388-D880-4518-A44B-91A1A3CF7086}';
     // The Symcon SDK uses 1 for HTML tiles; it provides no global HTML constant.
     private const VISUALIZATION_TYPE_HTML = 1;
+    private const LOAD_REDUCTION_TIMEOUT = 'Timeout: Lastabbau nicht bestätigt';
 
     public function Create()
     {
@@ -210,6 +211,7 @@ class WallboxManager extends IPSModule
             $retired = $this->processRetired($state, $now);
             $this->accountEnergy($cfg, $state, $now);
             $in = $this->inputs($cfg, $now);
+            if (!$validation) $this->recoverLoadTimeouts($cfg, $in, $state, $now);
             $in['errors'] = array_merge($in['errors'], $validation, $retired);
             $plan = Engine::plan($cfg, $in, $state, $now);
             $this->outputs($cfg, $in, $plan, $state, $now);
@@ -459,9 +461,11 @@ class WallboxManager extends IPSModule
         foreach ($cfg['boxes'] as $id => $c) {
             $age = $c['HeartbeatVar'] ? 0 : $c['MaxAge'];
             [$power, $updated, $error] = $this->number($c['PowerVar'], $age, $now);
+            $fresh = $updated;
             if ($c['HeartbeatVar']) {
                 $heartbeat = $this->inspect($c['HeartbeatVar']);
                 if (!$heartbeat || $c['MaxAge'] > 0 && $now - $heartbeat['updated'] > $c['MaxAge']) $error = 'Geräte-Heartbeat fehlt / ist veraltet';
+                else $fresh = max($fresh, (float)$heartbeat['updated']);
             }
             if ($this->boolean($c['ErrorVar'], false)) $error = 'Gerätefehler gemeldet';
             if ($this->GetValue('W' . $id . 'Priority') < 1 || $this->GetValue('W' . $id . 'Priority') > 999) $error = 'Laufzeitpriorität muss 1 bis 999 sein';
@@ -474,7 +478,7 @@ class WallboxManager extends IPSModule
             }
             $in['boxes'][$id] = ['manual' => $this->GetValue('W' . $id . 'Manual'), 'priority' => $this->GetValue('W' . $id . 'Priority'),
                 'external' => $this->boolean($c['ExternalVar']), 'demand' => $this->boolean($c['DemandVar']), 'phases' => $phases, 'phaseUpdated' => $phaseTime,
-                'power' => $power === null ? null : Setpoint::watts($power, $c['PowerUnit']), 'powerUpdated' => $updated, 'error' => $c['Enabled'] ? $error : ''];
+                'power' => $power === null ? null : Setpoint::watts($power, $c['PowerUnit']), 'powerUpdated' => $updated, 'powerFresh' => $fresh, 'error' => $c['Enabled'] ? $error : ''];
         }
         $b = $cfg['battery'];
         $bat = ['manual' => $this->GetValue('BatteryEnabled'), 'external' => $this->boolean($b['ExternalVar']), 'soc' => null, 'power' => null, 'error' => ''];
@@ -494,6 +498,31 @@ class WallboxManager extends IPSModule
         $in['battery'] = $bat;
         return $in;
     }
+    private function loadConfirmed(array $box, float $target, float $since, float $now, float $tolerance): bool
+    {
+        $power = $box['power'] ?? null;
+        $fresh = $box['powerFresh'] ?? $box['powerUpdated'] ?? 0.0;
+        return ($box['error'] ?? '') === '' && $power !== null && is_finite($power) && $power >= 0
+            && $power <= $target + $tolerance && is_finite($fresh) && $fresh >= floor($since) && $fresh <= $now + 1;
+    }
+
+    private function recoverLoadTimeouts(array $cfg, array $in, array &$state, float $now): void
+    {
+        foreach ($cfg['boxes'] as $id => $c) {
+            if (!$c['Enabled'] || ($state['boxes'][$id]['fault'] ?? '') !== self::LOAD_REDUCTION_TIMEOUT) continue;
+            $s = &$state['boxes'][$id];
+            if (($s['power'] ?? 0.0) > 0 || ($s['phase']['fault'] ?? '') !== '') { unset($s); continue; }
+            // A timed-out partial reduction forces a stop. Only verified zero load may recover it.
+            $since = max($s['lastCommand'] ?? 0.0, $s['stopped'] ?? 0.0, $s['reduction']['since'] ?? 0.0);
+            if ($since > 0 && $this->loadConfirmed($in['boxes'][$id], 0.0, $since, $now, $cfg['global']['FeedbackToleranceW'])) {
+                $s['fault'] = '';
+                unset($s['reduction']);
+                $this->SendDebug('Lastabbau', $c['Name'] . ': Stillstand bestätigt; Timeout automatisch aufgehoben', 0);
+            }
+            unset($s);
+        }
+    }
+
     private function outputs(array $cfg, array $in, array &$plan, array &$state, float $now): void
     {
         $failed = false;
@@ -504,7 +533,7 @@ class WallboxManager extends IPSModule
             $old = $state['boxes'][$id]['power'] ?? 0.0;
             if ($row['power'] < $old - 1e-7 || $row['power'] === 0.0) {
                 if (!$this->writeBox($id, $c, $row['power'], $row['phases'] ?: 3, $state, $now)) $failed = true;
-                if ($old > $row['power'] + 1e-7) $state['boxes'][$id]['reduction'] = ['target' => $row['power'], 'since' => $now];
+                elseif ($old > $row['power'] + 1e-7) $state['boxes'][$id]['reduction'] = ['target' => $row['power'], 'since' => $now];
             }
         }
         unset($row);
@@ -529,19 +558,21 @@ class WallboxManager extends IPSModule
             $s = &$state['boxes'][$id];
             $measured = $in['boxes'][$id]['power'] ?? null;
             $reservation = max($s['power'] ?? 0.0, $measured ?? 0.0);
-            if ($c['Enabled'] && $measured !== null && $measured > ($s['power'] ?? 0.0) + $cfg['global']['FeedbackToleranceW']
+            if ($c['Enabled'] && !isset($s['reduction']) && $measured !== null && $measured > ($s['power'] ?? 0.0) + $cfg['global']['FeedbackToleranceW']
                 && $now - ($s['lastCommand'] ?? $now) >= $cfg['global']['FeedbackTimeout']) {
-                $s['fault'] = 'Gemessene Ladeleistung überschreitet den bestätigten Sollwert';
+                if (($s['fault'] ?? '') === '') $s['fault'] = 'Gemessene Ladeleistung überschreitet den bestätigten Sollwert';
                 $this->writeBox($id, $c, 0, $plan['boxes'][$id]['phases'] ?: 3, $state, $now, true);
                 $plan['errors'][] = $c['Name'] . ': ' . $s['fault'];
                 $failed = true;
             }
             if (isset($s['reduction'])) {
                 $r = $s['reduction'];
-                if ($measured !== null && $measured <= $r['target'] + $cfg['global']['FeedbackToleranceW'] && $in['boxes'][$id]['powerUpdated'] >= floor($r['since'])) unset($s['reduction']);
+                if ($this->loadConfirmed($in['boxes'][$id], $r['target'], $r['since'], $now, $cfg['global']['FeedbackToleranceW'])) unset($s['reduction']);
                 elseif ($now - $r['since'] >= $cfg['global']['FeedbackTimeout']) {
-                    $s['fault'] = 'Timeout: Lastabbau nicht bestätigt';
-                    $this->writeBox($id, $c, 0, $plan['boxes'][$id]['phases'] ?: 3, $state, $now, true);
+                    if (($s['fault'] ?? '') === '') $s['fault'] = self::LOAD_REDUCTION_TIMEOUT;
+                    if ($this->writeBox($id, $c, 0, $plan['boxes'][$id]['phases'] ?: 3, $state, $now, true) && $r['target'] > 0) {
+                        $s['reduction'] = ['target' => 0.0, 'since' => $now];
+                    }
                     $plan['errors'][] = $c['Name'] . ': ' . $s['fault'];
                     $failed = true;
                 }

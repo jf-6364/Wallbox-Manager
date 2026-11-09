@@ -329,6 +329,7 @@ async function palette(page) {
                 icons:Array.from(document.querySelectorAll('use[href^="#wb-i-"]')).every(node => document.getElementById(node.getAttribute('href').slice(1)))};
         });
         assert.equal(referenceLayout.manager, null);
+        assert.equal(await page.locator('.box-symbol, .box-heading use[href="#wb-i-wallbox"]').count(), 0);
         assert.ok(referenceLayout.icons, 'Every decorative icon must resolve to an inline symbol');
         assert.equal(referenceLayout.cards[0].x, referenceLayout.cards[2].x);
         assert.equal(referenceLayout.cards[1].x, referenceLayout.cards[3].x);
