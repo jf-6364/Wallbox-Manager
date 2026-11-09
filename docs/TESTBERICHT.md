@@ -2,10 +2,21 @@
 
 ## Ausgeführt
 
-- **124 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- **133 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
 - **12 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
+- PV-Budgetumschaltung geprüft: eigener Formularbereich, Bool unverbunden/false/
+  true, wiederholter Wechsel und Rückkehr zum Normalbudget. Nur die gewählte
+  Budgetquelle wird ausgewertet; ungültige inaktive Daten stören die Regelung
+  nicht. Fehlende, nichtendliche oder veraltete aktive Werte stoppen ohne Fallback.
+  W/kW, 0/negative Werte, ungültige Boolsignale, Nur-Lese-Zugriffe und Referenzen
+  sind abgedeckt. PV begrenzt auch bei erlaubten Überschreitungen und Speicher.
+  Der native Adapter setzt den Speicher neutral und nimmt ihn nach dem Rückwechsel
+  wieder auf. 7.000 W mit dreiphasigen Mennekes-Sollwerten, 0,5-A-Raster und 1-A-Stopp
+  ergeben eine zulässige Verteilung von 6.900 W. Tarifsignal und Regelsignal können
+  getrennt oder mit derselben Boolvariable genutzt werden. Die Kachel wechselt
+  zwischen „Budget“ und „PV-Budget“ ohne zusätzliche Bedienelemente.
 - Deutsche Komma-Eingaben, Nachkommastellen und die Übernahme numerischer
   Einstellungen aus dem Formularentwurf geprüft. Ampereanzeigen besitzen eine,
   andere Dezimalanzeigen höchstens zwei Nachkommastellen; Messwerte bleiben intern
@@ -74,7 +85,7 @@
   Geänderte/ausgeblendete Kopfzeilen und bereits vorhandene Abstände sind geprüft;
   ein Sandbox-iframe verwendet den Abstand auch bei einer außerhalb liegenden
   Kopfzeile. Budgetmodus und Aktualisierungszeit werden nicht mehr im Footer gerendert.
-- Alle **22 PHP-Dateien** syntaktisch geprüft; alle **7 vorhandenen JSON-Dateien**
+- Alle **23 PHP-Dateien** syntaktisch geprüft; alle **7 vorhandenen JSON-Dateien**
   syntaktisch geprüft (einschließlich lokalem Testergebnis).
 - Metadaten, unterschiedliche gültige GUIDs, Präfix, Modulstruktur,
   vollständige Formularfelder und Beispielkonfigurationen geprüft.

@@ -11,11 +11,15 @@ Die Anzahl der konfigurierbaren Wallboxen wird unter Allgemein mit WallboxCount 
 
 Zeitbedingungen stehen zentral unter Allgemein → Zeitbedingungen, Abrechnung und sämtliche Rechnungsdaten unter Allgemein → Abrechnung. Sie gelten für alle Wallboxen, einschließlich gemeinsamem PV-Signal, Preisen und Empfänger. Ladegänge und PDFs bleiben getrennt je Wallbox. Beim ersten Update werden die bisherigen Werte von Wallbox 1 übernommen. SharedDefaults hält diese Registrierungsdefaults dauerhaft stabil; spätere gemeinsame Änderungen bleiben maßgeblich. Die früheren Wn-Zeit-, Abrechnungs- und Empfängereigenschaften bleiben ausschließlich zur Migration registriert und erscheinen nicht mehr im Formular. Alte Configuration-Schnappschüsse behalten ihre ursprünglichen Tarifwerte für den Übernahmezeitpunkt.
 
+Der eigene Bereich PV-Überschuss verwendet PVModeVar (Boolean) und PVBudgetVar (Integer/Float): true wählt ausschließlich das PV-Budget, false oder PVModeVar = 0 das bisherige BudgetVar. PVBudgetUnit und PVBudgetMaxAge gelten nur für die PV-Quelle. Bei aktivem PV-Modus erhöhen weder Speicherunterstützung noch zeitweise Überschreitungen das Budget. Fehlende/ungültige aktive Daten führen zum Stopp ohne Rückfall auf die andere Quelle. Die Telemetrie enthält pvActive, budgetSource (normal/pv/invalid) und budgetVariable. Für die Tarifzuordnung kann dieselbe Boolvariable separat als BillingPVVar verknüpft werden.
+
 ## Variablenverknüpfungen
 
 | Eigenschaft | Zweck | Datentyp | Einheit | Pflicht | Zugriff |
 |---|---|---|---|---|---|
 | `BudgetVar` | Absolutes Grundbudget ohne Speicher | Integer/Float | W/kW (BudgetUnit) | bei aktivem Manager/Platz | Lesen, nie Gerätebefehl |
+| `PVModeVar` | PV-Überschuss aktiv (true = PV-Budget; optional) | Boolean | – | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
+| `PVBudgetVar` | Verfügbares PV-Leistungsbudget | Integer/Float | W/kW (PVBudgetUnit) | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
 | `BillingPVVar` | PV-Überschussladen (true = PV, false = Normal; optional) | Boolean | – | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
 | `WnExternalVar` | Externe Freigabebedingung (optional) | Boolean | – | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
 | `WnDemandVar` | Fahrzeug verbunden / Ladebedarf (optional) | Boolean | – | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
@@ -45,6 +49,10 @@ ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilli
 | `WallboxCount` | `4` | Anzahl Wallboxen | Allgemein |
 | `BudgetVar` | `0` | Absolutes Grundbudget ohne Speicher | Allgemein |
 | `BudgetUnit` | `W` | Einheit Grundbudget | Allgemein |
+| `PVModeVar` | `0` | PV-Überschuss aktiv (true = PV-Budget; optional) | PV-Überschuss |
+| `PVBudgetVar` | `0` | Verfügbares PV-Leistungsbudget | PV-Überschuss |
+| `PVBudgetUnit` | `W` | Einheit PV-Leistungsbudget | PV-Überschuss |
+| `PVBudgetMaxAge` | `0` | PV-Budgetüberwachung (s; 0 = aus) | PV-Überschuss |
 | `Interval` | `5` | Regelintervall (s) | Allgemein |
 | `Hysteresis` | `200` | Globale Hysterese | Allgemein |
 | `HysteresisUnit` | `W` | Einheit Hysterese | Allgemein |
@@ -194,7 +202,7 @@ Alle vier Plätze werden dauerhaft angelegt. Unverknüpfte / ungültige numerisc
 | `TotalPower` | Float | W | nein | Summe gültiger tatsächlicher Ladeleistungen aktiver Plätze |
 | `AssignedPower` | Float | W | nein | Aktuell erfolgreich beauftragte nominelle Ladeleistung |
 | `TotalEnergy` | Float | kWh | nein | Alle Fahrzeugenergien einschließlich archivierter Gerätegenerationen |
-| `BaseBudget` | Float | W | nein | Grundbudget, auf 0 / harten Grenzwert begrenzt |
+| `BaseBudget` | Float | W | nein | Aktiv ausgewähltes Normal-/PV-Budget, auf 0 / harten Grenzwert begrenzt |
 | `OverrunPower` | Float | W | nein | Zuweisung über Grundbudget plus bestätigtem Speicherbetrag |
 | `BatteryAvailable` | Float | W | nein | Theoretisch nutzbare Unterstützung |
 | `BatteryConfirmed` | Float | W | nein | Bestätigte / konservativ freigegebene Unterstützung |

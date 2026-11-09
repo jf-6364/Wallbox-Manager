@@ -12,6 +12,10 @@ final class Schema
             'WallboxCount' => [4, 'Anzahl Wallboxen', 'Allgemein', [1 => '1 Wallbox', 2 => '2 Wallboxen', 3 => '3 Wallboxen', 4 => '4 Wallboxen']],
             'BudgetVar' => [0, 'Absolutes Grundbudget ohne Speicher', 'Allgemein', 'read', [1, 2], true],
             'BudgetUnit' => ['W', 'Einheit Grundbudget', 'Allgemein', ['W', 'kW']],
+            'PVModeVar' => [0, 'PV-Überschuss aktiv (true = PV-Budget; optional)', 'PV-Überschuss', 'read', [0], false],
+            'PVBudgetVar' => [0, 'Verfügbares PV-Leistungsbudget', 'PV-Überschuss', 'read', [1, 2], false],
+            'PVBudgetUnit' => ['W', 'Einheit PV-Leistungsbudget', 'PV-Überschuss', ['W', 'kW']],
+            'PVBudgetMaxAge' => [0, 'PV-Budgetüberwachung (s; 0 = aus)', 'PV-Überschuss'],
             'Interval' => [5, 'Regelintervall (s)', 'Allgemein'],
             'Hysteresis' => [200.0, 'Globale Hysterese', 'Allgemein'],
             'HysteresisUnit' => ['W', 'Einheit Hysterese', 'Allgemein', ['W', 'kW']],
@@ -240,6 +244,7 @@ final class Schema
             if (self::isLegacy($key)) continue;
             if (!isset($def[4])) continue;
             $active = true;
+            if ($key === 'PVBudgetVar') $active = ($flat['PVModeVar'] ?? 0) > 0;
             if (preg_match('/^W([1-4])(.+)$/', $key, $m)) {
                 $active = (bool)$flat['W' . $m[1] . 'Enabled'] && (int)$m[1] <= ($flat['WallboxCount'] ?? 4);
                 if (str_starts_with($m[2], 'Phase') && in_array($m[2], ['PhaseCommandVar', 'PhaseFeedbackVar'], true)) {

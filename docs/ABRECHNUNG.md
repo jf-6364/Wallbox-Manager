@@ -26,6 +26,11 @@ Unter **Allgemein → Abrechnung** steht auch die Zeitzone der PDFs, standardmä
 `Europe/Berlin`. Eine Änderung gilt für neu beginnende Ladegänge. Zeitpunkte
 werden intern als Unix-Zeit gespeichert; die PDF nennt die verwendete Zeitzone.
 
+Die Budgetumschaltung im Bereich **PV-Überschuss** ist unabhängig von der
+Tarifzuordnung. Soll dieselbe Boolvariable auch den PV-Tarif bestimmen, wird sie
+hier zusätzlich als **PV-Überschussladen** verknüpft. Ohne Tarif-Boolvariable gilt
+weiterhin der Normalpreis, auch wenn die Regelung das PV-Budget verwendet.
+
 ## Rechnung: Adressen, Zahlung und Nummern
 
 Unter **Allgemein → Abrechnung → Rechnung** stehen die gemeinsamen Daten:

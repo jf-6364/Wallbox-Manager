@@ -9,8 +9,9 @@ $md .= "Von Gerätemodulen angelegte Sollwertvariablen können als Objekt schrei
 $md .= "Dezimaleinstellungen werden mit Komma eingegeben: Amperewerte mit einer, andere Werte mit höchstens zwei Nachkommastellen. Änderungen werden über „Übernehmen“ gespeichert. Die bisherigen numerischen Eigenschaften bleiben erhalten; Mess- und Rechenwerte werden intern nicht für die Anzeige gerundet.\n\n";
 $md .= "Die Anzahl der konfigurierbaren Wallboxen wird unter Allgemein mit WallboxCount auf 1 bis 4 begrenzt. Die Formularbereiche werden sofort ein-/ausgeblendet; erst Übernehmen ändert den Betrieb. Höhere Plätze werden gestoppt und deaktiviert, ihre gespeicherten Einstellungen, Variablen und PDFs bleiben erhalten. Innerhalb der gewählten Anzahl gilt weiterhin Platz aktiviert. Standardmäßig bleiben vier Plätze verfügbar, damit bestehende Installationen unverändert weiterarbeiten.\n\n";
 $md .= "Zeitbedingungen stehen zentral unter Allgemein → Zeitbedingungen, Abrechnung und sämtliche Rechnungsdaten unter Allgemein → Abrechnung. Sie gelten für alle Wallboxen, einschließlich gemeinsamem PV-Signal, Preisen und Empfänger. Ladegänge und PDFs bleiben getrennt je Wallbox. Beim ersten Update werden die bisherigen Werte von Wallbox 1 übernommen. SharedDefaults hält diese Registrierungsdefaults dauerhaft stabil; spätere gemeinsame Änderungen bleiben maßgeblich. Die früheren Wn-Zeit-, Abrechnungs- und Empfängereigenschaften bleiben ausschließlich zur Migration registriert und erscheinen nicht mehr im Formular. Alte Configuration-Schnappschüsse behalten ihre ursprünglichen Tarifwerte für den Übernahmezeitpunkt.\n\n";
+$md .= "Der eigene Bereich PV-Überschuss verwendet PVModeVar (Boolean) und PVBudgetVar (Integer/Float): true wählt ausschließlich das PV-Budget, false oder PVModeVar = 0 das bisherige BudgetVar. PVBudgetUnit und PVBudgetMaxAge gelten nur für die PV-Quelle. Bei aktivem PV-Modus erhöhen weder Speicherunterstützung noch zeitweise Überschreitungen das Budget. Fehlende/ungültige aktive Daten führen zum Stopp ohne Rückfall auf die andere Quelle. Die Telemetrie enthält pvActive, budgetSource (normal/pv/invalid) und budgetVariable. Für die Tarifzuordnung kann dieselbe Boolvariable separat als BillingPVVar verknüpft werden.\n\n";
 $md .= "## Variablenverknüpfungen\n\n| Eigenschaft | Zweck | Datentyp | Einheit | Pflicht | Zugriff |\n|---|---|---|---|---|---|\n";
-$unitMap = ['BudgetVar' => 'W/kW (BudgetUnit)', 'SetpointVar' => 'A/W/kW (SetpointUnit)', 'PowerVar' => 'W/kW (PowerUnit)', 'EnergyVar' => 'Wh/kWh (EnergyUnit)',
+$unitMap = ['BudgetVar' => 'W/kW (BudgetUnit)', 'PVBudgetVar' => 'W/kW (PVBudgetUnit)', 'SetpointVar' => 'A/W/kW (SetpointUnit)', 'PowerVar' => 'W/kW (PowerUnit)', 'EnergyVar' => 'Wh/kWh (EnergyUnit)',
     'SocVar' => '%', 'LimitVar' => 'W/kW (LimitUnit)', 'PhaseCommandVar' => 'Gerätewerte für 1/3 Phasen', 'PhaseFeedbackVar' => 'Wertezuordnung für 1/3 Phasen'];
 foreach (['' => Schema::global(), 'Wn' => Schema::visibleWallbox(), 'B' => Schema::battery()] as $prefix => $defs) {
     foreach ($defs as $key => $d) {
@@ -46,7 +47,7 @@ $status = [
 'TotalPower' => ['Float', 'W', 'nein', 'Summe gültiger tatsächlicher Ladeleistungen aktiver Plätze'],
 'AssignedPower' => ['Float', 'W', 'nein', 'Aktuell erfolgreich beauftragte nominelle Ladeleistung'],
 'TotalEnergy' => ['Float', 'kWh', 'nein', 'Alle Fahrzeugenergien einschließlich archivierter Gerätegenerationen'],
-'BaseBudget' => ['Float', 'W', 'nein', 'Grundbudget, auf 0 / harten Grenzwert begrenzt'],
+'BaseBudget' => ['Float', 'W', 'nein', 'Aktiv ausgewähltes Normal-/PV-Budget, auf 0 / harten Grenzwert begrenzt'],
 'OverrunPower' => ['Float', 'W', 'nein', 'Zuweisung über Grundbudget plus bestätigtem Speicherbetrag'],
 'BatteryAvailable' => ['Float', 'W', 'nein', 'Theoretisch nutzbare Unterstützung'],
 'BatteryConfirmed' => ['Float', 'W', 'nein', 'Bestätigte / konservativ freigegebene Unterstützung'],

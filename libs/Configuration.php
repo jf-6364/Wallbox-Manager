@@ -38,7 +38,7 @@ final class Validation
             if ($g['BillingIdleSeconds'] < 1 || $g['BillingIdleSeconds'] > 604800) $errors[] = 'Abrechnung: Ladepause muss 1 bis 604800 s betragen';
         }
         if ($g['Interval'] < 1 || $g['Interval'] > 3600) $errors[] = 'Regelintervall muss zwischen 1 und 3600 s liegen';
-        foreach (['Hysteresis', 'HardLimitW', 'BudgetMaxAge', 'Rotation', 'OverrunW', 'Watchdog', 'FeedbackToleranceW', 'MeterJumpSlack'] as $k) {
+        foreach (['Hysteresis', 'HardLimitW', 'BudgetMaxAge', 'PVBudgetMaxAge', 'Rotation', 'OverrunW', 'Watchdog', 'FeedbackToleranceW', 'MeterJumpSlack'] as $k) {
             if ($g[$k] < 0) $errors[] = $k . ': darf nicht negativ sein';
         }
         foreach (['OverrunSeconds', 'FeedbackTimeout', 'EnergyMaxGap', 'MeterJumpFactor'] as $k) {
@@ -85,8 +85,16 @@ final class Validation
         $errors = [];
         $writes = [];
         $reads = [];
+        $pvMode = ($flat['PVModeVar'] ?? 0) ? $inspect($flat['PVModeVar']) : null;
+        $pvActive = $pvMode && $pvMode['type'] === 0 && ($pvMode['value'] ?? null) === true;
         foreach (Schema::links($flat) as $name => $link) {
             $id = $link['id'];
+            // Monitor both source links, but only the selected source needs valid data.
+            if (($name === 'PVBudgetVar' && !$pvActive) || ($name === 'BudgetVar' && $pvActive)) {
+                if ($id) $reads[$id][] = $name;
+                continue;
+            }
+            if ($name === 'PVBudgetVar' && $pvActive) $link['required'] = true;
             if ($id === 0 && !$link['required']) continue;
             $v = $inspect($id);
             if ($v === null) {

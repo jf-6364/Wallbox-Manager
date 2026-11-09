@@ -257,6 +257,7 @@ require __DIR__ . '/adapter.php';
 require __DIR__ . '/regression.php';
 require __DIR__ . '/billing.php';
 require __DIR__ . '/invoice.php';
+require __DIR__ . '/pv.php';
 
 $results = [];
 foreach ($tests as $name => $fn) {

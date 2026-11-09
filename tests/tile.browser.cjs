@@ -86,6 +86,12 @@ async function palette(page) {
         assert.equal(await page.locator('#wbm').getAttribute('data-header-space'), '64'); // Also reserve a native/WebView header outside this DOM.
         assert.equal(await page.locator('#policy, #updated').count(), 0);
         assert.equal(await page.locator('footer').innerText(), 'Energie-Dashboard');
+        const pvView = structuredClone(data); pvView.pvActive = true; pvView.base = 7000;
+        await page.evaluate(value => window.handleMessage(value), pvView);
+        assert.equal(await page.locator('#budget-label').innerText(), 'PV-Budget');
+        assert.equal(await page.locator('#base').innerText(), '7 kW');
+        await page.evaluate(value => window.handleMessage(value), data);
+        assert.equal(await page.locator('#budget-label').innerText(), 'Budget');
         assert.equal(await page.locator('#support-metric').isVisible(), false);
         assert.equal(await page.locator('#energy').textContent(), '2,41 kWh');
         assert.equal(await page.locator('[data-field="energy"]').first().textContent(), '1,68 kWh (berechnet)');

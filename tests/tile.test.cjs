@@ -24,7 +24,7 @@ class Element {
     change() { this.listeners.change.call(this); }
     click() { this.listeners.click.call(this); }
 }
-const ids = ['wbm', 'manager', 'mode-even', 'mode-priority', 'base', 'support-metric', 'support', 'measured', 'energy', 'overrun', 'status', 'errors', 'boxes', 'battery',
+const ids = ['wbm', 'manager', 'mode-even', 'mode-priority', 'budget-label', 'base', 'support-metric', 'support', 'measured', 'energy', 'overrun', 'status', 'errors', 'boxes', 'battery',
     'battery-enable', 'battery-lock', 'soc', 'capacity', 'reserve-energy', 'battery-request', 'battery-power', 'battery-state', 'simulation',
     'energy-open', 'energy-close'];
 const elements = Object.fromEntries(ids.map(id => [id, new Element()]));
@@ -52,6 +52,7 @@ let count = 0;
 function test(name, fn) { fn(); count++; console.log('OK  ' + name); }
 test('Echte JavaScript-Datei ist syntaktisch gültig und baut zwei Karten', () => assert.equal(elements.boxes.children.length, 2));
 test('Initialzustand, deutsche Einheiten und Gesamtenergie', () => {
+    assert.equal(elements['budget-label'].textContent, 'Budget');
     assert.equal(elements.base.textContent, '12 kW'); assert.equal(elements.energy.textContent, '124,31 kWh');
     assert.ok(fields1.energy.textContent.includes('(berechnet)')); assert.equal(fields2.measured.textContent, 'Keine Messung');
     assert.ok(fields1.command.textContent.startsWith('7,0 A'));
@@ -75,6 +76,8 @@ test('Ungültige Priorität sendet keine Geräteaktion', () => {
 test('handleMessage aktualisiert Karten ohne Neuerzeugung', () => {
     const before = elements.boxes.children[0]; data.boxes[1].measured = 4100;
     context.window.handleMessage(JSON.stringify(data)); assert.equal(elements.boxes.children[0],before); assert.equal(fields1.measured.textContent,'4,1 kW');
+    data.pvActive = true; context.window.handleMessage(data); assert.equal(elements['budget-label'].textContent, 'PV-Budget');
+    data.pvActive = false; context.window.handleMessage(data); assert.equal(elements['budget-label'].textContent, 'Budget');
 });
 test('Zeitbedingung und Messlücke erscheinen als Text', () => {
     assert.ok(fields2.reason.textContent.includes('Start in 20 s')); assert.equal(fields2.gap.textContent,'Messlücke');

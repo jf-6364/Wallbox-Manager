@@ -255,6 +255,7 @@
         if (data.managerEnabled === undefined) el('manager').checked = !!data.manager;
         el('mode-even').setAttribute('aria-pressed', String(data.mode === 0));
         el('mode-priority').setAttribute('aria-pressed', String(data.mode === 1));
+        text('budget-label', data.pvActive ? 'PV-Budget' : 'Budget');
         text('base', chargingPower(data.base));
         text('support', chargingPower(data.battery.confirmed));
         el('support-metric').hidden = !data.batteryConfigured;

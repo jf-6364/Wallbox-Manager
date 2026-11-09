@@ -128,6 +128,8 @@ test('Adapter: installierbare Metadaten, deutsches Formular und HTML-SDK', funct
 });
 test('Adapter: RequestAction-Geräteweg und kein wiederholter identischer Befehl', function () {
     [$m, $ids] = fixture(); $m->ApplyChanges();
+    // Confirm startup explicitly; an integer measurement timestamp may precede the stop across a second boundary.
+    Kernel::update($ids[1]['power'], 0.0, microtime(true)); $m->Control();
     closeTo((float)GetValue($ids[1]['setpoint']), 11000);
     $count = count(Kernel::$calls); $m->Control(); check(count(Kernel::$calls) === $count);
 });

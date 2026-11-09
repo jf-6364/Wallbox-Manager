@@ -37,6 +37,9 @@ laufenden Symcon-Kernel noch echte Hardware.
       IDs; alte Aufträge, Referenzen und Reservierungen verschwinden automatisch.
       Neue Basis, Gerätearchiv, Gesamtenergie und Rechnungen bleiben nachvollziehbar.
 - [ ] Zweite Instanz: unabhängig; doppelte Ziele ohne Eingriff in das erste Gerät ablehnen.
+- [ ] PV-Überschuss: Bool unverbunden/false verwendet Normalbudget, true nur PV-Budget.
+      W/kW, 0 W, fehlende/veraltete Daten, Mennekes-Stoppwert und Rückwechsel prüfen.
+      Speicherneutralstellung und Budgetabbau beim Wechsel praktisch bestätigen.
 - [ ] Eigene Kachel in Symcon: Aktionen, Priorität, Energie, Phasen und Zeitbedingungen.
 - [ ] Smartphone/Tablet, schmale Kacheln, Hell-/Dunkelmodus visuell prüfen.
 - [ ] Geschützter Energie-Reset und Erhalt der Bedienwerte nach Neustart.

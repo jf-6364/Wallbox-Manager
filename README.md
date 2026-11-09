@@ -42,6 +42,39 @@ Ein Restüberschuss, der laufende Wallboxen bereits abzieht, muss entsprechend
 aufbereitet werden. Negative Budgetwerte werden als 0 W behandelt; ungültige
 Messwerte führen zum Stopp.
 
+## PV-Überschuss
+
+Der eigene Bereich **PV-Überschuss** enthält eine optionale Boolvariable
+**„PV-Überschuss aktiv“** und eine zweite numerische Variable
+**„Verfügbares PV-Leistungsbudget“**. Die Einheit ist separat als W oder kW wählbar.
+
+| Boolvariable | Budget für die Regelung |
+|---|---|
+| Nicht verknüpft oder false | Bisheriges Leistungsbudget unter Allgemein |
+| true | Ausschließlich das PV-Leistungsbudget, beispielsweise 7.000 W |
+
+Das PV-Budget **ersetzt** das normale Budget. Es wird weder zum normalen Budget
+addiert noch durch Speicherunterstützung oder erlaubte Überschreitungen erhöht.
+Ein konfigurierter harter Gesamtgrenzwert und die Gerätegrenzen gelten weiterhin.
+Bei 0 W oder einem negativen PV-Budget werden die individuellen Stoppwerte gesendet.
+Reicht das Budget nicht für die Mindestleistung aller Wallboxen, lädt eine passende
+Teilmenge; 7.000 W reichen etwa nicht für zwei dreiphasige Wallboxen mit je 6 A.
+
+Die PV-Variable beschreibt wie das normale Budget die insgesamt für Wallboxen
+verfügbare Leistung. Ein verbleibender Überschuss, der deren Ladeleistung bereits
+abzieht, muss vor der Verknüpfung entsprechend aufbereitet werden.
+
+Optional lässt sich das Alter des PV-Budgetwerts überwachen. Ist PV aktiv und der
+Wert fehlt, ist veraltet oder ungültig, wird gestoppt; es gibt keinen Rückfall auf
+das normale Budget. Ein ungültiges verknüpftes Boolsignal ist ebenfalls ein Fehler.
+Bei false werden fehlerhafte Werte der inaktiven PV-Budgetquelle nicht verwendet.
+Die Kachel zeigt bei aktiver PV-Regelung **„PV-Budget“**; die Diagnose nennt die
+aktive Quelle und deren Variablen-ID.
+
+Für die **PV-Abrechnung** kann dieselbe Boolvariable zusätzlich unter
+**Allgemein → Abrechnung → PV-Überschussladen** verknüpft werden. Budgetumschaltung
+und Tarifzuordnung bleiben getrennt einstellbar.
+
 ## Verknüpfte Variablen
 
 Für zwei Wallboxen benötigt der Grundbetrieb fünf Verknüpfungen:

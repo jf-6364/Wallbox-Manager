@@ -427,9 +427,22 @@ class WallboxManager extends IPSModule
     private function inputs(array $cfg, float $now): array
     {
         $g = $cfg['global'];
-        [$budget, , $budgetError] = $this->number($g['BudgetVar'], $g['BudgetMaxAge'], $now, false);
+        $pvActive = false; $modeError = '';
+        if ($g['PVModeVar']) {
+            $switch = $this->inspect($g['PVModeVar']);
+            if (!$switch || $switch['type'] !== 0 || !is_bool($switch['value'])) $modeError = 'PV-Überschuss: Boolvariable fehlt oder ist ungültig (' . $g['PVModeVar'] . ')';
+            else $pvActive = $switch['value'];
+        }
+        $budgetVar = $pvActive ? $g['PVBudgetVar'] : $g['BudgetVar'];
+        $budgetUnit = $pvActive ? $g['PVBudgetUnit'] : $g['BudgetUnit'];
+        if ($modeError !== '') { $budget = null; $budgetError = $modeError; }
+        else {
+            [$budget, , $budgetError] = $this->number($budgetVar, $pvActive ? $g['PVBudgetMaxAge'] : $g['BudgetMaxAge'], $now, false);
+            if ($budgetError) $budgetError = ($pvActive ? 'PV-Überschussbudget: ' : 'Leistungsbudget: ') . $budgetError;
+        }
         $in = ['manager' => $this->GetValue('ManagerEnabled'), 'mode' => $this->GetValue('DistributionMode'),
-            'budget' => $budget === null ? null : Setpoint::watts($budget, $g['BudgetUnit']), 'boxes' => [],
+            'budget' => $budget === null ? null : Setpoint::watts($budget, $budgetUnit), 'pvActive' => $pvActive,
+            'budgetSource' => $modeError ? 'invalid' : ($pvActive ? 'pv' : 'normal'), 'budgetVariable' => $modeError ? 0 : $budgetVar, 'boxes' => [],
             'errors' => $budgetError ? [$budgetError] : []];
         if (!in_array($in['mode'], [0, 1], true)) $in['errors'][] = 'Laufzeit-Verteilungsmodus ungültig';
         foreach ($cfg['boxes'] as $id => $c) {
@@ -959,7 +972,7 @@ class WallboxManager extends IPSModule
         $plan['battery']['capacity'] = $cfg['battery']['CapacityKWh'];
         $plan['status'] = $plan['errors'] ? 'Fehler / Warten: ' . implode('; ', $plan['errors']) : ($plan['manager'] ? 'Automatische Regelung aktiv' : 'Manager ausgeschaltet');
         $plan['simulation'] = $cfg['global']['Simulation'];
-        $plan['strict'] = $cfg['global']['StrictBudget'];
+        $plan['strict'] = $plan['pvActive'] || $cfg['global']['StrictBudget'];
         foreach (['BaseBudget' => $plan['base'], 'BatteryAvailable' => $plan['battery']['theoretical'], 'BatteryConfirmed' => $plan['battery']['confirmed'],
             'BatteryRequested' => $plan['battery']['commanded'] ?? 0.0, 'BatteryMeasured' => max(0.0, $plan['battery']['measured'] ?? 0.0),
             'BatterySoc' => $plan['battery']['soc'] ?? 0.0, 'BatteryEnergy' => $plan['battery']['energy'], 'BatteryState' => $plan['battery']['reason'],

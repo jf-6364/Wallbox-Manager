@@ -8,18 +8,23 @@ final class Engine
     {
         $g = $cfg['global'];
         $state += ['boxes' => [], 'battery' => [], 'overSince' => null];
+        $pvActive = (bool)($in['pvActive'] ?? false);
+        if ($pvActive) $state['overSince'] = null;
         $errors = $in['errors'] ?? [];
         $manager = ($in['manager'] ?? false) && !$errors;
         $base = $in['budget'] ?? null;
         if ($base === null || !is_finite($base)) {
-            $errors[] = 'Grundbudget ungültig: alle Wallboxen werden gestoppt';
+            $errors[] = ($pvActive ? 'PV-Budget' : 'Grundbudget') . ' ungültig: alle Wallboxen werden gestoppt';
             $manager = false;
             $base = 0.0;
         }
         $base = max(0.0, $base);
         $hard = $g['HardLimitW'] > 0 ? $g['HardLimitW'] : INF;
         $base = min($base, $hard);
-        $bat = Battery::available($cfg['battery'], $in['battery'] ?? [], $state['battery'], $manager, $now, $g['Interval']);
+        $battery = $cfg['battery'];
+        if ($pvActive) $battery['Enabled'] = false;
+        $bat = Battery::available($battery, $in['battery'] ?? [], $state['battery'], $manager, $now, $g['Interval']);
+        if ($pvActive && $cfg['battery']['Enabled']) $bat['reason'] = 'PV-Überschuss: keine zusätzliche Speicherleistung';
         if (str_starts_with($bat['reason'], 'Fehler:')) $errors[] = $bat['reason'];
         $theoreticalBudget = min($hard, $base + $bat['theoretical']);
         $normalBudget = min($hard, $base + $bat['confirmed']);
@@ -112,7 +117,7 @@ final class Engine
         $protectedMinimum = 0.0;
         foreach ($ready as $item) if ($item['running'] && $item['protected']) $protectedMinimum += $item['min'];
         if ($protectedMinimum <= $normalBudget) $state['overSince'] = null;
-        if (!$g['StrictBudget'] && $g['OverrunW'] > 0) {
+        if (!$pvActive && !$g['StrictBudget'] && $g['OverrunW'] > 0) {
             if ($protectedMinimum > $normalBudget && ($state['overSince'] === null || $now - $state['overSince'] < $g['OverrunSeconds'])) {
                 $budget = min($hard, $normalBudget + $g['OverrunW'], $protectedMinimum);
                 $ready = array_filter($ready, static fn($i) => $i['running']);
@@ -137,6 +142,7 @@ final class Engine
         }
         unset($row);
         return ['manager' => $manager, 'mode' => $mode, 'base' => $base, 'normalBudget' => $normalBudget, 'budget' => $budget,
+            'pvActive' => $pvActive, 'budgetSource' => $in['budgetSource'] ?? ($pvActive ? 'pv' : 'normal'), 'budgetVariable' => $in['budgetVariable'] ?? 0,
             'assigned' => $sum, 'overrun' => max(0.0, $sum - $normalBudget), 'battery' => $bat + ['requested' => $batteryRequest],
             'boxes' => $rows, 'errors' => array_values(array_unique($errors)), 'time' => $now];
     }
