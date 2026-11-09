@@ -124,7 +124,7 @@ final class Validation
 
 final class Form
 {
-    public static function build(array $flat, array $errors, string $diagnostic): array
+    public static function build(array $flat, array $errors, string $diagnostic, string $webInfo = ''): array
     {
         $form = json_decode(file_get_contents(__DIR__ . '/../WallboxManager/form.json'), true, 512, JSON_THROW_ON_ERROR);
         $form['elements'][] = ['type' => 'Label', 'caption' => $errors ? implode("\n", $errors) : 'Konfiguration geprüft. Laufzeitfehler und Messlücken siehe Diagnose.'];
@@ -139,6 +139,7 @@ final class Form
         $invoicePanels[] = ['type' => 'Label', 'caption' => 'PV- und Normalpreise sind Endpreise. Bei Umsatzsteuerausweis wird die enthaltene Steuer herausgerechnet. Rechnungsdaten werden beim Abschluss gespeichert; bestehende PDFs bleiben unverändert.'];
         $groups['Abrechnung'][] = ['type' => 'Label', 'caption' => 'Ladevorgänge werden je Wallbox mit Start und Stopp in der Visualisierung gesteuert. Ladepausen und Moduswechsel schließen die Abrechnung nicht ab.'];
         $groups['Abrechnung'][] = ['type' => 'ExpansionPanel', 'caption' => 'Rechnung', 'items' => $invoicePanels];
+        $groups['Webansicht'][] = ['type' => 'Label', 'caption' => $webInfo ?: 'Optionaler Browserzugriff unter http://<Symcon-IP>:3777/hook/wallboxen. Mit Benutzername und Passwort anmelden. Der Leistungsverlauf beginnt mit der Aktivierung.'];
         $general = $groups['Allgemein'];
         foreach (['Zeitbedingungen', 'Abrechnung'] as $caption) $general[] = ['type' => 'ExpansionPanel', 'caption' => $caption, 'items' => $groups[$caption]];
         $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Allgemein', 'items' => $general];
@@ -187,6 +188,7 @@ final class Form
     private static function field(string $name, array $d, array $flat): array
     {
         $field = ['name' => $name, 'caption' => $d[1]];
+        if ($name === 'WebPassword') return $field + ['type' => 'PasswordTextBox'];
         if (isset($d[4])) return $field + ['type' => 'SelectVariable', 'validVariableTypes' => $d[4], 'requiredAction' => $d[3] === 'write' && !$flat['Simulation'] ? 1 : 0];
         if (isset($d[3]) && is_array($d[3])) {
             $options = [];

@@ -2,10 +2,27 @@
 
 ## Ausgeführt
 
-- **159 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- **169 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
 - **18 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
+- Optionale Webansicht geprüft: eigene WebHook-Registrierung, Umbenennen,
+  Abschalten und Destroy erhalten fremde Einträge; Pfadkonflikte und ungültige
+  Zugangsdaten beeinträchtigen keine Laderegelung. HTML, JSON und PDFs erfordern
+  Anmeldung. POST benötigt CSRF, erlaubt nur vorhandene Bedienaktionen und prüft
+  deren Datentypen; GET führt keine Geräteaktion aus. Passwortwechsel entwertet
+  Tokens. Telemetrie enthält keine Zugangsdaten, Adressen, Bankdaten oder PDF-Bytes.
+  PDF-Zugriffe sind auf Rechnungsordner der passenden Instanz und Wallbox begrenzt.
+  Alte und neue PDFs, Filter, Pagination und persistente Detaildaten sind geprüft.
+  Der Minutenverlauf bleibt auf 48 Stunden begrenzt und bewahrt Messlücken.
+- Zusätzlicher Chromium-Test über einen echten lokalen HTTP-Server: Basic-Anmeldung,
+  CSP, gemeinsame Start-/Stopp-Steuerung, Kostenübersicht, interaktiver Leistungsverlauf
+  mit Hover, Tastatur und ausblendbaren Kurven, geschützter PDF-Download, Tabellenfilter,
+  Fokusbegrenzung und Hell-/Dunkelwechsel. Vier Fenstergrößen von 240 × 360 bis
+  1440 × 1000 Pixeln bleiben ohne horizontale Seitenüberbreite; Tabellen scrollen
+  innerhalb ihrer Bereiche. Ein Archiv mit 125 Einträgen bleibt nach Nachladen und
+  erneuter Aktualisierung vollständig. Der HTTP-Test verwendet einen simulierten
+  Symcon-Kernel; die native WebHook-Weiterleitung ist damit nicht praktisch abgenommen.
 - Lastabbau-Timeouts geprüft: automatisches Aufheben nach später gültiger
   Nullrückmeldung, auch für bereits gespeicherte Timeouts ohne offenen Auftrag.
   Bestätigung erfolgt vor der erneuten Verteilung, der Fall 1-A-Mennekes-Stopp
@@ -190,8 +207,11 @@ PHP-Laufzeit mit mindestens PHP 8.2 und Node benötigt:
 Optionaler Layout-/Design-/Bedienungstest mit installiertem Playwright und Chromium:
 
     node tests/tile.browser.cjs
+    node tests/web.browser.cjs
 
 Ein abweichender Browserpfad kann über WBM_CHROMIUM_PATH angegeben werden.
+Der HTTP-Test benötigt zusätzlich PHP; dessen Pfad kann über WBM_PHP_PATH gesetzt
+werden. Ohne Vorgabe nutzt er auf diesem Arbeitsplatz die isolierte PHP-Laufzeit.
 
 Auf diesem Arbeitsplatz kann statt php auch .tools/php/php.exe bzw.
 .tools/php82/php.exe verwendet werden. Die lokale Ergebnisdatei

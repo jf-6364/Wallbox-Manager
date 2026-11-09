@@ -109,3 +109,37 @@ beim Energiezähler-Reset zurückgesetzt.
 - Das Modul überträgt strukturierte Kacheldaten als JSON-Strings an UpdateVisualizationValue. handleMessage dekodiert diese in der Kachel. Die native Schnittstelle kann PHP-Arrays nicht als Wert übernehmen. Initialdaten sind gegen HTML-/Script-Einschleusung JSON-kodiert.
 - WBM_ControlTargets ist eine eigene öffentliche Modulfunktion mit automatisch durch Symcon erzeugtem Präfixwrapper. Sie ist keine behauptete Kern-API.
 - Hysterese, Mindestlaufzeit und Nachlauf sind mit der [Energie-Manager-Dokumentation](https://www.symcon.de/de/llms/modules/energy-manager.md) abgeglichen. Budgetkonflikte und Sperren werden gemäß Auftrag explizit strenger aufgelöst.
+
+## Optionale Webansicht
+
+Die Webansicht verwendet die bestehende Symcon-Instanz **WebHook Control**
+(Modul-ID `{015A6EB8-D6E5-4B93-B496-0D3F77AE9FE1}`). Ihre Eigenschaft `Hooks`
+enthält Einträge mit `Hook` und `Target`; Ziel ist die Managerinstanz. Änderungen
+verwenden `IPS_GetProperty`, `IPS_SetProperty` und `IPS_ApplyChanges`. Registrierung,
+Umbenennen und Entfernen werden instanzübergreifend mit einer Semaphore geschützt;
+fremde Einträge bleiben erhalten. Das Formular verwendet `PasswordTextBox`.
+
+Der geschützte SDK-Einstieg `ProcessHookData()` beantwortet HTML-, JSON- und
+PDF-Anfragen. Unter dem konfigurierten Basispfad gelten folgende Routen:
+
+| Methode und Route | Inhalt |
+|---|---|
+| `GET /` | Eigenständige HTML/CSS/JS-Ansicht |
+| `GET /api/status` | Gefilterter, zuletzt veröffentlichter Modulzustand |
+| `GET /api/history` | Minutenverlauf der letzten 48 Stunden |
+| `GET /api/invoices?box=0&offset=0&limit=50` | Rechnungsarchiv; box 0 = alle, limit maximal 100 |
+| `GET /pdf?box=1&document=12345` | Dokument aus dem zugehörigen Rechnungsordner dieser Instanz |
+| `POST /api/action` | JSON mit `ident` und typisiertem `value`; zusätzlich `X-WBM-CSRF` erforderlich |
+
+Alle Routen verlangen HTTP-Basic-Anmeldung. GET-Anfragen führen keinen
+Regeldurchlauf aus. POST erlaubt ausschließlich `DistributionMode`,
+`BatteryEnabled` und `W1Manual` bis `W4Manual` bzw. `W1Priority` bis `W4Priority`.
+Die Aktionen verwenden die vorhandene `RequestAction`-Validierung des Moduls.
+Ein Passwortwechsel entwertet den seitenspezifischen CSRF-Token. Die HTML-Antwort
+verwendet eine Content Security Policy mit zufälliger Script-Nonce. Zugangsdaten,
+Rechnungsadressen und Bankdaten werden nicht in die Seitentelemetrie übernommen;
+PDFs können diese Angaben enthalten und sind ebenfalls anmeldungsgebunden.
+
+Transport, Anmeldung und Browseransicht wurden über einen lokalen HTTP-Server mit
+Kernel-Testdouble geprüft. Die tatsächliche Registrierung und Weiterleitung durch
+eine laufende Symcon-WebHook-Control-Instanz bleiben Bestandteil der Geräteabnahme.

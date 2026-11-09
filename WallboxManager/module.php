@@ -2,10 +2,12 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../libs/bootstrap.php';
 
-use WBM\{Schema, Validation, Form, Setpoint, Engine, PhaseSwitch, Battery, Energy, Billing, BillingPdf, Invoice};
+use WBM\{Schema, Validation, Form, Setpoint, Engine, PhaseSwitch, Battery, Energy, Billing, BillingPdf, Invoice, WebAccess};
 
 class WallboxManager extends IPSModule
 {
+    use WebAccess;
+
     private const MODULE_ID = '{8EDC0388-D880-4518-A44B-91A1A3CF7086}';
     // The Symcon SDK uses 1 for HTML tiles; it provides no global HTML constant.
     private const VISUALIZATION_TYPE_HTML = 1;
@@ -14,7 +16,9 @@ class WallboxManager extends IPSModule
     public function Create()
     {
         parent::Create();
-        foreach (['Runtime', 'Configuration', 'Telemetry', 'OwnedTargets', 'SharedDefaults', 'SessionControl'] as $key) $this->RegisterAttributeString($key, '{}');
+        foreach (['Runtime', 'Configuration', 'Telemetry', 'OwnedTargets', 'SharedDefaults', 'SessionControl', 'WebHookState', 'WebHistory', 'WebInvoices'] as $key) $this->RegisterAttributeString($key, '{}');
+        $this->RegisterAttributeString('WebSecret', '');
+        if ($this->ReadAttributeString('WebSecret') === '') $this->WriteAttributeString('WebSecret', bin2hex(random_bytes(32)));
         foreach (Schema::definitions() as $key => $def) {
             if (isset(Schema::sharedMap()[$key])) continue;
             $method = 'RegisterProperty' . (is_bool($def[0]) ? 'Boolean' : (is_int($def[0]) ? 'Integer' : (is_float($def[0]) ? 'Float' : 'String')));
@@ -126,6 +130,7 @@ class WallboxManager extends IPSModule
         } finally {
             IPS_SemaphoreLeave($this->lockName());
         }
+        $this->syncWebHook();
         $this->Control();
     }
 
@@ -246,7 +251,7 @@ class WallboxManager extends IPSModule
     public function GetConfigurationForm()
     {
         $flat = $this->configuration();
-        return $this->encode(Form::build($flat, $this->validate($flat), $this->GetValue('Status')));
+        return $this->encode(Form::build($flat, $this->validate($flat), $this->GetValue('Status'), $this->webStatus()));
     }
 
     public function UpdateDecimalField(string $Name, string $Value): void
@@ -336,6 +341,7 @@ class WallboxManager extends IPSModule
 
     public function Destroy()
     {
+        $this->syncWebHook(true);
         // Destroy is also called on library updates, so explicitly release devices.
         if (IPS_GetKernelRunlevel() === KR_READY && IPS_SemaphoreEnter($this->lockName(), 1000)) {
             try {
@@ -944,6 +950,7 @@ class WallboxManager extends IPSModule
                         $billing['last']['mediaID'] = $media;
                         $billing['last']['fileName'] = preg_replace('/[^a-zA-Z0-9._-]/', '_', $record['invoice']['number']) . '.pdf';
                     }
+                    $this->rememberWebInvoice($record, (int)$id, $media);
                     unset($billing['pending'][$key]);
                     $billing['error'] = '';
                     $this->SetBuffer('BillingPDF' . $media, $pdf);
@@ -1021,6 +1028,7 @@ class WallboxManager extends IPSModule
             'BatteryExternalLocked' => !$plan['battery']['external'], 'TotalPower' => $measured, 'AssignedPower' => $plan['assigned'], 'TotalEnergy' => $plan['energy'],
             'OverrunPower' => $plan['overrun'], 'Status' => $plan['status']] as $key => $value) $this->SetValue($key, $value);
         $this->SetStatus($validation ? 200 : ($plan['errors'] ? 201 : ($plan['manager'] ? 102 : 104)));
+        $this->recordWebHistory($plan);
         $this->WriteAttributeString('Telemetry', $this->encode($plan));
         $this->UpdateVisualizationValue($this->encode($plan));
         $this->SendDebug('Regelung', $this->encode($plan), 0);

@@ -1,0 +1,107 @@
+'use strict';
+const {chromium} = require('playwright');
+const fs = require('node:fs'); const os = require('node:os'); const path = require('node:path');
+const net = require('node:net'); const {spawn} = require('node:child_process'); const assert = require('node:assert/strict');
+const root = path.resolve(__dirname,'..');
+(async () => {
+ const directory=fs.mkdtempSync(path.join(os.tmpdir(),'wbm-web-'));
+ const port=await new Promise(resolve=>{const probe=net.createServer();probe.listen(0,'127.0.0.1',()=>{const port=probe.address().port;probe.close(()=>resolve(port));});});
+ const php=process.env.WBM_PHP_PATH || '/workspace/wallbox-php-toolchain/runtime/usr/bin/php8.2';
+ const env={...process.env,WBM_WEB_TEST_STATE:path.join(directory,'state.json')};
+ if (!process.env.WBM_PHP_PATH) env.LD_LIBRARY_PATH='/workspace/wallbox-php-toolchain/runtime/usr/lib/x86_64-linux-gnu';
+ const server=spawn(php,['-n','-S','127.0.0.1:'+port,'tests/web-router.php'],{cwd:root,env,stdio:['ignore','ignore','pipe']});
+ let serverErrors=''; server.stderr.on('data',value=>{serverErrors+=value.toString();});
+ const base='http://127.0.0.1:'+port+'/hook/wallboxen';
+ const auth='Basic '+Buffer.from('wallbox:local-test-password').toString('base64');
+ const request=(suffix='',options={})=>fetch(base+suffix,{...options,headers:{Authorization:auth,...options.headers}});
+ let browser;
+ try {
+  let ready=false;
+  for(let i=0;i<80;i++){try{const response=await fetch(base);if(response.status===401){ready=true;break;}}catch{} await new Promise(r=>setTimeout(r,100));}
+  assert.ok(ready,serverErrors);
+  assert.equal((await fetch(base+'/api/status')).status,401);
+  const initial=await request(); assert.equal(initial.status,200); assert.ok(initial.headers.get('content-security-policy').includes("script-src 'nonce-"));
+  const html=await initial.text(); assert.ok(!html.includes('local-test-password'));
+  const before=JSON.parse(fs.readFileSync(env.WBM_WEB_TEST_STATE)).kernel.calls.length;
+  await request('/api/status'); await request('/api/history'); await request('/api/invoices');
+  assert.equal(JSON.parse(fs.readFileSync(env.WBM_WEB_TEST_STATE)).kernel.calls.length,before,'GET requests must not run device actions');
+  assert.equal((await request('/api/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ident:'W1Manual',value:true})})).status,403);
+  browser=await chromium.launch({headless:true,executablePath:process.env.WBM_CHROMIUM_PATH||'/usr/bin/chromium'});
+  const context=await browser.newContext({viewport:{width:1440,height:1000},httpCredentials:{username:'wallbox',password:'local-test-password'},colorScheme:'light'});
+  const page=await context.newPage(); const errors=[],csp=[];
+  page.on('pageerror',e=>errors.push(e.message)); page.on('console',msg=>{if(msg.type()==='error'&&/Content Security|Refused to/.test(msg.text()))csp.push(msg.text());});
+  await page.goto(base); await page.waitForFunction(()=>window.WBM_WEB_DATA && document.querySelectorAll('.box').length===4);
+  assert.equal(await page.locator('#web-header').count(),0); assert.equal(await page.locator('.web-header').count(),1);
+  assert.equal(await page.locator('#manager, .box-symbol').count(),0);
+  assert.equal(await page.locator('.box [data-field="manualText"]').first().innerText(),'Ladevorgang starten');
+  await page.locator('.box [data-field="manual"]').first().click();
+  await page.waitForFunction(()=>document.querySelector('.box [data-field="manualText"]').textContent==='Ladevorgang stoppen');
+  await page.locator('.box [data-field="manual"]').first().click();
+  await page.waitForFunction(()=>document.querySelector('.box [data-field="manualText"]').textContent==='Ladevorgang starten');
+  assert.deepEqual(await page.evaluate(()=>window.WBM_WEB_DATA.errors),[]);
+  const afterActions=JSON.parse(fs.readFileSync(env.WBM_WEB_TEST_STATE)).kernel.calls.length;
+  await page.locator('#energy-open').click();
+  await page.waitForFunction(()=>document.querySelectorAll('#web-invoice-rows tr').length===4 && document.querySelectorAll('.history-line').length===4);
+  assert.equal(await page.locator('#dashboard-title').innerText(),'Energie & Abrechnung');
+  assert.equal(await page.locator('#web-billing-rows tr').count(),4);
+  assert.equal(await page.locator('#web-total-cost').innerText(),'7,63 €');
+  await page.locator('[data-jump="web-history"]').click();
+  await page.locator('#history-chart').scrollIntoViewIfNeeded();
+  const chart=await page.locator('#history-chart').boundingBox();
+  await page.mouse.move(chart.x+chart.width*.45,chart.y+chart.height*.4);
+  await page.waitForFunction(()=>!document.getElementById('history-tooltip').hidden);
+  assert.ok((await page.locator('#history-tooltip').innerText()).includes('Wallbox 1:'));
+  await page.locator('#history-chart').focus(); await page.keyboard.press('ArrowLeft');
+  assert.equal(await page.locator('#history-tooltip').isVisible(),true);
+  assert.equal(await page.locator('#history-cursor').evaluate(node=>!node.hasAttribute('hidden') && getComputedStyle(node).display!=='none'),true);
+  await page.locator('#history-hours').selectOption('1');
+  assert.equal(await page.locator('.history-line').count(),4);
+  await page.locator('.history-toggle').last().click();
+  assert.equal(await page.locator('.history-toggle').last().getAttribute('aria-pressed'),'false');
+  assert.equal(await page.locator('.history-line').last().isVisible(),false);
+  await page.locator('#invoice-box').selectOption('2');
+  await page.waitForFunction(()=>document.querySelectorAll('#web-invoice-rows tr').length===1);
+  const downloadEvent=page.waitForEvent('download'); await page.locator('#web-invoice-rows a').click();
+  const download=await downloadEvent; const stream=await download.createReadStream(); const chunks=[];
+  for await(const chunk of stream)chunks.push(chunk); assert.ok(Buffer.concat(chunks).toString('latin1').startsWith('%PDF-1.4'));
+  await page.locator('#web-invoice-rows a').focus(); await page.keyboard.press('Tab');
+  assert.equal(await page.evaluate(()=>document.activeElement.id),'energy-close');
+  await page.locator('#energy-close').click();
+  await page.locator('#web-theme').selectOption('dark'); await page.waitForFunction(()=>document.documentElement.dataset.wbTheme==='dark');
+  await page.locator('#energy-open').click();
+  assert.equal(await page.locator('#web-history').evaluate(node=>getComputedStyle(node).color),'rgb(245, 246, 248)');
+  for(const [width,height] of [[1440,1000],[800,700],[390,844],[240,360]]){
+   await page.setViewportSize({width,height});
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+   const overflow=await page.locator('.dashboard-scroll').evaluate(node=>({client:node.clientWidth,scroll:node.scrollWidth,rect:node.getBoundingClientRect().toJSON(),padding:getComputedStyle(node).padding,offenders:Array.from(node.querySelectorAll('*')).filter(n=>!n.closest(".web-table-scroll")).sort((a,b)=>b.getBoundingClientRect().right-a.getBoundingClientRect().right).slice(0,6).map(n=>({tag:n.tagName,cls:n.className,id:n.id,text:n.textContent.slice(0,55),w:n.getBoundingClientRect().width}))}));
+   assert.ok(overflow.scroll<=overflow.client+1,JSON.stringify({width,height,...overflow}));
+   await page.locator('#invoice-box').scrollIntoViewIfNeeded(); assert.equal(await page.locator('#invoice-box').isVisible(),true);
+  }
+  assert.equal(JSON.parse(fs.readFileSync(env.WBM_WEB_TEST_STATE)).kernel.calls.length,afterActions,'Charts, downloads and filtering must not control devices');
+  assert.deepEqual(errors,[]); assert.deepEqual(csp,[]);
+  if(process.env.WBM_SCREENSHOT_DIR){
+   fs.mkdirSync(process.env.WBM_SCREENSHOT_DIR,{recursive:true}); await page.setViewportSize({width:1440,height:1000});
+   await page.locator('#web-theme').selectOption('light'); await page.waitForFunction(()=>document.documentElement.dataset.wbTheme==='light');
+   await page.locator('.history-toggle').last().click(); await page.locator('#history-hours').selectOption('6');
+   await page.locator('#energy-close').click();
+   await page.screenshot({path:path.join(process.env.WBM_SCREENSHOT_DIR,'webansicht-hell.png')});
+   await page.locator('#energy-open').click();
+   await page.locator('[data-jump="energy-chart-wrap"]').click(); await page.locator('.dashboard-scroll').evaluate(n=>n.scrollTo({top:0,behavior:'instant'}));
+   await page.screenshot({path:path.join(process.env.WBM_SCREENSHOT_DIR,'web-dashboard-hell.png')});
+   await page.locator('[data-jump="web-history"]').click(); await page.locator('#web-history').evaluate(n=>n.scrollIntoView({block:'start',behavior:'instant'}));
+   await page.screenshot({path:path.join(process.env.WBM_SCREENSHOT_DIR,'web-details-hell.png')});
+  }
+  const archiveRows=Array.from({length:125},(_,index)=>({mediaID:9000-index,name:'Archiv-Wallbox',title:'Archiv '+index,wallbox:1,detailed:false,url:base+'/pdf?box=1&document='+index}));
+  await page.route('**/api/invoices?**',async route=>{
+   const url=new URL(route.request().url()),offset=Number(url.searchParams.get('offset')),limit=Number(url.searchParams.get('limit'));
+   await route.fulfill({json:{items:archiveRows.slice(offset,offset+limit),total:125,hasMore:offset+limit<125}});
+  });
+  await page.locator('#invoice-box').selectOption('0');
+  await page.waitForFunction(()=>document.querySelectorAll('#web-invoice-rows tr').length===50);
+  for(const count of [100,125]){await page.locator('#invoice-more').click();await page.waitForFunction(count=>document.querySelectorAll('#web-invoice-rows tr').length===count,count);}
+  await page.locator('#energy-close').click(); await page.locator('#energy-open').click();
+  await page.waitForFunction(()=>document.getElementById('web-archive-status').textContent==='125 von 125 Rechnungen');
+  assert.equal(await page.locator('#web-invoice-rows tr').count(),125);
+  console.log('OK  Authenticated HTTP WebHook, CSP, shared Start/Stop, read-only polling, detailed energy/costs, chart hover/keyboard/filtering, protected PDF download, focus, themes and four viewport sizes');
+ }finally{if(browser)await browser.close();server.kill();await new Promise(resolve=>server.once('exit',resolve));fs.rmSync(directory,{recursive:true,force:true});}
+})().catch(e=>{console.error(e);process.exitCode=1;});

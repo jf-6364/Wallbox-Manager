@@ -313,8 +313,27 @@ Ansicht mit Beispieldaten: [Übersicht hell](docs/images/uebersicht-hell.png) ·
 [Schmale Kachel dunkel](docs/images/kachel-dunkel.png).
 Die Vorschau stellt die normalerweise von Symcon gelieferte Titelzeile nach.
 
+## Eigene Webansicht
+
+Die optionale **Webansicht** bietet dieselbe Bedienung und Darstellung direkt im
+Browser: Verteilungswahl, Start/Stopp je Wallbox, Leistungswerte, Tarife und
+Rechnungen. Ihr erweitertes **Energie-Dashboard** ergänzt einen interaktiven
+Leistungsverlauf, Energie und Kosten je Wallbox sowie ein filterbares PDF-Archiv.
+
+Unter **Webansicht** aktivieren, Benutzername und Passwort festlegen und übernehmen.
+Die Standardadresse lautet **`http://DEINE-SYMCON-IP:3777/hook/wallboxen`**. Der
+Browser fragt nach den eingestellten Zugangsdaten. Hell-/Dunkelmodus sind wählbar;
+die Seite passt sich an die Fenstergröße an. Die Registrierung in Symcons
+WebHook Control erfolgt automatisch.
+
+Livewerte aktualisieren sich alle 2,5 Sekunden; Verlauf und Archiv im geöffneten
+Dashboard alle 15 Sekunden. Der Leistungsverlauf beginnt mit Aktivierung und
+bewahrt 48 Stunden in Minutenabständen. Vorhandene PDFs bleiben erhalten und
+herunterladbar. [Aufruf, Dashboard und PDF-Archiv](docs/WEBANSICHT.md).
+
 ## Weitere Informationen
 
+- [Webansicht und erweitertes Dashboard](docs/WEBANSICHT.md)
 - [Einstellungen und Variablen](docs/KONFIGURATION.md)
 - [Beispielkonfigurationen](docs/examples/README.md)
 - [SDK-Schnittstellen](docs/API.md)

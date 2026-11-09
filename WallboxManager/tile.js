@@ -170,7 +170,12 @@
         try {
             var box = latest && latest.boxes[id];
             var bill = box && box.billing;
-            if (!bill || !bill.pdf) return;
+            if (!bill || (!bill.pdf && !bill.pdfURL)) return;
+            if (window.WBM_WEB && bill.pdfURL) {
+                var download = document.createElement('a'); download.href = bill.pdfURL;
+                download.download = (bill.last.fileName || 'Abrechnung.pdf').replace(/[^a-zA-Z0-9._-]/g, '_');
+                document.body.append(download); download.click(); download.remove(); return;
+            }
             var bytes = Uint8Array.from(atob(bill.pdf), function (ch) { return ch.charCodeAt(0); });
             var url = URL.createObjectURL(new Blob([bytes], {type: 'application/pdf'}));
             var link = document.createElement('a');
@@ -217,7 +222,7 @@
         var billingState = billing.error || (billing.pending ? 'PDF wird erstellt …' : 'Energie aus gemessener Ladeleistung berechnet.');
         if (session && session.warnings && session.warnings.length) billingState += ' Hinweise im PDF beachten.';
         put(fields.billingState, billingState);
-        assign(fields.billingPDF, 'disabled', !billing.pdf);
+        assign(fields.billingPDF, 'disabled', !(billing.pdf || (window.WBM_WEB && billing.pdfURL)));
         put(fields.billingPDF, billing.last && billing.last.invoice ? 'Rechnung ' + billing.last.invoice.number + ' als PDF' : 'Letzte Abrechnung als PDF');
     }
     function createCard(id) {
@@ -543,7 +548,7 @@
             if (!dashboardOpen) return;
             if (event.key === 'Escape') { event.preventDefault(); closeDashboard(); }
             if (event.key === 'Tab') {
-                var nodes = Array.from(el('energy-dashboard').querySelectorAll('button, [tabindex="0"]')).filter(function (node) { return node.getClientRects().length > 0; });
+                var nodes = Array.from(el('energy-dashboard').querySelectorAll('button, a[href], input, select, textarea, [tabindex="0"]')).filter(function (node) { return !node.disabled && node.getClientRects().length > 0; });
                 var first = nodes[0], last = nodes[nodes.length - 1];
                 if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
                 else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }

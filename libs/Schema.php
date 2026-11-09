@@ -33,6 +33,10 @@ final class Schema
             'EnergyMaxGap' => [120, 'Maximale Integrationslücke (s)', 'Energiezählung'],
             'MeterJumpFactor' => [2.0, 'Plausibilitätsfaktor für Zählersprünge', 'Energiezählung'],
             'MeterJumpSlack' => [0.02, 'Zählersprung-Toleranz (kWh)', 'Energiezählung'],
+            'WebEnabled' => [false, 'Webansicht aktivieren', 'Webansicht'],
+            'WebPath' => ['/hook/wallboxen', 'URL-Pfad', 'Webansicht'],
+            'WebUser' => ['wallbox', 'Benutzername', 'Webansicht'],
+            'WebPassword' => ['', 'Passwort (mindestens 8 Zeichen)', 'Webansicht'],
             'BillingTimezone' => ['Europe/Berlin', 'Zeitzone der Ladeabrechnungen', 'Abrechnung']
         ] + self::invoice() + self::shared();
     }

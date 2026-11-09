@@ -13,6 +13,8 @@ Zeitbedingungen stehen zentral unter Allgemein → Zeitbedingungen, Abrechnung u
 
 Der eigene Bereich PV-Überschuss verwendet PVModeVar (Boolean) und PVBudgetVar (Integer/Float): true wählt ausschließlich das PV-Budget, false oder PVModeVar = 0 das bisherige BudgetVar. PVBudgetUnit und PVBudgetMaxAge gelten nur für die PV-Quelle. Bei aktivem PV-Modus erhöhen weder Speicherunterstützung noch zeitweise Überschreitungen das Budget. Fehlende/ungültige aktive Daten führen zum Stopp ohne Rückfall auf die andere Quelle. Die Telemetrie enthält pvActive, budgetSource (normal/pv/invalid) und budgetVariable. Für die Tarifzuordnung kann dieselbe Boolvariable separat als BillingPVVar verknüpft werden.
 
+Die optionale Webansicht wird über WebEnabled, WebPath, WebUser und WebPassword konfiguriert. Sie verwendet Symcons WebHook Control und benötigt eine eigene Anmeldung. Details: [Webansicht](WEBANSICHT.md).
+
 ## Variablenverknüpfungen
 
 | Eigenschaft | Zweck | Datentyp | Einheit | Pflicht | Zugriff |
@@ -70,6 +72,10 @@ ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilli
 | `EnergyMaxGap` | `120` | Maximale Integrationslücke (s) | Energiezählung |
 | `MeterJumpFactor` | `2` | Plausibilitätsfaktor für Zählersprünge | Energiezählung |
 | `MeterJumpSlack` | `0.02` | Zählersprung-Toleranz (kWh) | Energiezählung |
+| `WebEnabled` | `false` | Webansicht aktivieren | Webansicht |
+| `WebPath` | `/hook/wallboxen` | URL-Pfad | Webansicht |
+| `WebUser` | `wallbox` | Benutzername | Webansicht |
+| `WebPassword` | `(leer)` | Passwort (mindestens 8 Zeichen) | Webansicht |
 | `BillingTimezone` | `Europe/Berlin` | Zeitzone der Ladeabrechnungen | Abrechnung |
 | `InvoiceSenderName` | `(leer)` | Name / Firma | Rechnung: Rechnungssteller |
 | `InvoiceSenderStreet` | `(leer)` | Straße / Hausnummer | Rechnung: Rechnungssteller |
@@ -249,4 +255,4 @@ Die 17 Manager-/Speichervariablen und 21 Variablen je Platz ergeben 101 Variable
 | `WBM_GetBillingPDF(int InstanceID, int Wallbox)` | Letzte gespeicherte PDF als Base64-String; leer, solange kein Dokument bereitliegt |
 | `WBM_ControlTargets(int InstanceID)` | Internes JSON der beanspruchten Steuerziele; dient Instanzkonfliktprüfung |
 
-Runtime, Configuration, Telemetry, OwnedTargets, SharedDefaults und SessionControl sind persistente String-Attribute. SessionControl markiert die einmalige Migration auf manuell gestartete Ladevorgänge; frühere automatische Freigaben werden dabei zurückgesetzt. BillingIdleSeconds bleibt ausschließlich für gespeicherte Alt-Konfigurationen registriert, ist ausgeblendet und beendet keinen Ladegang mehr. Laufende Abrechnungen, Tarifpositionen und die PDF-Warteschlange liegen in Runtime. PDFs sind Dokumentmedien im Objektbaum und im media-Verzeichnis. Puffer halten flüchtige Startmarkierung und PDF-Kopien für die Kachel. Steuerzielübernahme ist instanzübergreifend durch eine Semaphore geschützt. Details: [Ladeabrechnung](ABRECHNUNG.md).
+Runtime, Configuration, Telemetry, OwnedTargets, SharedDefaults und SessionControl sind persistente String-Attribute. WebHookState speichert die eigene URL-Registrierung, WebHistory einen auf 48 Stunden begrenzten Minutenverlauf, WebInvoices kompakte Detaildaten der letzten 2.000 PDFs und WebSecret den zufällig erzeugten internen Schlüssel für Bedienaktionen der Webansicht. Diese Attribute werden nicht als öffentliche Statusvariablen angelegt. SessionControl markiert die einmalige Migration auf manuell gestartete Ladevorgänge; frühere automatische Freigaben werden dabei zurückgesetzt. BillingIdleSeconds bleibt ausschließlich für gespeicherte Alt-Konfigurationen registriert, ist ausgeblendet und beendet keinen Ladegang mehr. Laufende Abrechnungen, Tarifpositionen und die PDF-Warteschlange liegen in Runtime. PDFs sind Dokumentmedien im Objektbaum und im media-Verzeichnis. Puffer halten flüchtige Startmarkierung und PDF-Kopien für die Kachel. Steuerzielübernahme ist instanzübergreifend durch eine Semaphore geschützt. Details: [Ladeabrechnung](ABRECHNUNG.md).

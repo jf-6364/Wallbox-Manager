@@ -1,0 +1,21 @@
+<section id="web-history" class="web-section">
+  <div class="web-section-heading"><div><h3>Leistungsverlauf</h3><p id="web-history-note">Der Verlauf beginnt mit der Aktivierung der Webansicht.</p></div><label>Zeitraum <select id="history-hours"><option value="1">1 Stunde</option><option value="6">6 Stunden</option><option value="24" selected>24 Stunden</option><option value="48">48 Stunden</option></select></label></div>
+  <div id="history-chart-wrap" class="history-chart-wrap">
+    <div class="history-axis" aria-hidden="true"><span id="history-max">–</span><span id="history-mid">–</span><span>0 kW</span></div>
+    <svg id="history-chart" viewBox="0 0 1000 260" preserveAspectRatio="none" role="img" tabindex="0" aria-label="Leistungsverlauf der Wallboxen; Pfeiltasten wählen Messpunkte">
+      <g class="history-grid"><path d="M0 1H1000M0 130H1000M0 259H1000"/></g><g id="history-lines"></g><line id="history-cursor" y1="0" y2="260" hidden/>
+    </svg>
+    <div class="history-times" aria-hidden="true"><span id="history-start">–</span><span id="history-end">–</span></div>
+    <div id="history-tooltip" class="energy-tooltip" role="tooltip" hidden></div>
+  </div>
+  <p id="history-empty" class="muted">Noch keine Verlaufsmessungen vorhanden.</p><div id="history-legend" class="energy-legend" aria-label="Angezeigte Wallboxen"></div>
+</section>
+<section id="web-billing" class="web-section">
+  <div class="web-section-heading"><div><h3>Energie und Kosten je Wallbox</h3><p>Gesamtenergie aus den Energiezählern; Tarifmengen und Kosten aus der Abrechnung seit deren Aktivierung. Laufende Vorgänge sind enthalten.</p></div></div>
+  <div class="web-table-scroll"><table class="web-table"><thead><tr><th>Wallbox</th><th>Gesamtenergie</th><th>PV-Energie</th><th>Normalenergie</th><th>Ungeklärt</th><th>Kosten</th><th>Vorgänge</th><th>Aktuelle Preise</th></tr></thead><tbody id="web-billing-rows"></tbody></table></div>
+</section>
+<section id="web-invoices" class="web-section">
+  <div class="web-section-heading"><div><h3>PDF-Archiv</h3><p>Gespeicherte Rechnungen pro Ladegang. Bei älteren PDFs ohne Detailindex stehen Energie und Kosten im Dokument.</p></div><label>Wallbox <select id="invoice-box"><option value="0">Alle Wallboxen</option><option value="1">Wallbox 1</option><option value="2">Wallbox 2</option><option value="3">Wallbox 3</option><option value="4">Wallbox 4</option></select></label></div>
+  <div class="web-table-scroll"><table class="web-table"><thead><tr><th>Rechnung</th><th>Wallbox</th><th>Zeitraum</th><th>PV / Normal</th><th>Gesamtenergie</th><th>Betrag</th><th>PDF</th></tr></thead><tbody id="web-invoice-rows"></tbody></table></div>
+  <p id="web-invoice-empty" class="muted">Noch keine PDF-Abrechnungen vorhanden.</p><p id="web-archive-status" class="muted" role="status"></p><button id="invoice-more" class="wb-button" type="button" hidden>Weitere Rechnungen laden</button>
+</section>
