@@ -69,6 +69,11 @@
   Größenprüfungen bleiben abgedeckt. Die Modulansicht enthält keinen eigenen
   Titel oder Vergrößern-Pfeil; der Dashboard-Button bleibt erreichbar. Eine
   nachgestellte Symcon-Kopfzeile wird genau einmal angezeigt.
+- Überlagernde Symcon-Kopfzeile nachgestellt: Bedienelemente und Dashboard bleiben
+  bei 938 × 782, 430 × 375 und 240 × 260 Pixeln unter der Kopfzeile erreichbar.
+  Geänderte/ausgeblendete Kopfzeilen und bereits vorhandene Abstände sind geprüft;
+  ein Sandbox-iframe verwendet den Abstand auch bei einer außerhalb liegenden
+  Kopfzeile. Budgetmodus und Aktualisierungszeit werden nicht mehr im Footer gerendert.
 - Alle **22 PHP-Dateien** syntaktisch geprüft; alle **7 vorhandenen JSON-Dateien**
   syntaktisch geprüft (einschließlich lokalem Testergebnis).
 - Metadaten, unterschiedliche gültige GUIDs, Präfix, Modulstruktur,

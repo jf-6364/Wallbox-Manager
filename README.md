@@ -211,7 +211,9 @@ Diagramm, Legende oder Verbrauchsliste werden Wallbox, kWh und Prozentanteil
 hervorgehoben. Auch Berührung und Tastaturbedienung sind möglich. Live-Werte
 aktualisieren das geöffnete Dashboard. Titel und Vergrößern-Pfeil werden
 ausschließlich von Symcon dargestellt; die Modulansicht fügt keine zweite
-Kopfzeile hinzu.
+Kopfzeile hinzu. Der Inhalt hält Platz für die Kopfzeile frei, auch wenn ältere
+Symcon-Versionen sie über die Kachel legen. Bereits vom Host reservierter Platz
+wird berücksichtigt. In der Fußzeile entfallen Budgetmodus und Aktualisierungsuhrzeit.
 
 Die Verteilung zeigt den **gesamten Zählzeitraum**, keine Tagesauswertung.
 Deaktivierte Plätze mit bereits erfasster Energie bleiben enthalten. Bei einem

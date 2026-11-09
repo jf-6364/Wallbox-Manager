@@ -34,6 +34,12 @@ foreach ([1, 2] as $id) {
 }
 $html = file_get_contents(__DIR__ . '/../WallboxManager/tile.html');
 $mock = <<<'JS'
+// Standalone preview only: simulate the header normally provided by Symcon.
+var previewHeader = document.createElement('header');
+previewHeader.textContent = 'Wallbox Manager';
+previewHeader.setAttribute('aria-label', 'Symcon-Kopfzeile (Vorschau)');
+previewHeader.style.cssText = 'position:absolute;inset:0 0 auto;height:64px;padding:16px;box-sizing:border-box;font-size:20px;z-index:5;';
+document.body.prepend(previewHeader);
 window.WBM_PREVIEW_ACTIONS = [];
 window.requestAction = function (ident, value) {
     window.WBM_PREVIEW_ACTIONS.push({ident: ident, value: value});

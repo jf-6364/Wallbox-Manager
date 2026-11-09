@@ -83,6 +83,9 @@ async function palette(page) {
         assert.equal(await page.locator('.device-details details').count(), 0);
         assert.equal(await page.locator('#tile-view h1, #tile-view header, #energy-open svg, #energy-fullscreen').count(), 0);
         assert.equal(await page.locator('#energy-open').innerText(), 'Energie-Dashboard');
+        assert.equal(await page.locator('#wbm').getAttribute('data-header-space'), '64'); // Also reserve a native/WebView header outside this DOM.
+        assert.equal(await page.locator('#policy, #updated').count(), 0);
+        assert.equal(await page.locator('footer').innerText(), 'Energie-Dashboard');
         assert.equal(await page.locator('#support-metric').isVisible(), false);
         assert.equal(await page.locator('#energy').textContent(), '2,41 kWh');
         assert.equal(await page.locator('[data-field="energy"]').first().textContent(), '1,68 kWh (berechnet)');
@@ -185,10 +188,11 @@ async function palette(page) {
                 const scroller = node.querySelector('.dashboard-scroll');
                 const frame = node.getBoundingClientRect();
                 return {width: frame.width, height: frame.height, scrollWidth: scroller.scrollWidth, contentWidth: scroller.clientWidth,
-                    documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight};
+                    documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight,
+                    headerSpace: Number(document.getElementById('wbm').dataset.headerSpace)};
             });
             assert.ok(bounds.scrollWidth <= bounds.contentWidth + 1, JSON.stringify(bounds));
-            assert.equal(bounds.width, width); assert.equal(bounds.height, height);
+            assert.equal(bounds.width, width); assert.equal(bounds.height, height - bounds.headerSpace);
             assert.equal(bounds.documentWidth, width); assert.equal(bounds.documentHeight, height);
             await page.locator('.energy-row').last().scrollIntoViewIfNeeded();
             assert.equal(await page.locator('.energy-row').last().isVisible(), true);
@@ -320,6 +324,46 @@ async function palette(page) {
         assert.equal(padded.height, 552);
         assert.equal(errors.length, 0, errors.join('\n'));
         console.log('OK  Host title and reserved SDK header space');
+        // Reproduce the reported legacy host: its title overlays the content instead of taking up space.
+        await page.setContent(html());
+        await page.evaluate(() => {
+            const heading = document.createElement('header'); heading.id = 'host-header'; heading.textContent = 'Wallbox Manager';
+            heading.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:64px;padding:16px;box-sizing:border-box;z-index:5;';
+            document.body.prepend(heading);
+        });
+        await page.waitForFunction(() => document.getElementById('wbm').dataset.headerSpace === '64');
+        for (const [width, height] of [[938, 782], [430, 375], [240, 260]]) {
+            await page.setViewportSize({width, height}); await layout(page);
+            await page.locator('.wb-content').evaluate(node => { node.scrollTop = 0; });
+            const host = await page.locator('#host-header').boundingBox();
+            const toolbar = await page.locator('.toolbar').boundingBox();
+            assert.ok(toolbar.y >= host.y + host.height, 'Native header overlaps the controls');
+            const frame = await page.locator('#wbm').boundingBox(); assert.equal(frame.height, height);
+            await page.locator('#mode-priority').click();
+            assert.deepEqual(await page.evaluate(() => actions.at(-1)), {ident: 'DistributionMode', value: 1});
+            await page.locator('#energy-open').click();
+            const dialog = await page.locator('#energy-dashboard').boundingBox();
+            assert.equal(dialog.y, 64); assert.equal(dialog.height, height - 64);
+            await page.locator('#energy-close').click();
+        }
+        await page.evaluate(() => { document.getElementById('host-header').style.height = '90px'; });
+        await page.waitForFunction(() => document.getElementById('wbm').dataset.headerSpace === '90');
+        await page.evaluate(() => { document.getElementById('host-header').hidden = true; });
+        await page.waitForFunction(() => document.getElementById('wbm').dataset.headerSpace === '0');
+        console.log('OK  Overlay header, dynamic height, hidden header and dashboard clearance');
+        // A host header outside the iframe cannot be queried by the module (including sandboxed origins).
+        await page.setViewportSize({width: 800, height: 600});
+        await page.setContent('<header style="position:absolute;inset:0 0 auto;height:64px;z-index:5">Wallbox Manager</header><iframe sandbox="allow-scripts" style="position:absolute;inset:0;border:0;width:100%;height:100%"></iframe>');
+        const child = page.frames()[1]; await child.setContent(html());
+        await child.waitForFunction(() => document.getElementById('wbm').dataset.headerSpace === '64');
+        assert.ok((await child.locator('.toolbar').boundingBox()).y >= 64);
+        await child.locator('#energy-open').click();
+        assert.equal((await child.locator('#energy-dashboard').boundingBox()).y, 64);
+        await child.locator('#energy-close').click();
+        await child.evaluate(() => { document.body.style.paddingTop = '48px'; });
+        await child.waitForFunction(() => document.getElementById('wbm').dataset.headerSpace === '0');
+        assert.equal((await child.locator('#wbm').boundingBox()).y, 48);
+        console.log('OK  Sandboxed iframe fallback and existing SDK padding without double spacing');
         await page.setViewportSize({width: 800, height: 600});
         await page.setContent(html('textcolor=%2324262b&backgroundColor=%23ffffff'));
         const billed = structuredClone(data);

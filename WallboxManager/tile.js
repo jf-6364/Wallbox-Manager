@@ -19,17 +19,35 @@
     function energy(value) { return energyFormat.format(value || 0) + ' kWh'; }
     function compactLayout() {
         var root = document.getElementById('wbm');
-        var height = root && root.clientHeight ? root.clientHeight : window.innerHeight;
+        var height = root && root.clientHeight ? root.clientHeight - Number(root.dataset.headerSpace || 0) : window.innerHeight;
         var width = root && root.clientWidth ? root.clientWidth : window.innerWidth;
         return typeof height === 'number' && (height < 480 || width < 440);
     }
     function updateLayout() {
+        syncHeaderSpace();
         if (dashboardOpen) highlightEnergy();
         var root = document.getElementById('wbm');
         if (!root) return;
         var compact = compactLayout();
         if (root.dataset.compact === String(compact)) return;
         root.dataset.compact = String(compact);
+    }
+    function syncHeaderSpace() {
+        var root = el('wbm');
+        if (!root || typeof root.getBoundingClientRect !== 'function' || typeof document.querySelectorAll !== 'function') return;
+        var top = root.getBoundingClientRect().top;
+        var found = false, bottom = 0;
+        // Some SDK hosts overlay their header; others reserve its height in the body.
+        document.querySelectorAll('header, [role="banner"]').forEach(function (header) {
+            if (root.contains(header)) return;
+            found = true;
+            if (header.getClientRects().length) bottom = Math.max(bottom, header.getBoundingClientRect().bottom);
+        });
+        // The legacy header may live outside this document, including in a native WebView.
+        var space = found ? Math.max(0, bottom - top) : (top < 32 ? Math.max(0, 64 - top) : 0);
+        var value = Math.ceil(space) + 'px';
+        if (root.style.getPropertyValue('--wb-header-space') !== value) root.style.setProperty('--wb-header-space', value);
+        root.dataset.headerSpace = String(Math.ceil(space));
     }
     function themeParameter(names) {
         var parameters = typeof queryParameters !== 'undefined' ? queryParameters : null;
@@ -237,7 +255,6 @@
         if (data.managerEnabled === undefined) el('manager').checked = !!data.manager;
         el('mode-even').setAttribute('aria-pressed', String(data.mode === 0));
         el('mode-priority').setAttribute('aria-pressed', String(data.mode === 1));
-        text('policy', data.strict ? 'Budget strikt' : 'Zeitweise Überschreitung zugelassen');
         text('base', chargingPower(data.base));
         text('support', chargingPower(data.battery.confirmed));
         el('support-metric').hidden = !data.batteryConfigured;
@@ -283,7 +300,6 @@
         text('battery-request', power(data.battery.commanded));
         text('battery-power', power(data.battery.measured));
         text('battery-state', data.battery.reason);
-        text('updated', 'Stand ' + new Date(data.time * 1000).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}));
         el('simulation').hidden = !data.simulation;
         countdown();
         updateLayout();
@@ -461,12 +477,12 @@
         }
     }
     if (typeof MutationObserver === 'function' && document.documentElement) {
-        var observer = new MutationObserver(syncTheme);
+        var observer = new MutationObserver(function () { syncTheme(); syncHeaderSpace(); });
         observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class', 'data-theme'] });
-        observer.observe(document.body, { attributes: true, attributeFilter: ['style', 'class', 'data-theme'] });
+        observer.observe(document.body, { attributes: true, childList: true, attributeFilter: ['style', 'class', 'data-theme'] });
         observer.observe(document.head, { childList: true, subtree: true, characterData: true });
     }
     render(window.WBM_INITIAL);
     action('Refresh', 0);
-    setInterval(function () { countdown(); syncTheme(); }, 1000);
+    setInterval(function () { countdown(); syncTheme(); syncHeaderSpace(); }, 1000);
 }());
