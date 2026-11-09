@@ -5,7 +5,7 @@ Wallboxen** in IP-Symcon ab Version 7.1. Er steuert vorhandene Gerätevariablen 
 Symcon-Aktionen und berücksichtigt die tatsächlich gemessene Ladeleistung.
 Optional kann ein Batteriespeicher zusätzliche Leistung bereitstellen.
 
-Unter **Allgemein und Budget → Anzahl Wallboxen** sind ein bis vier Plätze
+Unter **Allgemein → Anzahl Wallboxen** sind ein bis vier Plätze
 wählbar. Die passenden Konfigurationsbereiche erscheinen direkt bei der Auswahl.
 Mit „Übernehmen“ wird die Anzahl wirksam: Ausgeblendete Plätze werden gestoppt
 und aus der Regelung genommen. Ihre Einstellungen, Energiezähler und PDFs
@@ -82,8 +82,10 @@ einen gerätespezifischen Stoppwert. Strom- und Leistungsgrenzen gelten gleichze
 auch bei Watt-Sollwerten. Drei Phasen mit 230 V und mindestens 6,0 A je Phase
 erfordern beispielsweise rund 4,14 kW Mindestleistung.
 
-Einschaltverzögerung, Hysterese, Mindestlaufzeit, Nachlauf und Mindestpause vermeiden
-häufiges Umschalten. Standardmäßig beträgt das Regelintervall 5 Sekunden.
+Unter **Allgemein → Zeitbedingungen** werden Einschaltverzögerung, Mindestlaufzeit,
+Nachlauf, Mindestpause, Wallbox-Hysterese und Mindestabstand für Erhöhungsbefehle
+einmal für alle Wallboxen eingestellt. Sie vermeiden häufiges Umschalten.
+Standardmäßig beträgt das Regelintervall 5 Sekunden.
 
 Die globale Managerfreigabe, die manuelle Freigabe je Box und optionale externe
 Freigaben bestimmen gemeinsam, welche Geräte laden dürfen. Externe Freigaben
@@ -133,9 +135,11 @@ explizite Bestätigung.
 ## Ladeabrechnung je Wallbox
 
 Jede Wallbox kann geladene Energie getrennt nach **PV-Überschussladen** und
-**Normalladen** abrechnen. Eine verknüpfte Boolvariable legt den Tarif fest:
+**Normalladen** abrechnen. Die Einstellungen stehen gemeinsam unter
+**Allgemein → Abrechnung**. Eine gemeinsam verknüpfte Boolvariable legt den Tarif fest:
 `true` zählt zum PV-Tarif, `false` zum Normaltarif. Für beide gelten separat
-einstellbare Preise in EUR/kWh. Ohne verknüpfte Boolvariable gilt der Normaltarif.
+einstellbare Preise in EUR/kWh, die für alle Wallboxen gelten. Ohne verknüpfte
+Boolvariable gilt der Normaltarif.
 Die Boolvariable bestimmt die Abrechnung; die Leistungsregelung erfolgt weiterhin
 über das Budget und die Freigaben.
 
@@ -158,10 +162,10 @@ PDFs bleiben bei Neustarts erhalten; der Gesamtenergie-Reset verändert sie nich
 Weitere Details und ein Rechenbeispiel stehen in der
 [Dokumentation zur Ladeabrechnung](docs/ABRECHNUNG.md).
 
-Unter **Abrechnung → Rechnung** werden Rechnungssteller, Anschrift, Kontakt,
-Bankverbindung, Zahlungsfrist sowie Nummernkreis und Umsatzsteuer eingestellt.
-Der Empfänger und eine optionale Kundennummer stehen je Wallbox unter
-**Abrechnung → Rechnung**. Die PDF orientiert sich an einer klassischen Rechnung
+Unter **Allgemein → Abrechnung → Rechnung** werden Rechnungssteller, Anschrift,
+Kontakt, Bankverbindung, Zahlungsfrist, Nummernkreis, Umsatzsteuer sowie der
+gemeinsame Empfänger mit Adresse und optionaler Kundennummer eingestellt.
+Die PDF orientiert sich an einer klassischen Rechnung
 mit Adressblöcken, Positionstabelle, Summen und Zahlungsinformationen.
 
 Umsatzsteuer kann ignoriert oder als bereits im Endpreis enthaltene Steuer
@@ -171,6 +175,12 @@ behalten ihre Daten und Nummern. **Jeder Ladegang erzeugt ein eigenes Dokument**
 die Dateien werden nicht automatisch überschrieben oder gelöscht.
 Eine [Beispielrechnung mit fiktiven Daten](docs/examples/rechnung-beispiel.pdf)
 zeigt das Layout.
+
+Beim Umstieg auf die gemeinsamen Einstellungen werden einmalig die bisherigen
+Zeitbedingungen, Tarife und Empfängerdaten von **Wallbox 1** übernommen.
+Anschließend gelten ausschließlich die gemeinsamen Einstellungen. Bereits
+erfasste Tarifmengen, Energiezähler und vorhandene PDFs bleiben erhalten;
+Preisänderungen berechnen frühere Energieintervalle nicht neu.
 
 ## Kachelvisualisierung
 
@@ -195,12 +205,13 @@ Kacheln stehen zwei Wallboxen nebeneinander, auf schmalen untereinander.
 Bei wenig Höhe scrollt der Inhalt innerhalb der Kachel; alle Schalter bleiben
 erreichbar.
 
-Das **Erweitern-Symbol oben rechts** („Energie-Dashboard“) öffnet ein Ringdiagramm mit der Gesamtenergie
+Der Button **„Energie-Dashboard“** am unteren Rand öffnet ein Ringdiagramm mit der Gesamtenergie
 und den Anteilen der einzelnen Wallboxen. Beim Bewegen des Mauszeigers über
 Diagramm, Legende oder Verbrauchsliste werden Wallbox, kWh und Prozentanteil
 hervorgehoben. Auch Berührung und Tastaturbedienung sind möglich. Live-Werte
-aktualisieren das geöffnete Dashboard. Ein Vollbild-Button erscheint, wenn die
-Umgebung diese Browserfunktion erlaubt.
+aktualisieren das geöffnete Dashboard. Titel und Vergrößern-Pfeil werden
+ausschließlich von Symcon dargestellt; die Modulansicht fügt keine zweite
+Kopfzeile hinzu.
 
 Die Verteilung zeigt den **gesamten Zählzeitraum**, keine Tagesauswertung.
 Deaktivierte Plätze mit bereits erfasster Energie bleiben enthalten. Bei einem

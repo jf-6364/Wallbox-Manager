@@ -40,12 +40,10 @@ body#wbm-page {
     height: 100%; display: flex; flex-direction: column; gap: var(--wb-gap);
     padding: clamp(14px, 3.5vmin, 28px); background: var(--wb-surface);
 }
-#wbm .wb-header, #wbm .toolbar, #wbm .card-heading, #wbm .device-controls, #wbm footer {
+#wbm .toolbar, #wbm .card-heading, #wbm .device-controls, #wbm footer {
     position: static; display: flex; align-items: center; justify-content: space-between;
     gap: 10px; flex-wrap: wrap; flex-shrink: 0; min-width: 0; margin: 0; padding: 0; background: transparent;
 }
-#wbm .wb-header { flex-wrap: nowrap; }
-#wbm h1 { font-size: 1.25em; font-weight: 400; line-height: 1.4; margin: 0; overflow-wrap: anywhere; }
 #wbm h2 { position: static; font-size: 1em; line-height: 1.4; font-weight: 400; margin: 0; color: var(--wb-text); }
 #wbm input, #wbm select, #wbm button { font: inherit; color: var(--wb-text); }
 #wbm input[type="number"] {
@@ -126,6 +124,8 @@ body#wbm-page {
 #wbm .battery-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
 #wbm #battery-state { font-size: .8em; color: var(--wb-muted); margin: 8px 0 0; overflow-wrap: anywhere; }
 #wbm footer { font-size: .72em; color: var(--wb-muted); gap: 3px 12px; }
+#wbm .dashboard-link { color: var(--wb-muted); padding: 3px 0; border: 0; min-height: 28px; }
+#wbm .dashboard-link:hover { color: var(--wb-accent); background: transparent; }
 #wbm #updated { margin-left: auto; white-space: nowrap; }
 #wbm #simulation { color: var(--wb-default-warning); }
 #wbm :focus-visible { outline: 2px solid var(--wb-accent); outline-offset: 3px; }
@@ -166,7 +166,6 @@ body#wbm-page {
 #wbm .billing-details p { margin: 8px 0; font-size: .8em; color: var(--wb-muted); overflow-wrap: anywhere; }
 #wbm .billing-details .lock { color: var(--wb-default-warning); }
 #wbm .billing-details .wb-button { max-width: 100%; white-space: normal; font-size: .85em; }
-#wbm:fullscreen { background: var(--wb-surface); width: 100vw; height: 100vh; }
 @container (min-width: 740px) {
     #wbm .boxes { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
     #wbm .boxes[data-count="1"] { grid-template-columns: minmax(0, 1fr); }

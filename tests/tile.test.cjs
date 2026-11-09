@@ -26,7 +26,7 @@ class Element {
 }
 const ids = ['wbm', 'manager', 'mode-even', 'mode-priority', 'policy', 'base', 'support-metric', 'support', 'measured', 'energy', 'overrun', 'status', 'errors', 'boxes', 'battery',
     'battery-enable', 'battery-lock', 'soc', 'capacity', 'reserve-energy', 'battery-request', 'battery-power', 'battery-state', 'updated', 'simulation',
-    'energy-open', 'energy-close', 'energy-fullscreen'];
+    'energy-open', 'energy-close'];
 const elements = Object.fromEntries(ids.map(id => [id, new Element()]));
 const document = {getElementById: id => {assert.ok(elements[id], id); return elements[id];}, createElement: tag => new Element(tag), activeElement: null};
 const actions = [];

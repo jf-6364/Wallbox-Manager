@@ -9,10 +9,6 @@
 <body id="wbm-page">
 <main id="wbm">
 <div id="tile-view" class="tile-view">
-  <header class="wb-header">
-    <h1>Wallbox Manager</h1>
-    <button id="energy-open" class="wb-button icon-button" type="button" aria-label="Energie-Dashboard öffnen" title="Energie-Dashboard" aria-haspopup="dialog"><svg class="wb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button>
-  </header>
   <div class="wb-content">
   <div class="toolbar">
     <div id="mode" class="mode-options" role="group" aria-label="Verteilungsart">
@@ -43,13 +39,12 @@
     <p id="battery-state"></p>
   </section>
   </div>
-  <footer><span id="policy">–</span><span id="simulation" hidden>SIMULATION</span><span id="updated">–</span></footer>
+  <footer><button id="energy-open" class="wb-button dashboard-link" type="button" aria-haspopup="dialog">Energie-Dashboard</button><span id="policy">–</span><span id="simulation" hidden>SIMULATION</span><span id="updated">–</span></footer>
 </div>
 <section id="energy-dashboard" class="energy-dashboard" role="dialog" aria-modal="true" aria-labelledby="dashboard-title" hidden>
   <header class="dashboard-header">
     <div><h2 id="dashboard-title">Energieverteilung</h2><p>Gesamter Zählzeitraum</p></div>
     <div class="dashboard-actions">
-      <button id="energy-fullscreen" class="wb-button icon-button" type="button" aria-label="Dashboard im Vollbild anzeigen" title="Vollbild" hidden><svg class="wb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/></svg></button>
       <button id="energy-close" class="wb-button icon-button" type="button" aria-label="Energie-Dashboard schließen" title="Schließen"><svg class="wb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 14 14M19 5 5 19"/></svg></button>
     </div>
   </header>

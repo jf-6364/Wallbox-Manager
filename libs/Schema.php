@@ -8,15 +8,15 @@ final class Schema
     public static function global(): array
     {
         return [
-            'Enabled' => [false, 'Manager bei Erstkonfiguration aktivieren', 'Allgemein und Budget'],
-            'WallboxCount' => [4, 'Anzahl Wallboxen', 'Allgemein und Budget', [1 => '1 Wallbox', 2 => '2 Wallboxen', 3 => '3 Wallboxen', 4 => '4 Wallboxen']],
-            'BudgetVar' => [0, 'Absolutes Grundbudget ohne Speicher', 'Allgemein und Budget', 'read', [1, 2], true],
-            'BudgetUnit' => ['W', 'Einheit Grundbudget', 'Allgemein und Budget', ['W', 'kW']],
-            'Interval' => [5, 'Regelintervall (s)', 'Allgemein und Budget'],
-            'Hysteresis' => [200.0, 'Globale Hysterese', 'Allgemein und Budget'],
-            'HysteresisUnit' => ['W', 'Einheit Hysterese', 'Allgemein und Budget', ['W', 'kW']],
-            'HardLimitW' => [0.0, 'Harter Gesamtgrenzwert (W; 0 = kein zusätzlicher)', 'Allgemein und Budget'],
-            'BudgetMaxAge' => [0, 'Budgetüberwachung (s; 0 = aus)', 'Allgemein und Budget'],
+            'Enabled' => [false, 'Manager bei Erstkonfiguration aktivieren', 'Allgemein'],
+            'WallboxCount' => [4, 'Anzahl Wallboxen', 'Allgemein', [1 => '1 Wallbox', 2 => '2 Wallboxen', 3 => '3 Wallboxen', 4 => '4 Wallboxen']],
+            'BudgetVar' => [0, 'Absolutes Grundbudget ohne Speicher', 'Allgemein', 'read', [1, 2], true],
+            'BudgetUnit' => ['W', 'Einheit Grundbudget', 'Allgemein', ['W', 'kW']],
+            'Interval' => [5, 'Regelintervall (s)', 'Allgemein'],
+            'Hysteresis' => [200.0, 'Globale Hysterese', 'Allgemein'],
+            'HysteresisUnit' => ['W', 'Einheit Hysterese', 'Allgemein', ['W', 'kW']],
+            'HardLimitW' => [0.0, 'Harter Gesamtgrenzwert (W; 0 = kein zusätzlicher)', 'Allgemein'],
+            'BudgetMaxAge' => [0, 'Budgetüberwachung (s; 0 = aus)', 'Allgemein'],
             'Mode' => [0, 'Anfängliche Verteilung (0 = gleichmäßig, 1 = Priorität)', 'Verteilungsmodus', [0 => 'Gleichmäßig', 1 => 'Priorität']],
             'Rotation' => [900, 'Rotation bei knappem Budget (s; 0 = aus)', 'Verteilungsmodus'],
             'StrictBudget' => [true, 'Budget strikt einhalten', 'Verteilungsmodus'],
@@ -30,7 +30,40 @@ final class Schema
             'MeterJumpFactor' => [2.0, 'Plausibilitätsfaktor für Zählersprünge', 'Energiezählung'],
             'MeterJumpSlack' => [0.02, 'Zählersprung-Toleranz (kWh)', 'Energiezählung'],
             'BillingTimezone' => ['Europe/Berlin', 'Zeitzone der Ladeabrechnungen', 'Abrechnung']
-        ] + self::invoice();
+        ] + self::invoice() + self::shared();
+    }
+
+    /** New common property => former per-wallbox property (kept for migration). */
+    public static function sharedMap(): array
+    {
+        return [
+            'WallboxStartDelay' => 'StartDelay', 'WallboxMinRun' => 'MinRun', 'WallboxStopDelay' => 'StopDelay',
+            'WallboxMinPause' => 'MinPause', 'WallboxHysteresisW' => 'HysteresisW', 'WallboxCommandGap' => 'CommandGap',
+            'BillingEnabled' => 'BillingEnabled', 'BillingPVVar' => 'BillingPVVar', 'BillingPVPrice' => 'BillingPVPrice',
+            'BillingNormalPrice' => 'BillingNormalPrice', 'BillingIdleSeconds' => 'BillingIdleSeconds', 'BillingMinPowerW' => 'BillingMinPowerW'
+        ] + array_combine(array_keys(self::invoiceRecipient()), array_keys(self::invoiceRecipient()));
+    }
+
+    public static function shared(): array
+    {
+        $definitions = self::wallbox(); $out = [];
+        foreach (self::sharedMap() as $name => $former) {
+            $out[$name] = $definitions[$former];
+            if (str_starts_with($name, 'Invoice')) $out[$name][2] = 'Rechnung: Empfänger';
+        }
+        $out['BillingEnabled'][1] = 'Ladeabrechnung für alle Wallboxen aktivieren';
+        $out['WallboxHysteresisW'][1] = 'Gemeinsame Wallbox-Hysterese (W; -1 = Budget-Hysterese)';
+        return $out;
+    }
+
+    public static function visibleWallbox(): array
+    {
+        return array_diff_key(self::wallbox(), array_flip(array_values(self::sharedMap())));
+    }
+
+    public static function isLegacy(string $name): bool
+    {
+        return preg_match('/^W[1-4](.+)$/', $name, $match) && in_array($match[1], self::sharedMap(), true);
     }
 
     public static function invoice(): array
@@ -183,11 +216,16 @@ final class Schema
 
     public static function unpack(array $flat): array
     {
+        $provided = $flat;
         $flat = array_replace(self::defaults(), $flat);
         $out = ['global' => [], 'boxes' => [], 'battery' => []];
         foreach (self::global() as $key => $_) $out['global'][$key] = $flat[$key];
         for ($i = 1; $i <= 4; $i++) {
             foreach (self::wallbox() as $key => $_) $out['boxes'][$i][$key] = $flat['W' . $i . $key];
+            // Old persisted snapshots retain their original tariffs at the edit boundary.
+            foreach (self::sharedMap() as $name => $former) {
+                if (array_key_exists($name, $provided)) $out['boxes'][$i][$former] = $flat[$name];
+            }
             // Preserve stored settings; places above the selected count are inactive.
             $out['boxes'][$i]['Enabled'] = $out['boxes'][$i]['Enabled'] && $i <= $flat['WallboxCount'];
         }
@@ -199,16 +237,20 @@ final class Schema
     {
         $links = [];
         foreach (self::definitions() as $key => $def) {
+            if (self::isLegacy($key)) continue;
             if (!isset($def[4])) continue;
             $active = true;
             if (preg_match('/^W([1-4])(.+)$/', $key, $m)) {
                 $active = (bool)$flat['W' . $m[1] . 'Enabled'] && (int)$m[1] <= ($flat['WallboxCount'] ?? 4);
-                if (str_starts_with($m[2], 'Billing')) $active = $active && $flat['W' . $m[1] . 'BillingEnabled'];
                 if (str_starts_with($m[2], 'Phase') && in_array($m[2], ['PhaseCommandVar', 'PhaseFeedbackVar'], true)) {
                     $active = $active && $flat['W' . $m[1] . 'PhaseMode'] === 'dynamic';
                 }
             }
-            if (str_starts_with($key, 'B') && $key !== 'BudgetVar') $active = (bool)$flat['BEnabled'];
+            if (str_starts_with($key, 'B') && isset(self::battery()[substr($key, 1)])) $active = (bool)$flat['BEnabled'];
+            if ($key === 'BillingPVVar') {
+                $boxes = self::unpack($flat)['boxes'];
+                $active = ($flat['BillingEnabled'] ?? false) && count(array_filter($boxes, static fn($box) => $box['Enabled'])) > 0;
+            }
             if ($active) $links[$key] = ['id' => (int)$flat[$key], 'write' => $def[3] === 'write', 'types' => $def[4], 'required' => $def[5], 'label' => $def[1]];
         }
         return $links;

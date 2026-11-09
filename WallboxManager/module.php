@@ -13,11 +13,23 @@ class WallboxManager extends IPSModule
     public function Create()
     {
         parent::Create();
+        foreach (['Runtime', 'Configuration', 'Telemetry', 'OwnedTargets', 'SharedDefaults'] as $key) $this->RegisterAttributeString($key, '{}');
         foreach (Schema::definitions() as $key => $def) {
+            if (isset(Schema::sharedMap()[$key])) continue;
             $method = 'RegisterProperty' . (is_bool($def[0]) ? 'Boolean' : (is_int($def[0]) ? 'Integer' : (is_float($def[0]) ? 'Float' : 'String')));
             $this->$method($key, $def[0]);
         }
-        foreach (['Runtime', 'Configuration', 'Telemetry', 'OwnedTargets'] as $key) $this->RegisterAttributeString($key, '{}');
+        $sharedDefaults = $this->jsonAttribute('SharedDefaults');
+        foreach (Schema::shared() as $key => $def) {
+            $type = is_bool($def[0]) ? 'Boolean' : (is_int($def[0]) ? 'Integer' : (is_float($def[0]) ? 'Float' : 'String'));
+            if (!array_key_exists($key, $sharedDefaults)) {
+                $read = 'ReadProperty' . $type;
+                $sharedDefaults[$key] = $this->$read('W1' . Schema::sharedMap()[$key]);
+            }
+            $register = 'RegisterProperty' . $type;
+            $this->$register($key, $sharedDefaults[$key]);
+        }
+        $this->WriteAttributeString('SharedDefaults', $this->encode($sharedDefaults));
         $this->RegisterTimer('Control', 0, 'WBM_Control($_IPS["TARGET"]);');
         $this->RegisterTimer('Deferred', 0, 'WBM_Control($_IPS["TARGET"]);');
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
@@ -124,9 +136,9 @@ class WallboxManager extends IPSModule
         if ($Message === VM_UPDATE) {
             // Process every measurement event, including unchanged updates.
             $flat = $this->configuration();
-            $isMeasurement = false;
+            $isMeasurement = (int)$SenderID === $flat['BillingPVVar'];
             for ($i = 1; $i <= 4; $i++) {
-                if (in_array((int)$SenderID, [(int)$flat['W' . $i . 'PowerVar'], (int)$flat['W' . $i . 'EnergyVar'], (int)$flat['W' . $i . 'BillingPVVar']], true)) $isMeasurement = true;
+                if (in_array((int)$SenderID, [(int)$flat['W' . $i . 'PowerVar'], (int)$flat['W' . $i . 'EnergyVar']], true)) $isMeasurement = true;
             }
             if ($isMeasurement && IPS_SemaphoreEnter($this->lockName(), 0)) {
                 try {

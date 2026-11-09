@@ -412,7 +412,6 @@
     function closeDashboard() {
         dashboardOpen = false; selectEnergy(null);
         el('energy-dashboard').hidden = true; el('tile-view').hidden = false;
-        if (document.fullscreenElement === el('wbm') && document.exitFullscreen) document.exitFullscreen().catch(function () {});
         el('energy-open').focus();
     }
     function countdown() {
@@ -438,12 +437,6 @@
     el('battery-enable').addEventListener('change', function () { action('BatteryEnabled', this.checked); });
     el('energy-open').addEventListener('click', openDashboard);
     el('energy-close').addEventListener('click', closeDashboard);
-    el('energy-fullscreen').hidden = !(el('wbm').requestFullscreen && document.fullscreenEnabled);
-    el('energy-fullscreen').addEventListener('click', function () {
-        var pending = document.fullscreenElement === el('wbm') ? document.exitFullscreen() : el('wbm').requestFullscreen();
-        // Some Symcon iframe hosts do not grant fullscreen; the dashboard remains usable.
-        pending.catch(function () { el('energy-fullscreen').hidden = true; });
-    });
     if (typeof document.addEventListener === 'function') {
         document.addEventListener('keydown', function (event) {
             if (!dashboardOpen) return;
@@ -454,11 +447,6 @@
                 if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
                 else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
             }
-        });
-        document.addEventListener('fullscreenchange', function () {
-            var active = document.fullscreenElement === el('wbm');
-            el('energy-fullscreen').setAttribute('aria-label', active ? 'Vollbild beenden' : 'Dashboard im Vollbild anzeigen');
-            if (dashboardOpen) highlightEnergy();
         });
     }
     syncTheme();

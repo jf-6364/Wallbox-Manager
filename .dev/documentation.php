@@ -7,11 +7,12 @@ $md = "# Einstellungen und Variablen\n\nDie Definitionen werden aus libs/Schema.
 $md .= "Die Sollwertziele müssen im Normalbetrieb Geräteaktionen besitzen. Alle externen Freigaben sind ausschließlich Lesebedingungen.\n\n";
 $md .= "Von Gerätemodulen angelegte Sollwertvariablen können als Objekt schreibgeschützt sein und trotzdem eine Geräteaktion besitzen. Dieser Objektschutz muss für die Steuerung nicht entfernt werden. Gesperrte Variablenwerte und fehlende Geräteaktionen werden weiterhin abgelehnt.\n\n";
 $md .= "Dezimaleinstellungen werden mit Komma eingegeben: Amperewerte mit einer, andere Werte mit höchstens zwei Nachkommastellen. Änderungen werden über „Übernehmen“ gespeichert. Die bisherigen numerischen Eigenschaften bleiben erhalten; Mess- und Rechenwerte werden intern nicht für die Anzeige gerundet.\n\n";
-$md .= "Die Anzahl der konfigurierbaren Wallboxen wird unter Allgemein und Budget mit WallboxCount auf 1 bis 4 begrenzt. Die Formularbereiche werden sofort ein-/ausgeblendet; erst Übernehmen ändert den Betrieb. Höhere Plätze werden gestoppt und deaktiviert, ihre gespeicherten Einstellungen, Variablen und PDFs bleiben erhalten. Innerhalb der gewählten Anzahl gilt weiterhin Platz aktiviert. Standardmäßig bleiben vier Plätze verfügbar, damit bestehende Installationen unverändert weiterarbeiten.\n\n";
+$md .= "Die Anzahl der konfigurierbaren Wallboxen wird unter Allgemein mit WallboxCount auf 1 bis 4 begrenzt. Die Formularbereiche werden sofort ein-/ausgeblendet; erst Übernehmen ändert den Betrieb. Höhere Plätze werden gestoppt und deaktiviert, ihre gespeicherten Einstellungen, Variablen und PDFs bleiben erhalten. Innerhalb der gewählten Anzahl gilt weiterhin Platz aktiviert. Standardmäßig bleiben vier Plätze verfügbar, damit bestehende Installationen unverändert weiterarbeiten.\n\n";
+$md .= "Zeitbedingungen stehen zentral unter Allgemein → Zeitbedingungen, Abrechnung und sämtliche Rechnungsdaten unter Allgemein → Abrechnung. Sie gelten für alle Wallboxen, einschließlich gemeinsamem PV-Signal, Preisen und Empfänger. Ladegänge und PDFs bleiben getrennt je Wallbox. Beim ersten Update werden die bisherigen Werte von Wallbox 1 übernommen. SharedDefaults hält diese Registrierungsdefaults dauerhaft stabil; spätere gemeinsame Änderungen bleiben maßgeblich. Die früheren Wn-Zeit-, Abrechnungs- und Empfängereigenschaften bleiben ausschließlich zur Migration registriert und erscheinen nicht mehr im Formular. Alte Configuration-Schnappschüsse behalten ihre ursprünglichen Tarifwerte für den Übernahmezeitpunkt.\n\n";
 $md .= "## Variablenverknüpfungen\n\n| Eigenschaft | Zweck | Datentyp | Einheit | Pflicht | Zugriff |\n|---|---|---|---|---|---|\n";
 $unitMap = ['BudgetVar' => 'W/kW (BudgetUnit)', 'SetpointVar' => 'A/W/kW (SetpointUnit)', 'PowerVar' => 'W/kW (PowerUnit)', 'EnergyVar' => 'Wh/kWh (EnergyUnit)',
     'SocVar' => '%', 'LimitVar' => 'W/kW (LimitUnit)', 'PhaseCommandVar' => 'Gerätewerte für 1/3 Phasen', 'PhaseFeedbackVar' => 'Wertezuordnung für 1/3 Phasen'];
-foreach (['' => Schema::global(), 'Wn' => Schema::wallbox(), 'B' => Schema::battery()] as $prefix => $defs) {
+foreach (['' => Schema::global(), 'Wn' => Schema::visibleWallbox(), 'B' => Schema::battery()] as $prefix => $defs) {
     foreach ($defs as $key => $d) {
         if (!isset($d[4])) continue;
         $type = implode('/', array_map(fn($v) => ['Boolean', 'Integer', 'Float', 'String'][$v], $d[4]));
@@ -24,7 +25,7 @@ foreach (['' => Schema::global(), 'Wn' => Schema::wallbox(), 'B' => Schema::batt
 }
 $md .= "\nExterne Freigabe = zusätzliche Sperrbedingung. DeviceEnableVar = tatsächlicher Gerätebefehl mit konfigurierbarer Polaritität. Manual = eigene Bedienvariable des Managers. Diese Rollen sind nicht austauschbar.\n";
 $md .= "\nErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilligen Zustand. HeartbeatVar: der Wert ist unerheblich, seine letzte Aktualisierung zählt.\n";
-foreach (['Allgemein' => Schema::global(), 'Wallbox Wn' => Schema::wallbox(), 'Speicher B' => Schema::battery()] as $caption => $defs) {
+foreach (['Allgemein' => Schema::global(), 'Wallbox Wn' => Schema::visibleWallbox(), 'Speicher B' => Schema::battery()] as $caption => $defs) {
     $prefix = $caption === 'Allgemein' ? '' : ($caption === 'Wallbox Wn' ? 'Wn' : 'B');
     $md .= "\n## $caption: sämtliche Einstellungen\n\n| Eigenschaft | Standard | Bedeutung / Einheit | Bereich |\n|---|---|---|---|\n";
     foreach ($defs as $key => $d) {
@@ -85,7 +86,7 @@ foreach (['WBM_Control(int InstanceID)' => 'Einen Regeldurchlauf auslösen', 'WB
 'WBM_GetBillingStatus(int InstanceID, int Wallbox)' => 'JSON mit laufendem/letztem Ladegang, Tarifmengen, Kosten, Summen und PDF-Status (Wallbox 1–4)',
 'WBM_GetBillingPDF(int InstanceID, int Wallbox)' => 'Letzte gespeicherte PDF als Base64-String; leer, solange kein Dokument bereitliegt',
 'WBM_ControlTargets(int InstanceID)' => 'Internes JSON der beanspruchten Steuerziele; dient Instanzkonfliktprüfung'] as $name => $purpose) $md .= "| $t$name$t | $purpose |\n";
-$md .= "\nRuntime, Configuration, Telemetry und OwnedTargets sind persistente String-Attribute. Laufende Abrechnungen, Tarifpositionen und die PDF-Warteschlange liegen in Runtime. PDFs sind Dokumentmedien im Objektbaum und im media-Verzeichnis. Puffer halten flüchtige Startmarkierung und PDF-Kopien für die Kachel. Steuerzielübernahme ist instanzübergreifend durch eine Semaphore geschützt. Details: [Ladeabrechnung](ABRECHNUNG.md).\n";
+$md .= "\nRuntime, Configuration, Telemetry, OwnedTargets und SharedDefaults sind persistente String-Attribute. Laufende Abrechnungen, Tarifpositionen und die PDF-Warteschlange liegen in Runtime. PDFs sind Dokumentmedien im Objektbaum und im media-Verzeichnis. Puffer halten flüchtige Startmarkierung und PDF-Kopien für die Kachel. Steuerzielübernahme ist instanzübergreifend durch eine Semaphore geschützt. Details: [Ladeabrechnung](ABRECHNUNG.md).\n";
 file_put_contents(__DIR__ . '/../docs/KONFIGURATION.md', $md);
 
 $two = [

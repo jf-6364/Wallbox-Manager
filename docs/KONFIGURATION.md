@@ -7,13 +7,16 @@ Von Gerätemodulen angelegte Sollwertvariablen können als Objekt schreibgeschü
 
 Dezimaleinstellungen werden mit Komma eingegeben: Amperewerte mit einer, andere Werte mit höchstens zwei Nachkommastellen. Änderungen werden über „Übernehmen“ gespeichert. Die bisherigen numerischen Eigenschaften bleiben erhalten; Mess- und Rechenwerte werden intern nicht für die Anzeige gerundet.
 
-Die Anzahl der konfigurierbaren Wallboxen wird unter Allgemein und Budget mit WallboxCount auf 1 bis 4 begrenzt. Die Formularbereiche werden sofort ein-/ausgeblendet; erst Übernehmen ändert den Betrieb. Höhere Plätze werden gestoppt und deaktiviert, ihre gespeicherten Einstellungen, Variablen und PDFs bleiben erhalten. Innerhalb der gewählten Anzahl gilt weiterhin Platz aktiviert. Standardmäßig bleiben vier Plätze verfügbar, damit bestehende Installationen unverändert weiterarbeiten.
+Die Anzahl der konfigurierbaren Wallboxen wird unter Allgemein mit WallboxCount auf 1 bis 4 begrenzt. Die Formularbereiche werden sofort ein-/ausgeblendet; erst Übernehmen ändert den Betrieb. Höhere Plätze werden gestoppt und deaktiviert, ihre gespeicherten Einstellungen, Variablen und PDFs bleiben erhalten. Innerhalb der gewählten Anzahl gilt weiterhin Platz aktiviert. Standardmäßig bleiben vier Plätze verfügbar, damit bestehende Installationen unverändert weiterarbeiten.
+
+Zeitbedingungen stehen zentral unter Allgemein → Zeitbedingungen, Abrechnung und sämtliche Rechnungsdaten unter Allgemein → Abrechnung. Sie gelten für alle Wallboxen, einschließlich gemeinsamem PV-Signal, Preisen und Empfänger. Ladegänge und PDFs bleiben getrennt je Wallbox. Beim ersten Update werden die bisherigen Werte von Wallbox 1 übernommen. SharedDefaults hält diese Registrierungsdefaults dauerhaft stabil; spätere gemeinsame Änderungen bleiben maßgeblich. Die früheren Wn-Zeit-, Abrechnungs- und Empfängereigenschaften bleiben ausschließlich zur Migration registriert und erscheinen nicht mehr im Formular. Alte Configuration-Schnappschüsse behalten ihre ursprünglichen Tarifwerte für den Übernahmezeitpunkt.
 
 ## Variablenverknüpfungen
 
 | Eigenschaft | Zweck | Datentyp | Einheit | Pflicht | Zugriff |
 |---|---|---|---|---|---|
 | `BudgetVar` | Absolutes Grundbudget ohne Speicher | Integer/Float | W/kW (BudgetUnit) | bei aktivem Manager/Platz | Lesen, nie Gerätebefehl |
+| `BillingPVVar` | PV-Überschussladen (true = PV, false = Normal; optional) | Boolean | – | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
 | `WnExternalVar` | Externe Freigabebedingung (optional) | Boolean | – | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
 | `WnDemandVar` | Fahrzeug verbunden / Ladebedarf (optional) | Boolean | – | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
 | `WnErrorVar` | Gerätefehler (true = Fehler; optional) | Boolean | – | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
@@ -21,7 +24,6 @@ Die Anzahl der konfigurierbaren Wallboxen wird unter Allgemein und Budget mit Wa
 | `WnDeviceEnableVar` | Separate Geräte-Ladefreigabe (optional) | Boolean | – | optional, 0 = unverbunden | Schreiben per Aktion; Lesen zur Diagnose |
 | `WnPowerVar` | Tatsächliche Ladeleistung | Integer/Float | W/kW (PowerUnit) | bei aktivem Manager/Platz | Lesen, nie Gerätebefehl |
 | `WnEnergyVar` | Kumulativer Geräte-Energiezähler (optional) | Integer/Float | Wh/kWh (EnergyUnit) | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
-| `WnBillingPVVar` | PV-Überschussladen (true = PV, false = Normal; optional) | Boolean | – | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
 | `WnHeartbeatVar` | Geräte-Heartbeat (optional; Aktualisierung zählt) | Boolean/Integer/Float/String | – | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
 | `WnPhaseCommandVar` | Phasenwechsel: Befehlsvariable | Integer/Float | Gerätewerte für 1/3 Phasen | nur dynamischer Betrieb | Schreiben per Aktion; Lesen zur Diagnose |
 | `WnPhaseFeedbackVar` | Phasenwechsel: tatsächliche Rückmeldung | Integer/Float | Wertezuordnung für 1/3 Phasen | nur dynamischer Betrieb | Lesen, nie Gerätebefehl |
@@ -39,15 +41,15 @@ ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilli
 
 | Eigenschaft | Standard | Bedeutung / Einheit | Bereich |
 |---|---|---|---|
-| `Enabled` | `false` | Manager bei Erstkonfiguration aktivieren | Allgemein und Budget |
-| `WallboxCount` | `4` | Anzahl Wallboxen | Allgemein und Budget |
-| `BudgetVar` | `0` | Absolutes Grundbudget ohne Speicher | Allgemein und Budget |
-| `BudgetUnit` | `W` | Einheit Grundbudget | Allgemein und Budget |
-| `Interval` | `5` | Regelintervall (s) | Allgemein und Budget |
-| `Hysteresis` | `200` | Globale Hysterese | Allgemein und Budget |
-| `HysteresisUnit` | `W` | Einheit Hysterese | Allgemein und Budget |
-| `HardLimitW` | `0` | Harter Gesamtgrenzwert (W; 0 = kein zusätzlicher) | Allgemein und Budget |
-| `BudgetMaxAge` | `0` | Budgetüberwachung (s; 0 = aus) | Allgemein und Budget |
+| `Enabled` | `false` | Manager bei Erstkonfiguration aktivieren | Allgemein |
+| `WallboxCount` | `4` | Anzahl Wallboxen | Allgemein |
+| `BudgetVar` | `0` | Absolutes Grundbudget ohne Speicher | Allgemein |
+| `BudgetUnit` | `W` | Einheit Grundbudget | Allgemein |
+| `Interval` | `5` | Regelintervall (s) | Allgemein |
+| `Hysteresis` | `200` | Globale Hysterese | Allgemein |
+| `HysteresisUnit` | `W` | Einheit Hysterese | Allgemein |
+| `HardLimitW` | `0` | Harter Gesamtgrenzwert (W; 0 = kein zusätzlicher) | Allgemein |
+| `BudgetMaxAge` | `0` | Budgetüberwachung (s; 0 = aus) | Allgemein |
 | `Mode` | `0` | Anfängliche Verteilung (0 = gleichmäßig, 1 = Priorität) | Verteilungsmodus |
 | `Rotation` | `900` | Rotation bei knappem Budget (s; 0 = aus) | Verteilungsmodus |
 | `StrictBudget` | `true` | Budget strikt einhalten | Verteilungsmodus |
@@ -84,6 +86,25 @@ ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilli
 | `InvoiceTaxRate` | `19` | Umsatzsteuersatz (%) | Rechnung: Nummer und Steuer |
 | `InvoiceTaxNumber` | `(leer)` | Steuernummer (optional) | Rechnung: Nummer und Steuer |
 | `InvoiceVATID` | `(leer)` | USt-IdNr. (optional) | Rechnung: Nummer und Steuer |
+| `WallboxStartDelay` | `10` | Einschaltverzögerung (s) | Zeitbedingungen |
+| `WallboxMinRun` | `120` | Mindestlaufzeit (s) | Zeitbedingungen |
+| `WallboxStopDelay` | `30` | Nachlaufzeit bei Leistungsmangel (s) | Zeitbedingungen |
+| `WallboxMinPause` | `60` | Mindestpause (s) | Zeitbedingungen |
+| `WallboxHysteresisW` | `-1` | Gemeinsame Wallbox-Hysterese (W; -1 = Budget-Hysterese) | Zeitbedingungen |
+| `WallboxCommandGap` | `0` | Mindestabstand für Erhöhungsbefehle (s) | Zeitbedingungen |
+| `BillingEnabled` | `false` | Ladeabrechnung für alle Wallboxen aktivieren | Abrechnung |
+| `BillingPVVar` | `0` | PV-Überschussladen (true = PV, false = Normal; optional) | Abrechnung |
+| `BillingPVPrice` | `0` | PV-Preis (EUR/kWh) | Abrechnung |
+| `BillingNormalPrice` | `0` | Normalpreis (EUR/kWh) | Abrechnung |
+| `BillingIdleSeconds` | `600` | Ladepause bis zum Abschluss (s) | Abrechnung |
+| `BillingMinPowerW` | `50` | Leistungsschwelle für einen Ladegang (W) | Abrechnung |
+| `InvoiceRecipientName` | `(leer)` | Rechnungsempfänger: Name / Firma | Rechnung: Empfänger |
+| `InvoiceRecipientStreet` | `(leer)` | Straße / Hausnummer | Rechnung: Empfänger |
+| `InvoiceRecipientZip` | `(leer)` | Postleitzahl | Rechnung: Empfänger |
+| `InvoiceRecipientCity` | `(leer)` | Ort | Rechnung: Empfänger |
+| `InvoiceRecipientCountry` | `(leer)` | Land | Rechnung: Empfänger |
+| `InvoiceCustomerNumber` | `(leer)` | Kundennummer (optional) | Rechnung: Empfänger |
+| `InvoiceReference` | `(leer)` | Referenz / Kennzeichen (optional) | Rechnung: Empfänger |
 
 ## Wallbox Wn: sämtliche Einstellungen
 
@@ -110,12 +131,6 @@ ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilli
 | `WnPowerUnit` | `W` | Einheit Ladeleistungsmessung | Messwerte |
 | `WnEnergyVar` | `0` | Kumulativer Geräte-Energiezähler (optional) | Messwerte |
 | `WnEnergyUnit` | `kWh` | Einheit Geräte-Energiezähler | Messwerte |
-| `WnBillingEnabled` | `false` | Abrechnung für diese Wallbox aktivieren | Abrechnung |
-| `WnBillingPVVar` | `0` | PV-Überschussladen (true = PV, false = Normal; optional) | Abrechnung |
-| `WnBillingPVPrice` | `0` | PV-Preis (EUR/kWh) | Abrechnung |
-| `WnBillingNormalPrice` | `0` | Normalpreis (EUR/kWh) | Abrechnung |
-| `WnBillingIdleSeconds` | `600` | Ladepause bis zum Abschluss (s) | Abrechnung |
-| `WnBillingMinPowerW` | `50` | Leistungsschwelle für einen Ladegang (W) | Abrechnung |
 | `WnMaxAge` | `0` | Messwertalter / Heartbeat-Timeout (s; 0 = aus) | Messwerte |
 | `WnHeartbeatVar` | `0` | Geräte-Heartbeat (optional; Aktualisierung zählt) | Messwerte |
 | `WnVoltage` | `230` | Spannung Außenleiter–Neutralleiter (V) | Phasen |
@@ -136,19 +151,6 @@ ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilli
 | `WnPhaseBefore` | `5` | Wartezeit vor Phasenbefehl (s) | Dynamische Phasenumschaltung |
 | `WnPhaseAfter` | `5` | Wartezeit nach bestätigtem Wechsel (s) | Dynamische Phasenumschaltung |
 | `WnPhaseTimeout` | `60` | Stillstands-/Rückmeldetimeout (s) | Dynamische Phasenumschaltung |
-| `WnStartDelay` | `10` | Einschaltverzögerung (s) | Zeitbedingungen |
-| `WnMinRun` | `120` | Mindestlaufzeit (s) | Zeitbedingungen |
-| `WnStopDelay` | `30` | Nachlaufzeit bei Leistungsmangel (s) | Zeitbedingungen |
-| `WnMinPause` | `60` | Mindestpause (s) | Zeitbedingungen |
-| `WnHysteresisW` | `-1` | Eigene Hysterese (W; -1 = global) | Zeitbedingungen |
-| `WnCommandGap` | `0` | Mindestabstand für Erhöhungsbefehle (s) | Zeitbedingungen |
-| `WnInvoiceRecipientName` | `(leer)` | Rechnungsempfänger: Name / Firma | Rechnung |
-| `WnInvoiceRecipientStreet` | `(leer)` | Straße / Hausnummer | Rechnung |
-| `WnInvoiceRecipientZip` | `(leer)` | Postleitzahl | Rechnung |
-| `WnInvoiceRecipientCity` | `(leer)` | Ort | Rechnung |
-| `WnInvoiceRecipientCountry` | `(leer)` | Land | Rechnung |
-| `WnInvoiceCustomerNumber` | `(leer)` | Kundennummer (optional) | Rechnung |
-| `WnInvoiceReference` | `(leer)` | Referenz / Kennzeichen (optional) | Rechnung |
 
 ## Speicher B: sämtliche Einstellungen
 
@@ -238,4 +240,4 @@ Die 17 Manager-/Speichervariablen und 21 Variablen je Platz ergeben 101 Variable
 | `WBM_GetBillingPDF(int InstanceID, int Wallbox)` | Letzte gespeicherte PDF als Base64-String; leer, solange kein Dokument bereitliegt |
 | `WBM_ControlTargets(int InstanceID)` | Internes JSON der beanspruchten Steuerziele; dient Instanzkonfliktprüfung |
 
-Runtime, Configuration, Telemetry und OwnedTargets sind persistente String-Attribute. Laufende Abrechnungen, Tarifpositionen und die PDF-Warteschlange liegen in Runtime. PDFs sind Dokumentmedien im Objektbaum und im media-Verzeichnis. Puffer halten flüchtige Startmarkierung und PDF-Kopien für die Kachel. Steuerzielübernahme ist instanzübergreifend durch eine Semaphore geschützt. Details: [Ladeabrechnung](ABRECHNUNG.md).
+Runtime, Configuration, Telemetry, OwnedTargets und SharedDefaults sind persistente String-Attribute. Laufende Abrechnungen, Tarifpositionen und die PDF-Warteschlange liegen in Runtime. PDFs sind Dokumentmedien im Objektbaum und im media-Verzeichnis. Puffer halten flüchtige Startmarkierung und PDF-Kopien für die Kachel. Steuerzielübernahme ist instanzübergreifend durch eine Semaphore geschützt. Details: [Ladeabrechnung](ABRECHNUNG.md).

@@ -35,19 +35,19 @@ test('Rechnung: Zahlungsfrist folgt Kalendertagen auch beim Wechsel der Sommerze
     $sequence = 0; $record = Invoice::issue(finishedBill()['last'], invoiceProfile(['PaymentDays' => 2]), $sequence, $now);
     check(BillingPdf::date($record['invoice']['dueAt'], 'Europe/Berlin') === '26.10.2026 12:00:00');
 });
-test('Rechnung: Rechnungseinstellungen sind unter Abrechnung verschachtelt; Empfänger bleiben je Wallbox getrennt', function () {
-    $flat = Schema::defaults(); $flat['W1InvoiceRecipientName'] = 'Kunde A'; $flat['W2InvoiceRecipientName'] = 'Kunde B';
+test('Rechnung: gemeinsame Rechnungsdaten und Empfänger stehen unter Allgemein / Abrechnung', function () {
+    $flat = Schema::defaults(); $flat['InvoiceRecipientName'] = 'Gemeinsamer Kunde';
     $form = Form::build($flat, [], '');
-    $billing = array_values(array_filter($form['elements'], fn($g) => ($g['caption'] ?? '') === 'Abrechnung'))[0];
+    $general = array_values(array_filter($form['elements'], fn($g) => ($g['caption'] ?? '') === 'Allgemein'))[0];
+    $billing = array_values(array_filter($general['items'], fn($g) => ($g['caption'] ?? '') === 'Abrechnung'))[0];
     $invoices = array_values(array_filter($billing['items'], fn($g) => ($g['caption'] ?? '') === 'Rechnung'));
     check(count($invoices) === 1); check(str_contains(json_encode($invoices[0]), 'InvoiceSenderName'));
-    check(!str_contains(json_encode($invoices[0]), 'W1InvoiceRecipientName'));
+    check(str_contains(json_encode($invoices[0]), 'InvoiceRecipientName'));
     foreach ([1, 2] as $id) {
         $wallbox = array_values(array_filter($form['elements'], fn($g) => ($g['name'] ?? '') === 'WallboxPanel' . $id))[0];
-        $boxBilling = array_values(array_filter($wallbox['items'], fn($g) => $g['caption'] === 'Abrechnung'))[0];
-        $boxInvoice = array_values(array_filter($boxBilling['items'], fn($g) => ($g['caption'] ?? '') === 'Rechnung'))[0];
-        check(str_contains(json_encode($boxInvoice), 'W' . $id . 'InvoiceRecipientName'));
-        check(Invoice::profile(Schema::unpack($flat)['global'], Schema::unpack($flat)['boxes'][$id])['RecipientName'] === ($id === 1 ? 'Kunde A' : 'Kunde B'));
+        check(!str_contains(json_encode($wallbox), 'InvoiceRecipientName'));
+        check(!in_array('Abrechnung', array_column($wallbox['items'], 'caption'), true));
+        check(Invoice::profile(Schema::unpack($flat)['global'], Schema::unpack($flat)['boxes'][$id])['RecipientName'] === 'Gemeinsamer Kunde');
     }
 });
 test('Rechnung: PDF enthält Adressen, Bank, Nummer und nur den ausgewählten Steuerhinweis', function () {
@@ -68,12 +68,12 @@ test('Rechnung: lange Adressen und Zahlungstexte bleiben vollständig auf zusät
 });
 test('Adapter Rechnung: Daten und Nummer bleiben bei Schreibfehler / späteren Änderungen unverändert; PDFs sammeln sich', function () {
     [$m] = billingFixture();
-    $m->properties['InvoiceSenderName'] = 'Absender ALT'; $m->properties['W1InvoiceRecipientName'] = 'Empfänger ALT';
+    $m->properties['InvoiceSenderName'] = 'Absender ALT'; $m->properties['InvoiceRecipientName'] = 'Empfänger ALT';
     $m->properties['InvoiceTaxMode'] = 'included'; $m->properties['InvoiceTaxRate'] = 19.0; $m->ApplyChanges();
     seedIdleBill($m); Kernel::$failures['media'] = 'Datenträger voll'; $m->Control();
     $s = runtimeOf($m); $frozen = $s['billing'][1]['last']['invoice'];
     check($frozen['profile']['SenderName'] === 'Absender ALT'); check($frozen['sequence'] === 1); check($s['invoiceSequence'] === 1);
-    $m->properties['InvoiceSenderName'] = 'Absender NEU'; $m->properties['W1InvoiceRecipientName'] = 'Empfänger NEU'; $m->properties['InvoiceTaxRate'] = 7.0;
+    $m->properties['InvoiceSenderName'] = 'Absender NEU'; $m->properties['InvoiceRecipientName'] = 'Empfänger NEU'; $m->properties['InvoiceTaxRate'] = 7.0;
     $deviceCalls = count(Kernel::$calls);
     $m->ApplyChanges(); check(count(Kernel::$calls) === $deviceCalls, 'Rechnungsdaten dürfen keine Gerätebefehle auslösen');
     unset(Kernel::$failures['media']); $m->Control();

@@ -23,8 +23,8 @@ foreach ([1, 2] as $id) {
         'lines' => [['mode' => 'pv', 'energy' => $id === 1 ? 8.5 : 4.2, 'price' => 0.10], ['mode' => 'normal', 'energy' => $id === 1 ? 3.25 : 2.0, 'price' => 0.32]]];
     $record = Billing::record($session) + ['ended' => $time - 600, 'reason' => 'Eingestellte Ladepause erreicht', 'mediaID' => 0, 'fileName' => 'Wallbox-' . $id . '-Beispiel.pdf'];
     $profile = array_replace(Invoice::profile([], []), ['SenderName' => 'Solarservice Muster', 'SenderStreet' => 'Sonnenstraße 12',
-        'SenderZip' => '90443', 'SenderCity' => 'Nürnberg', 'RecipientName' => $id === 1 ? 'Max Beispiel' : 'Erika Beispiel',
-        'RecipientStreet' => 'Musterstraße ' . $id, 'RecipientZip' => '90443', 'RecipientCity' => 'Nürnberg',
+        'SenderZip' => '90443', 'SenderCity' => 'Nürnberg', 'RecipientName' => 'Max Beispiel',
+        'RecipientStreet' => 'Musterstraße 14', 'RecipientZip' => '90443', 'RecipientCity' => 'Nürnberg',
         'Prefix' => 'MUSTER', 'TaxMode' => 'included', 'LogoText' => 'SM']);
     $record = Invoice::issue($record, $profile, $previewInvoiceSequence, $time);
     $record['fileName'] = $record['invoice']['number'] . '.pdf';

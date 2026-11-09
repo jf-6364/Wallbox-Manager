@@ -2,7 +2,7 @@
 
 ## Ausgeführt
 
-- **120 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- **124 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
 - **12 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
@@ -22,6 +22,12 @@
   Gerätefreigaben und Speicherwechsel sind abgedeckt. Die Stillstandsprüfung
   aktueller Wallboxen bleibt wirksam; Energiearchive und vorhandene PDFs bleiben
   erhalten, laufende Abrechnungen werden beim Gerätewechsel abgeschlossen.
+- Gemeinsame Einstellungen geprüft: Zeitbedingungen, Abrechnung, PV-Signal und
+  Rechnungsempfänger gelten für alle vier Plätze. Migration übernimmt einmalig
+  Wallbox 1 und erhält später gesetzte gemeinsame Werte auch bei Create/Neustart.
+  Alte Configuration-Schnappschüsse bewahren ihre Tarifwerte; ein gemeinsamer
+  PV-/Preiswechsel wird für beide gleichzeitig laufenden Ladegänge verarbeitet.
+  PDFs bleiben je Wallbox getrennt. Das Formular zeigt keine alten Einzelbereiche.
 - Zusätzliche Chromium-Prüfung der tatsächlichen HTML/CSS/JS-Kachel: acht Größen
   von 240 × 260 bis 1440 × 900 Pixeln, flache Hauptansicht, eine aufklappbare
   Detailebene, erreichbare Bedienung und keine horizontale Überbreite.
@@ -30,7 +36,7 @@
   optionaler Speicher und lange Fehlertexte.
 - Energie-Dashboard in Chromium geprüft: Ringsegmente und Verbrauchsliste für
   eine bis vier Wallboxen, Gesamtenergie und Prozentanteile, Maus-Hover,
-  Touch-Ereignisse, Tastaturfokus, Escape, Fokusbegrenzung und Vollbild.
+  Touch-Ereignisse, Tastaturfokus, Escape, Fokusbegrenzung und Symcon-Kopfzeile.
   Live-Aktualisierungen erhalten vorhandene Diagrammelemente und den Fokus.
   Nullverbrauch, archivierte Energie, deaktivierte Plätze und ältere Telemetrie
   sind abgedeckt. Die Dashboard-Bedienung löst keine Gerätebefehle aus.
@@ -46,7 +52,7 @@
   Seiten geprüft. Eine Beispielabrechnung wurde zusätzlich mit `pdftotext`
   gelesen und als Bild gerendert. Chromium prüft Abrechnungsanzeige und
   PDF-Download ohne Geräteaktion sowie den Hell-/Dunkelmodus und kleine Kacheln.
-- Rechnungsdaten und Nummernkreis geprüft: getrennte Empfänger, gemeinsame
+- Rechnungsdaten und Nummernkreis geprüft: gemeinsamer Empfänger, gemeinsame
   Absender-/Bankdaten, fortlaufende Nummern und unveränderte Datenschnappschüsse
   bei Wiederholungen nach Schreibfehlern. Neue Rechnungen überschreiben keine
   vorhandenen PDFs. Zahlungsfrist über die Zeitumstellung, lange Adressen und
@@ -60,7 +66,9 @@
   korrekt typisierte Aktionen. Beide Tarife in ct/kWh und Ladegangkosten sind
   direkt sichtbar, der PDF-Download benötigt nur eine zusätzliche Detailebene
   und nennt die Rechnungsnummer. Hell-/Dunkelmodus und alle vorhandenen
-  Größenprüfungen bleiben abgedeckt.
+  Größenprüfungen bleiben abgedeckt. Die Modulansicht enthält keinen eigenen
+  Titel oder Vergrößern-Pfeil; der Dashboard-Button bleibt erreichbar. Eine
+  nachgestellte Symcon-Kopfzeile wird genau einmal angezeigt.
 - Alle **22 PHP-Dateien** syntaktisch geprüft; alle **7 vorhandenen JSON-Dateien**
   syntaktisch geprüft (einschließlich lokalem Testergebnis).
 - Metadaten, unterschiedliche gültige GUIDs, Präfix, Modulstruktur,

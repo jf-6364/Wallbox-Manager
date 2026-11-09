@@ -3,9 +3,9 @@
 Jede der vier Wallboxen kann ihre Ladegänge getrennt abrechnen. Die Funktion ist
 standardmäßig deaktiviert und beginnt nach ihrer Aktivierung mit der Erfassung.
 
-## Einstellungen je Wallbox
+## Gemeinsame Einstellungen
 
-Unter **Wallbox → Abrechnung** werden folgende Werte eingestellt:
+Unter **Allgemein → Abrechnung** werden folgende Werte einmal für alle Wallboxen eingestellt:
 
 | Einstellung | Bedeutung | Standard |
 |---|---|---|
@@ -16,18 +16,19 @@ Unter **Wallbox → Abrechnung** werden folgende Werte eingestellt:
 | Ladepause bis zum Abschluss | Durchgehende Zeit ohne Ladeleistung in Sekunden | 600 |
 | Leistungsschwelle | Nur gemessene Leistung oberhalb dieser Grenze zählt als Laden | 50,00 W |
 
-Die gleiche PV-Boolvariable kann bei mehreren Wallboxen verknüpft werden; jede
-Wallbox besitzt eigene Preise und eigene Abrechnungen. 0,00 EUR/kWh bedeutet
+PV-Boolvariable, Preise, Ladepause und Leistungsschwelle gelten für alle Wallboxen.
+Energie, Kosten, Ladegänge und PDFs werden weiterhin je Wallbox getrennt erfasst.
+0,00 EUR/kWh bedeutet
 kostenlos. Preise haben höchstens zwei Nachkommastellen und werden mit Komma
 eingegeben, etwa `0,10` und `0,32`.
 
-Im allgemeinen Bereich **Abrechnung** steht die Zeitzone der PDFs, standardmäßig
+Unter **Allgemein → Abrechnung** steht auch die Zeitzone der PDFs, standardmäßig
 `Europe/Berlin`. Eine Änderung gilt für neu beginnende Ladegänge. Zeitpunkte
 werden intern als Unix-Zeit gespeichert; die PDF nennt die verwendete Zeitzone.
 
 ## Rechnung: Adressen, Zahlung und Nummern
 
-Im allgemeinen Bereich **Abrechnung → Rechnung** stehen die gemeinsamen Daten:
+Unter **Allgemein → Abrechnung → Rechnung** stehen die gemeinsamen Daten:
 
 - Rechnungssteller: Name/Firma, Straße, Postleitzahl, Ort und Land.
 - Optionales Logo-Kürzel für den runden Monogrammbereich der Vorlage.
@@ -38,11 +39,16 @@ Im allgemeinen Bereich **Abrechnung → Rechnung** stehen die gemeinsamen Daten:
 - Nummer und Steuer: Präfix, Startnummer, Umsatzsteuerdarstellung und Steuersatz,
   optional Steuernummer und USt-IdNr.
 
-Je **Wallbox → Abrechnung → Rechnung** sind Empfängername/Firma, Straße,
-Postleitzahl, Ort und Land sowie Kundennummer und Referenz/Kennzeichen einstellbar.
+Im Unterbereich **Empfänger** sind für alle Wallboxen gemeinsam Empfängername/Firma,
+Straße, Postleitzahl, Ort und Land sowie Kundennummer und Referenz einstellbar.
 Die Rechnungsdaten werden beim Abschluss des Ladegangs gespeichert. Spätere
 Änderungen gelten für weitere Abschlüsse. Bereits gespeicherte PDFs und noch
 ausstehende Schreibversuche behalten ihre ursprünglichen Daten.
+
+Beim ersten Update auf gemeinsame Einstellungen werden die bisherigen Werte von
+Wallbox 1 übernommen. Unterschiedliche frühere Einstellungen anderer Wallboxen
+werden danach nicht mehr verwendet. Bereits erfasste Tarifpositionen und PDFs
+bleiben unverändert; neue Preiswerte gelten für folgende Energieintervalle.
 
 Die Nummer wird automatisch vergeben, beispielsweise `RE-2026-000001`.
 Der Nummernkreis läuft innerhalb einer Managerinstanz über alle Wallboxen weiter.

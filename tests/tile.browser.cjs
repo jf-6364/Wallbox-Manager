@@ -81,7 +81,8 @@ async function palette(page) {
         assert.equal(await page.locator('#measured').evaluate(node => getComputedStyle(node).fontWeight), '300');
         assert.equal(await page.locator('#mode-even').getAttribute('aria-pressed'), 'true');
         assert.equal(await page.locator('.device-details details').count(), 0);
-        assert.equal(await page.locator('#energy-open .wb-icon').getAttribute('aria-hidden'), 'true');
+        assert.equal(await page.locator('#tile-view h1, #tile-view header, #energy-open svg, #energy-fullscreen').count(), 0);
+        assert.equal(await page.locator('#energy-open').innerText(), 'Energie-Dashboard');
         assert.equal(await page.locator('#support-metric').isVisible(), false);
         assert.equal(await page.locator('#energy').textContent(), '2,41 kWh');
         assert.equal(await page.locator('[data-field="energy"]').first().textContent(), '1,68 kWh (berechnet)');
@@ -240,18 +241,13 @@ async function palette(page) {
         if (process.env.WBM_SCREENSHOT_DIR) await page.screenshot({path: path.join(process.env.WBM_SCREENSHOT_DIR, 'energy-dashboard-dark.png')});
         // Trap keyboard focus within the open dashboard.
         await page.locator('#energy-close').focus();
-        if (await page.locator('#energy-fullscreen').isVisible()) await page.locator('#energy-fullscreen').focus();
         await page.keyboard.press('Shift+Tab');
         assert.equal(await page.locator('.energy-row').last().evaluate(node => document.activeElement === node), true);
         await page.keyboard.press('Tab');
-        assert.equal(await page.evaluate(() => document.activeElement.id), await page.locator('#energy-fullscreen').isVisible() ? 'energy-fullscreen' : 'energy-close');
-        if (await page.locator('#energy-fullscreen').isVisible()) {
-            await page.locator('#energy-fullscreen').click();
-            await page.waitForFunction(() => document.fullscreenElement === document.getElementById('wbm'));
-        }
+        assert.equal(await page.evaluate(() => document.activeElement.id), 'energy-close');
         await page.locator('#energy-close').click();
         await page.waitForFunction(() => !document.fullscreenElement);
-        console.log('OK  Dashboard dark mode, safe names, focus trap and fullscreen');
+        console.log('OK  Dashboard dark mode, safe names, focus trap and native host fullscreen control');
         await page.setContent(html());
         assert.equal((await palette(page)).theme, 'dark');
         assert.equal((await palette(page)).accent, '#56cdb0');
@@ -306,6 +302,8 @@ async function palette(page) {
             document.body.prepend(heading);
         });
         const embedded = await page.locator('#wbm').boundingBox();
+        assert.equal(await page.locator('h1, header').count(), 2); // Native host header + hidden dashboard header, no tile title.
+        assert.equal(await page.locator('header:visible').count(), 1);
         assert.equal(embedded.y, 48);
         assert.equal(embedded.height, 552);
         assert.equal(await page.evaluate(() => document.documentElement.scrollHeight), 600);

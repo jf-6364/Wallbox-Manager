@@ -1,5 +1,47 @@
 <?php
 use WBM\{Schema, Form};
+test('Gemeinsame Einstellungen: alle Plätze verwenden dieselben Werte; alte Snapshots bleiben lesbar', function () {
+    $flat = Schema::defaults();
+    $flat = array_replace($flat, ['WallboxStartDelay' => 42, 'BillingEnabled' => true, 'BillingPVVar' => 12345,
+        'BillingNormalPrice' => 0.35, 'InvoiceRecipientName' => 'Gemeinsamer Kunde', 'W1Enabled' => true,
+        'W1StartDelay' => 3, 'W2StartDelay' => 99, 'W1BillingNormalPrice' => 0.10, 'W2BillingNormalPrice' => 0.99,
+        'W1InvoiceRecipientName' => 'Früher A', 'W2InvoiceRecipientName' => 'Früher B']);
+    $cfg = Schema::unpack($flat);
+    foreach ($cfg['boxes'] as $box) {
+        check($box['StartDelay'] === 42); closeTo($box['BillingNormalPrice'], 0.35);
+        check($box['InvoiceRecipientName'] === 'Gemeinsamer Kunde'); check($box['BillingPVVar'] === 12345);
+    }
+    $links = Schema::links($flat); check(isset($links['BillingPVVar'])); check(!isset($links['W1BillingPVVar']));
+    check(!$flat['BEnabled']); // A common BillingPVVar must not be mistaken for a battery property.
+    $old = array_diff_key($flat, Schema::sharedMap()); $previous = Schema::unpack($old);
+    closeTo($previous['boxes'][1]['BillingNormalPrice'], 0.10); closeTo($previous['boxes'][2]['BillingNormalPrice'], 0.99);
+    check($previous['boxes'][2]['InvoiceRecipientName'] === 'Früher B');
+});
+test('Gemeinsame Einstellungen: Migration kopiert Wallbox 1 einmalig und erhält spätere gemeinsame Änderungen', function () {
+    Kernel::reset(); $m = new WallboxManager(50);
+    $m->properties = array_diff_key(Schema::defaults(), Schema::sharedMap());
+    $m->properties = array_replace($m->properties, ['W1StartDelay' => 37, 'W2StartDelay' => 99,
+        'W1BillingEnabled' => true, 'W1BillingPVVar' => Kernel::variable(true), 'W1BillingNormalPrice' => 0.32,
+        'W2BillingNormalPrice' => 0.99, 'W1InvoiceRecipientName' => 'Bestehender Kunde']);
+    $m->Create(); check(Kernel::$calls === []);
+    check($m->properties['WallboxStartDelay'] === 37); check($m->properties['BillingEnabled']);
+    closeTo($m->properties['BillingNormalPrice'], 0.32); check($m->properties['InvoiceRecipientName'] === 'Bestehender Kunde');
+    check($m->properties['BillingPVVar'] === $m->properties['W1BillingPVVar']);
+    $m->properties['WallboxStartDelay'] = 8; $m->properties['InvoiceRecipientName'] = 'Neuer gemeinsamer Kunde';
+    $m->properties['W1StartDelay'] = 99; $m->properties['W1BillingNormalPrice'] = 0.77;
+    unset($m->properties['BillingNormalPrice']); // Native registration defaults must stay stable after migration.
+    $m->Create(); check($m->properties['WallboxStartDelay'] === 8);
+    closeTo($m->properties['BillingNormalPrice'], 0.32); check($m->properties['InvoiceRecipientName'] === 'Neuer gemeinsamer Kunde');
+});
+test('Gemeinsame Zeitbedingungen: eine Änderung startet alle vier Wallboxen einheitlich', function () {
+    [$m, $ids] = fixture(4, ['WallboxStartDelay' => 60, 'W2StartDelay' => 999]); $m->ApplyChanges();
+    foreach ([1, 2, 3, 4] as $id) Kernel::update($ids[$id]['power'], 0.0, microtime(true));
+    $m->Control();
+    foreach ([1, 2, 3, 4] as $id) closeTo(GetValue($ids[$id]['setpoint']), 0);
+    $m->properties['WallboxStartDelay'] = 0; $m->ApplyChanges();
+    check($m->status === 102, $m->GetValue('Status'));
+    foreach ([1, 2, 3, 4] as $id) closeTo(GetValue($ids[$id]['setpoint']), 3000);
+});
 test('Adapter: alter Sollwert wird nach Geräteabweichung erneut ausgegeben', function () {
     [$m, $ids] = fixture(); $m->ApplyChanges();
     $s = runtimeOf($m); $s['commands'][$ids[1]['setpoint']]['time'] = microtime(true) - 60; setRuntime($m, $s);
@@ -52,7 +94,9 @@ test('Formular enthält jede Eigenschaft genau einmal und passende Auswahlwerte'
         }
     };
     $walk($form['elements']);
-    foreach (Schema::definitions() as $key => $def) check(count($fields[$key] ?? []) === 1, 'Formularfeld fehlt/doppelt: ' . $key);
+    foreach (Schema::definitions() as $key => $def) {
+        check(count($fields[$key] ?? []) === (Schema::isLegacy($key) ? 0 : 1), 'Formularfeld fehlt/doppelt: ' . $key);
+    }
     check($fields['Mode'][0]['options'][0]['value'] === 0);
     check($fields['W1PhaseMode'][0]['options'][0]['value'] === '1');
     check($fields['DecimalW1MinA'][0]['value'] === '6,0');
@@ -83,7 +127,7 @@ test('Dezimalfelder akzeptieren Komma und beachten die Stellen je Einheit', func
     check(Form::decimalValue('W1MaxKW', '11,044', $flat) === null);
     check(Form::decimalValue('W1MaxKW', '11.04', $flat) === null);
     check(Form::decimalValue('W1MaxKW', 'NaN', $flat) === null);
-    closeTo(Form::decimalValue('W1HysteresisW', '-1,00', $flat), -1);
+    closeTo(Form::decimalValue('WallboxHysteresisW', '-1,00', $flat), -1);
     check(Form::decimalDigits('W1Step', $flat) === 1);
     $flat['W1SetpointUnit'] = 'W';
     check(Form::decimalDigits('W1Step', $flat) === 2);
@@ -144,7 +188,7 @@ test('Wallboxanzahl: Dropdown bietet 1 bis 4 und blendet passende Konfigurations
         $flat = Schema::defaults(); $flat['WallboxCount'] = $count;
         $form = Form::build($flat, [], ''); $select = null;
         foreach ($form['elements'] as $group) {
-            if (($group['caption'] ?? '') !== 'Allgemein und Budget') continue;
+            if (($group['caption'] ?? '') !== 'Allgemein') continue;
             foreach ($group['items'] as $field) if (($field['name'] ?? '') === 'WallboxCount') $select = $field;
         }
         check($select['type'] === 'Select'); check(array_column($select['options'], 'value') === [1, 2, 3, 4]);

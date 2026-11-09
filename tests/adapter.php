@@ -10,14 +10,15 @@ function fixture(int $count = 1, array $properties = []): array
     $m->Create();
     $budget = Kernel::variable(12000.0);
     $ids = ['budget' => $budget];
-    $m->properties = array_replace($m->properties, ['Enabled' => true, 'BudgetVar' => $budget, 'Hysteresis' => 0.0]);
+    $m->properties = array_replace($m->properties, ['Enabled' => true, 'BudgetVar' => $budget, 'Hysteresis' => 0.0,
+        'WallboxStartDelay' => 0, 'WallboxMinPause' => 0, 'WallboxMinRun' => 0, 'WallboxStopDelay' => 0]);
     for ($i = 1; $i <= $count; $i++) {
         $setpoint = Kernel::variable(0.0, true);
         $power = Kernel::variable(0.0);
         $ids[$i] = ['setpoint' => $setpoint, 'power' => $power];
         $m->properties = array_replace($m->properties, ['W' . $i . 'Enabled' => true, 'W' . $i . 'SetpointVar' => $setpoint, 'W' . $i . 'PowerVar' => $power,
             'W' . $i . 'SetpointUnit' => 'W', 'W' . $i . 'MinA' => 1.0, 'W' . $i . 'MaxA' => 100.0, 'W' . $i . 'MinKW' => 1.0, 'W' . $i . 'MaxKW' => 11.0,
-            'W' . $i . 'StartDelay' => 0, 'W' . $i . 'MinPause' => 0, 'W' . $i . 'MinRun' => 0, 'W' . $i . 'StopDelay' => 0]);
+            ]);
     }
     $m->properties = array_replace($m->properties, $properties);
     return [$m, $ids];
@@ -176,7 +177,7 @@ test('Adapter: fehlende Aktion ergibt Fehler statt SetValue', function () {
     check($m->status === 102, $m->GetValue('Status'));
 });
 test('Adapter: externe Sperre überschreibt laufende Mindestlaufzeit', function () {
-    [$m, $ids] = fixture(1, ['W1MinRun' => 600]); $external = Kernel::variable(true); $m->properties['W1ExternalVar'] = $external;
+    [$m, $ids] = fixture(1, ['WallboxMinRun' => 600]); $external = Kernel::variable(true); $m->properties['W1ExternalVar'] = $external;
     $m->ApplyChanges(); Kernel::update($external, false);
     $m->MessageSink(123456789, $external, VM_UPDATE, []); $m->Control();
     closeTo(GetValue($ids[1]['setpoint']), 0); check(GetValue($external) === false);
