@@ -1,11 +1,11 @@
-# Prüfbericht – 30.10.2026
+# Prüfbericht – 09.11.2026
 
 ## Ausgeführt
 
 - **114 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
-- **10 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
+- **12 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
 - Deutsche Komma-Eingaben, Nachkommastellen und die Übernahme numerischer
   Einstellungen aus dem Formularentwurf geprüft. Ampereanzeigen besitzen eine,
   andere Dezimalanzeigen höchstens zwei Nachkommastellen; Messwerte bleiben intern
@@ -14,9 +14,9 @@
   erst mit „Übernehmen“, Ausblenden ohne Einstellungsverlust, Stoppen mit
   Rückmeldung beim Reduzieren, erneutes Aktivieren sowie Erhalt von Energie und
   Abrechnungen. Bestehende Konfigurationen behalten standardmäßig vier Plätze.
-- Zusätzliche Chromium-Prüfung der tatsächlichen HTML/CSS/JS-Kachel: sieben Größen
-  von 240 × 260 bis 1440 × 900 Pixeln, kompakte aufklappbare Detailwerte,
-  erreichbare Bedienung und keine horizontale Überbreite.
+- Zusätzliche Chromium-Prüfung der tatsächlichen HTML/CSS/JS-Kachel: acht Größen
+  von 240 × 260 bis 1440 × 900 Pixeln, flache Hauptansicht, eine aufklappbare
+  Detailebene, erreichbare Bedienung und keine horizontale Überbreite.
 - Helle/dunkle Symcon-Farbparameter und CSS-Variablen als Testvorgaben,
   Wechsel ohne Neuladen und Browser-Fallback geprüft; zusätzlich vier Wallboxen,
   optionaler Speicher und lange Fehlertexte.
@@ -46,10 +46,13 @@
 - Umsatzsteuer einbeziehen/ignorieren sowie §-19-Auswahl geprüft. Bei enthaltenen
   19 % ergeben 1,89 EUR Endpreis 1,59 EUR netto und 0,30 EUR USt. Steuer und Netto
   stimmen centgenau mit dem unveränderten Endpreis überein.
-- UI in Chromium mit Systemschrift, abgerundeten Kartenrahmen, SVG-Linienicons und
-  Standardakzent #00B5AD geprüft; Symcon-Farben haben Vorrang. PDF-Download nennt
-  die Rechnungsnummer, Hell-/Dunkelmodus und alle vorhandenen Größenprüfungen
-  bleiben abgedeckt.
+- UI in Chromium mit Systemschrift, großen leichten Leistungswerten, flachen
+  Bereichen, SVG-Linienicons und Mint-/Türkisakzenten geprüft; Symcon-Farben
+  haben Vorrang. Verteilungsbuttons sowie manuelle Ein/Aus-Schalter senden
+  korrekt typisierte Aktionen. Beide Tarife in ct/kWh und Ladegangkosten sind
+  direkt sichtbar, der PDF-Download benötigt nur eine zusätzliche Detailebene
+  und nennt die Rechnungsnummer. Hell-/Dunkelmodus und alle vorhandenen
+  Größenprüfungen bleiben abgedeckt.
 - Alle **22 PHP-Dateien** syntaktisch geprüft; alle **7 vorhandenen JSON-Dateien**
   syntaktisch geprüft (einschließlich lokalem Testergebnis).
 - Metadaten, unterschiedliche gültige GUIDs, Präfix, Modulstruktur,

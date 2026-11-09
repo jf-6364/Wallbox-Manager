@@ -128,13 +128,14 @@ in **Abrechnung – Wallbox 1** bis **Abrechnung – Wallbox 4**. Die Dateien li
 Symcon-Verzeichnis `media/`. Namen und Identifikationen verhindern, dass
 Wiederholungsversuche dieselbe Abrechnung mehrfach anlegen.
 
-Die Kachel zeigt je aktiver Wallbox den aufklappbaren Bereich **Abrechnung** mit
-laufendem beziehungsweise letztem Ladegang, PV-/Normalenergie und Kosten. Der
+Die Kachel zeigt je aktiver Wallbox beide aktuellen Preise in ct/kWh, den Tarif
+sowie Energie und Kosten des laufenden oder letzten Ladegangs direkt an.
+Unter **Details & Rechnung** stehen PV-/Normalenergie und einzelne Kosten. Der
 Button **Rechnung … als PDF** lädt das letzte gespeicherte Dokument
 herunter. Ältere PDFs bleiben im jeweiligen Symcon-Ordner erreichbar. Ein
 offener Browser ist für die automatische Erstellung nicht erforderlich.
 
-Zum Download in der Visualisierung die gewünschte **Wallbox → Abrechnung**
+Zum Download in der Visualisierung die gewünschte **Wallbox → Details & Rechnung**
 aufklappen und **„Rechnung … als PDF“** anklicken (bei älteren Dokumenten
 „Letzte Abrechnung als PDF“). Der Browser speichert
 die Datei im Download-Ordner oder fragt nach einem Speicherort. Solange kein

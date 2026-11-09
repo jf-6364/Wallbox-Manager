@@ -22,8 +22,9 @@ class Element {
         return result;
     }
     change() { this.listeners.change.call(this); }
+    click() { this.listeners.click.call(this); }
 }
-const ids = ['wbm', 'manager', 'mode', 'policy', 'base', 'support-metric', 'support', 'confirmed', 'measured', 'assigned', 'energy', 'overrun', 'status', 'errors', 'boxes', 'battery',
+const ids = ['wbm', 'manager', 'mode-even', 'mode-priority', 'policy', 'base', 'support-metric', 'support', 'measured', 'energy', 'overrun', 'status', 'errors', 'boxes', 'battery',
     'battery-enable', 'battery-lock', 'soc', 'capacity', 'reserve-energy', 'battery-request', 'battery-power', 'battery-state', 'updated', 'simulation',
     'energy-open', 'energy-close', 'energy-fullscreen'];
 const elements = Object.fromEntries(ids.map(id => [id, new Element()]));
@@ -51,7 +52,7 @@ let count = 0;
 function test(name, fn) { fn(); count++; console.log('OK  ' + name); }
 test('Echte JavaScript-Datei ist syntaktisch gültig und baut zwei Karten', () => assert.equal(elements.boxes.children.length, 2));
 test('Initialzustand, deutsche Einheiten und Gesamtenergie', () => {
-    assert.equal(elements.base.textContent, '12000,0 W'); assert.equal(elements.energy.textContent, '124,31 kWh');
+    assert.equal(elements.base.textContent, '12 kW'); assert.equal(elements.energy.textContent, '124,31 kWh');
     assert.ok(fields1.energy.textContent.includes('(berechnet)')); assert.equal(fields2.measured.textContent, 'Keine Messung');
     assert.ok(fields1.command.textContent.startsWith('7,0 A'));
     assert.ok(fields1.energy.textContent.startsWith('12,12 kWh'));
@@ -63,7 +64,8 @@ test('Externe Sperre bleibt sichtbar und wird durch manuellen Klick nicht geänd
 });
 test('Manager-, Modus-, Speicher- und Prioritätsaktionen sind korrekt typisiert', () => {
     elements.manager.checked = false; elements.manager.change(); assert.deepEqual(actions.at(-1), {ident:'ManagerEnabled',value:false});
-    elements.mode.value = '1'; elements.mode.change(); assert.deepEqual(actions.at(-1), {ident:'DistributionMode',value:1});
+    elements['mode-priority'].click(); assert.deepEqual(actions.at(-1), {ident:'DistributionMode',value:1});
+    elements['mode-even'].click(); assert.deepEqual(actions.at(-1), {ident:'DistributionMode',value:0});
     elements['battery-enable'].checked = false; elements['battery-enable'].change(); assert.deepEqual(actions.at(-1), {ident:'BatteryEnabled',value:false});
     fields1.priority.value = '7'; fields1.priority.change(); assert.deepEqual(actions.at(-1), {ident:'W1Priority',value:7});
 });
@@ -72,7 +74,7 @@ test('Ungültige Priorität sendet keine Geräteaktion', () => {
 });
 test('handleMessage aktualisiert Karten ohne Neuerzeugung', () => {
     const before = elements.boxes.children[0]; data.boxes[1].measured = 4100;
-    context.window.handleMessage(JSON.stringify(data)); assert.equal(elements.boxes.children[0],before); assert.equal(fields1.measured.textContent,'4100,0 W');
+    context.window.handleMessage(JSON.stringify(data)); assert.equal(elements.boxes.children[0],before); assert.equal(fields1.measured.textContent,'4,1 kW');
 });
 test('Zeitbedingung und Messlücke erscheinen als Text', () => {
     assert.ok(fields2.reason.textContent.includes('Start in 20 s')); assert.equal(fields2.gap.textContent,'Messlücke');
@@ -85,5 +87,27 @@ test('Deaktivierte Plätze und optionaler Speicher werden ausgeblendet', () => {
     data.boxes[2].enabled = false; data.batteryConfigured = false; context.window.handleMessage(data);
     assert.equal(card2.hidden,true); assert.equal(elements.battery.hidden,true);
     assert.equal(elements['support-metric'].hidden,true);
+});
+test('Flache Hauptansicht zeigt bestätigten Modus, manuelle Freigabe und Sollstrom je Phase', () => {
+    data.mode = 1; data.boxes[1].manual = false; context.window.handleMessage(data);
+    assert.equal(elements['mode-priority']['aria-pressed'], 'true');
+    assert.equal(elements['mode-even']['aria-pressed'], 'false');
+    assert.equal(fields1.manualText.textContent, 'Aus');
+    assert.equal(fields1.setpoint.textContent, 'Soll 7,0 A · 3 Phasen');
+    assert.equal(fields1.billingRates.textContent, 'Preise nicht eingerichtet');
+});
+test('Tarife und Ladegangkosten sind ohne Abrechnungsdetails sichtbar und unterscheiden fehlende Preise', () => {
+    data.boxes[1].billing = {enabled: true, mode: 'pv', pvPrice: .10, normalPrice: .32,
+        active: {started: 1700000000, totalCost: 1.23, totalEnergy: 4.567}, last: null, pending: 0};
+    context.window.handleMessage(data);
+    assert.equal(fields1.billingRates.textContent, 'PV 10 ct/kWh · Normal 32 ct/kWh');
+    assert.equal(fields1.billingMode.textContent, 'PV-Überschussladen');
+    assert.equal(fields1.billingCostSummary.textContent, 'Ladegang 1,23 € · 4,57 kWh');
+    assert.equal(fields1.billingCostSummary.hidden, false);
+    data.boxes[1].billing.mode = 'unassigned'; context.window.handleMessage(data);
+    assert.equal(fields1.billingMode.textContent, 'Ungeklärt');
+    data.boxes[1].billing.enabled = false; context.window.handleMessage(data);
+    assert.equal(fields1.billingRates.textContent, 'Preise nicht eingerichtet');
+    assert.equal(fields1.billingCostSummary.hidden, true);
 });
 console.log(count + ' JavaScript-Tests, 0 Fehler');

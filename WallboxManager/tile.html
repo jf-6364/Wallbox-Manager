@@ -10,19 +10,24 @@
 <main id="wbm">
 <div id="tile-view" class="tile-view">
   <header class="wb-header">
-    <label class="switch"><input id="manager" type="checkbox"><span>Manager aktiv</span></label>
-    <button id="energy-open" class="wb-button" type="button" aria-haspopup="dialog"><svg class="wb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9h9M20.8 15A9 9 0 1 1 9 3.5M15 3.5a9 9 0 0 1 5.5 5.5H15Z"/></svg> Energie-Dashboard</button>
+    <h1>Wallbox Manager</h1>
+    <button id="energy-open" class="wb-button icon-button" type="button" aria-label="Energie-Dashboard öffnen" title="Energie-Dashboard" aria-haspopup="dialog"><svg class="wb-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button>
   </header>
-  <div class="toolbar"><label>Verteilung <select id="mode"><option value="0">Gleichmäßig</option><option value="1">Priorität</option></select></label><span id="policy" class="muted"></span></div>
-  <section class="metrics" aria-label="Gesamtübersicht">
-    <div class="metric"><span>Grundbudget</span><strong id="base">–</strong></div>
-    <div id="support-metric" class="metric"><span>Speicher verfügbar</span><strong id="support">–</strong><small id="confirmed">–</small></div>
-    <div class="metric"><span>Ladeleistung</span><strong id="measured">–</strong><small id="assigned" hidden>–</small></div>
-    <div class="metric"><span>Gesamtenergie</span><strong id="energy">–</strong></div>
-  </section>
   <div class="wb-content">
+  <div class="toolbar">
+    <div id="mode" class="mode-options" role="group" aria-label="Verteilungsart">
+      <button id="mode-even" class="mode-button" type="button" aria-pressed="false">Gleichmäßig</button>
+      <button id="mode-priority" class="mode-button" type="button" aria-pressed="false">Priorität</button>
+    </div>
+    <label class="switch manager-switch"><input id="manager" type="checkbox" aria-label="Manager aktiv"><span>Manager</span></label>
+  </div>
+  <section class="metrics" aria-label="Gesamtübersicht">
+    <span class="hero-label">Aktuelle Ladeleistung</span>
+    <div class="hero-values"><strong id="measured">–</strong><span id="energy" title="Gesamtenergie seit Zählbeginn">–</span></div>
+    <div class="budget-line"><span>Budget <span id="base">–</span></span><span id="support-metric" hidden>Speicher <span id="support">–</span></span></div>
+    <p id="status" role="status" aria-live="polite">Status wird geladen …</p>
+  </section>
   <p id="overrun" class="notice" hidden></p>
-  <p id="status" role="status" aria-live="polite">Status wird geladen …</p>
   <div id="errors" class="notice error" role="alert" hidden></div>
   <section id="boxes" class="boxes" aria-label="Wallboxen"></section>
   <section id="battery" class="battery" hidden>
@@ -38,7 +43,7 @@
     <p id="battery-state"></p>
   </section>
   </div>
-  <footer><span id="updated">–</span><span id="simulation" hidden>SIMULATION</span></footer>
+  <footer><span id="policy">–</span><span id="simulation" hidden>SIMULATION</span><span id="updated">–</span></footer>
 </div>
 <section id="energy-dashboard" class="energy-dashboard" role="dialog" aria-modal="true" aria-labelledby="dashboard-title" hidden>
   <header class="dashboard-header">

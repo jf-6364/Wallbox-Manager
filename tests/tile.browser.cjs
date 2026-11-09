@@ -77,12 +77,15 @@ async function palette(page) {
         assert.equal(colors.scheme, 'dark');
         assert.equal(colors.background, 'rgb(28, 28, 33)');
         assert.ok((await page.evaluate(() => getComputedStyle(document.body).fontFamily)).startsWith('system-ui, -apple-system, BlinkMacSystemFont'));
-        assert.equal(await page.locator('.tile-view').evaluate(node => getComputedStyle(node).borderRadius), '6px');
+        assert.equal(await page.locator('.tile-view').evaluate(node => getComputedStyle(node).borderTopWidth), '0px');
+        assert.equal(await page.locator('#measured').evaluate(node => getComputedStyle(node).fontWeight), '300');
+        assert.equal(await page.locator('#mode-even').getAttribute('aria-pressed'), 'true');
+        assert.equal(await page.locator('.device-details details').count(), 0);
         assert.equal(await page.locator('#energy-open .wb-icon').getAttribute('aria-hidden'), 'true');
         assert.equal(await page.locator('#support-metric').isVisible(), false);
         assert.equal(await page.locator('#energy').textContent(), '2,41 kWh');
         assert.equal(await page.locator('[data-field="energy"]').first().textContent(), '1,68 kWh (berechnet)');
-        for (const [width, height] of [[1280, 720], [1440, 900], [800, 600], [960, 320], [360, 740], [320, 360], [240, 260]]) {
+        for (const [width, height] of [[1280, 720], [1440, 900], [800, 600], [960, 320], [430, 375], [360, 740], [320, 360], [240, 260]]) {
             await page.setViewportSize({width, height});
             await layout(page);
             await page.locator('.box').last().locator('[data-field="manual"]').scrollIntoViewIfNeeded();
@@ -103,10 +106,16 @@ async function palette(page) {
         assert.equal(await page.locator('.device-details').last().getAttribute('open'), null);
         assert.equal(await page.locator('[data-field="energy"]').first().isVisible(), true);
         await page.locator('#manager').uncheck();
-        await page.locator('#mode').selectOption('1');
-        assert.deepEqual(await page.evaluate(() => actions.slice(-2)), [
-            {ident: 'ManagerEnabled', value: false}, {ident: 'DistributionMode', value: 1}
+        await page.locator('#mode-priority').click();
+        await page.locator('.box').first().locator('[data-field="manual"]').uncheck();
+        assert.deepEqual(await page.evaluate(() => actions.slice(-3)), [
+            {ident: 'ManagerEnabled', value: false}, {ident: 'DistributionMode', value: 1}, {ident: 'W1Manual', value: false}
         ]);
+        const confirmed = structuredClone(data); confirmed.mode = 1; confirmed.boxes[1].manual = false;
+        await page.evaluate(value => window.handleMessage(value), confirmed);
+        assert.equal(await page.locator('#mode-priority').getAttribute('aria-pressed'), 'true');
+        assert.equal(await page.locator('[data-field="manualText"]').first().innerText(), 'Aus');
+        assert.equal(await page.locator('[data-field="manual"]').last().isChecked(), true);
         console.log('OK  Compact details, resize and device actions');
         await page.evaluate(() => {
             document.documentElement.style.setProperty('--content-color', '#24262b');
@@ -245,7 +254,7 @@ async function palette(page) {
         console.log('OK  Dashboard dark mode, safe names, focus trap and fullscreen');
         await page.setContent(html());
         assert.equal((await palette(page)).theme, 'dark');
-        assert.equal((await palette(page)).accent, '#00b5ad');
+        assert.equal((await palette(page)).accent, '#56cdb0');
         await page.emulateMedia({colorScheme: 'light'});
         await page.waitForFunction(() => document.documentElement.dataset.wbTheme === 'light');
         console.log('OK  Standalone browser theme fallback');
@@ -327,11 +336,16 @@ async function palette(page) {
         billed.boxes[2].billing = {enabled: false};
         await page.evaluate(value => window.handleMessage(value), billed);
         assert.equal(await page.locator('.billing-details').last().isVisible(), false);
-        await page.locator('.billing-details summary').first().click();
+        assert.equal(await page.locator('[data-field="billingRates"]').first().innerText(), 'PV 10 ct/kWh · Normal 32 ct/kWh');
+        assert.equal(await page.locator('[data-field="billingCostSummary"]').first().innerText(), 'Ladegang 0,93 € · 3,75 kWh');
+        assert.equal(await page.locator('[data-field="billingMode"]').first().innerText(), 'PV-Überschussladen');
+        assert.equal(await page.locator('.device-details').first().getAttribute('open'), null);
+        assert.equal(await page.locator('[data-field="billingPDF"]').first().isVisible(), false);
+        assert.equal(await page.locator('.box details details').count(), 0);
+        await page.locator('.device-details summary').first().click();
         assert.equal(await page.locator('[data-field="billingPV"]').first().innerText(), '1,25 kWh · 0,13 €');
         assert.equal(await page.locator('[data-field="billingNormal"]').first().innerText(), '2,50 kWh · 0,80 €');
         assert.equal(await page.locator('[data-field="billingCost"]').first().innerText(), '0,93 €');
-        assert.ok((await page.locator('[data-field="billingRates"]').first().innerText()).includes('PV-Überschussladen'));
         assert.equal(await page.locator('[data-field="billingPDF"]').first().isEnabled(), true);
         assert.equal(await page.locator('[data-field="billingPDF"]').first().innerText(), 'Rechnung RE-2026-000123 als PDF');
         const actionsBeforePDF = await page.evaluate(() => actions.length);

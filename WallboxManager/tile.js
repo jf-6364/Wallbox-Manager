@@ -7,6 +7,7 @@
     var energyFormat = new Intl.NumberFormat('de-DE', { useGrouping: false, minimumFractionDigits: 2, maximumFractionDigits: 2 });
     var ampereFormat = new Intl.NumberFormat('de-DE', { useGrouping: false, minimumFractionDigits: 1, maximumFractionDigits: 1 });
     var moneyFormat = new Intl.NumberFormat('de-DE', { useGrouping: false, minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var priceFormat = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
     var dashboardOpen = false;
     var energyItems = new Map();
     var selectedEnergy = null;
@@ -14,6 +15,7 @@
     function el(id) { return document.getElementById(id); }
     function text(id, value) { el(id).textContent = value; }
     function power(value) { return value === null || value === undefined ? 'Keine Messung' : ampereFormat.format(value) + ' W'; }
+    function chargingPower(value) { return value === null || value === undefined ? 'Keine Messung' : number.format(value / 1000) + ' kW'; }
     function energy(value) { return energyFormat.format(value || 0) + ' kWh'; }
     function compactLayout() {
         var root = document.getElementById('wbm');
@@ -72,6 +74,8 @@
         var dark = backgroundBrightness !== null ? backgroundBrightness < 128 : (textBrightness !== null ? textBrightness > 128 : !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches));
         var theme = dark ? 'dark' : 'light';
         if (root.dataset.wbTheme !== theme) root.dataset.wbTheme = theme;
+        var onAccent = accent && brightness(accent) < 110 ? '#fff' : '#123b33';
+        if (root.style.getPropertyValue('--wb-on-accent') !== onAccent) root.style.setProperty('--wb-on-accent', onAccent);
     }
     function action(ident, value) {
         try {
@@ -107,23 +111,26 @@
         } catch (error) { showError(error); }
     }
     function billingDetails(id) {
-        var details = document.createElement('details'); details.className = 'billing-details'; details.dataset.field = 'billing'; details.hidden = true;
-        var summary = document.createElement('summary'); summary.textContent = 'Abrechnung';
+        var details = document.createElement('section'); details.className = 'billing-details'; details.dataset.field = 'billing'; details.hidden = true;
         var period = document.createElement('p'); period.dataset.field = 'billingPeriod';
         var values = document.createElement('div'); values.className = 'device-secondary';
         values.append(metric('PV-Überschussladen', 'billingPV'), metric('Normalladen', 'billingNormal'), metric('Gesamtbetrag', 'billingCost'));
-        var rates = document.createElement('p'); rates.dataset.field = 'billingRates';
         var unknown = document.createElement('p'); unknown.dataset.field = 'billingUnknown'; unknown.className = 'lock';
         var status = document.createElement('p'); status.dataset.field = 'billingState';
         var button = document.createElement('button'); button.type = 'button'; button.className = 'wb-button';
         button.dataset.field = 'billingPDF'; button.textContent = 'Letzte Abrechnung als PDF'; button.disabled = true;
         button.addEventListener('click', function () { downloadBilling(id); });
-        details.append(summary, period, values, rates, unknown, status, button);
+        details.append(period, values, unknown, status, button);
         return details;
     }
     function renderBilling(fields, billing) {
-        fields.billing.hidden = !billing || !billing.enabled;
-        if (!billing) return;
+        var enabled = !!(billing && billing.enabled);
+        fields.billing.hidden = !enabled;
+        fields.billingCostSummary.hidden = !enabled;
+        fields.billingMode.hidden = !enabled;
+        fields.detailsLabel.textContent = enabled ? 'Details & Rechnung' : 'Details';
+        fields.billingRates.textContent = 'Preise nicht eingerichtet';
+        if (!enabled) return;
         var session = billing.active || billing.last;
         var money = function (v) { return moneyFormat.format(v || 0) + ' €'; };
         fields.billingPeriod.textContent = session ? (billing.active ? 'Laufender Ladegang seit ' : 'Letzter Ladegang vom ') + new Date(session.started * 1000).toLocaleString('de-DE') : 'Noch kein Ladegang erfasst';
@@ -131,7 +138,10 @@
         fields.billingNormal.textContent = energy(session && session.normalEnergy) + ' · ' + money(session && session.normalCost);
         fields.billingCost.textContent = money(session && session.totalCost);
         var mode = billing.mode === 'pv' ? 'PV-Überschussladen' : (billing.mode === 'unassigned' ? 'Ungeklärt' : 'Normalladen');
-        fields.billingRates.textContent = 'Tarif: ' + mode + ' · Aktuelle Preise: PV ' + money(billing.pvPrice) + '/kWh · Normal ' + money(billing.normalPrice) + '/kWh';
+        fields.billingMode.textContent = mode;
+        fields.billingMode.dataset.mode = billing.mode;
+        fields.billingRates.textContent = 'PV ' + priceFormat.format(billing.pvPrice * 100) + ' ct/kWh · Normal ' + priceFormat.format(billing.normalPrice * 100) + ' ct/kWh';
+        fields.billingCostSummary.textContent = session ? (billing.active ? 'Ladegang ' : 'Letzter Ladegang ') + money(session.totalCost) + ' · ' + energy(session.totalEnergy) : 'Noch kein Ladegang erfasst';
         fields.billingUnknown.hidden = !(session && session.unassignedEnergy > 0);
         fields.billingUnknown.textContent = 'Tarif ungeklärt: ' + energy(session && session.unassignedEnergy) + ' – Abrechnung prüfen';
         fields.billingState.textContent = billing.error || (billing.pending ? 'PDF wird erstellt …' : 'Energie aus gemessener Ladeleistung berechnet.');
@@ -170,6 +180,7 @@
         details.open = false;
         var summary = document.createElement('summary');
         summary.textContent = 'Details';
+        summary.dataset.field = 'detailsLabel';
         var secondary = document.createElement('div');
         secondary.className = 'device-secondary';
         secondary.append(metric('Geladene Energie', 'energy'));
@@ -183,7 +194,7 @@
         manual.dataset.field = 'manual';
         manual.addEventListener('change', function () { action('W' + id + 'Manual', manual.checked); });
         var manualText = document.createElement('span');
-        manualText.textContent = 'Freigabe';
+        manualText.textContent = 'Ein'; manualText.dataset.field = 'manualText';
         manualLabel.append(manual, manualText);
         var priorityLabel = document.createElement('label');
         priorityLabel.className = 'priority-label';
@@ -198,14 +209,20 @@
             else showError(new Error('Priorität muss zwischen 1 und 999 liegen'));
         });
         priorityLabel.append(priority);
-        head.append(heading, measured, manualLabel);
+        head.append(heading, manualLabel);
         controls.append(priorityLabel);
-        details.append(summary, metrics, secondary, controls);
+        details.append(summary, metrics, secondary, controls, billingDetails(id));
+        var powerRow = document.createElement('div'); powerRow.className = 'box-power';
+        var setpoint = document.createElement('span'); setpoint.dataset.field = 'setpoint'; setpoint.className = 'box-setpoint';
+        powerRow.append(measured, setpoint);
+        var rates = document.createElement('p'); rates.dataset.field = 'billingRates'; rates.className = 'box-tariffs';
+        var mode = document.createElement('p'); mode.dataset.field = 'billingMode'; mode.className = 'box-billing-mode';
+        var cost = document.createElement('p'); cost.dataset.field = 'billingCostSummary'; cost.className = 'box-cost';
         var reason = document.createElement('p');
         reason.className = 'reason'; reason.dataset.field = 'reason';
         var gap = document.createElement('p');
         gap.className = 'gap'; gap.dataset.field = 'gap';
-        card.append(head, lock, reason, gap, details, billingDetails(id));
+        card.append(head, powerRow, mode, rates, cost, lock, reason, gap, details);
         var fields = {};
         card.querySelectorAll('[data-field]').forEach(function (node) { fields[node.dataset.field] = node; });
         cards.set(id, { node: card, fields: fields, details: details });
@@ -218,16 +235,17 @@
         receivedAt = Date.now();
         el('manager').checked = !!data.managerEnabled;
         if (data.managerEnabled === undefined) el('manager').checked = !!data.manager;
-        el('mode').value = String(data.mode);
+        el('mode-even').setAttribute('aria-pressed', String(data.mode === 0));
+        el('mode-priority').setAttribute('aria-pressed', String(data.mode === 1));
         text('policy', data.strict ? 'Budget strikt' : 'Zeitweise Überschreitung zugelassen');
-        text('base', power(data.base));
-        text('support', power(data.battery.theoretical));
+        text('base', chargingPower(data.base));
+        text('support', chargingPower(data.battery.confirmed));
         el('support-metric').hidden = !data.batteryConfigured;
-        text('confirmed', 'davon bestätigt: ' + power(data.battery.confirmed));
-        text('measured', power(data.measured));
-        text('assigned', 'zugewiesen: ' + power(data.assigned));
+        text('measured', chargingPower(data.measured));
         text('energy', energy(data.energy));
         text('status', data.status);
+        el('status').dataset.active = String(el('manager').checked);
+        el('status').dataset.error = String(!!(data.errors && data.errors.length));
         el('errors').hidden = !data.errors || data.errors.length === 0;
         text('errors', (data.errors || []).join('\n'));
         el('overrun').hidden = !(data.overrun > 0);
@@ -241,10 +259,12 @@
             f.status.textContent = box.status;
             f.lock.hidden = box.external;
             f.manual.checked = box.manual;
+            f.manualText.textContent = box.manual ? 'Ein' : 'Aus';
             f.manual.disabled = !box.enabled;
             if (document.activeElement !== f.priority) f.priority.value = box.priority;
-            f.measured.textContent = power(box.measured);
+            f.measured.textContent = chargingPower(box.measured);
             f.command.textContent = (box.unit === 'kW' ? number : ampereFormat).format(box.command) + ' ' + box.unit;
+            f.setpoint.textContent = 'Soll ' + f.command.textContent + (box.phases ? ' · ' + box.phases + (box.phases === 1 ? ' Phase' : ' Phasen') : '');
             f.manual.setAttribute('aria-label', box.name + ' freigeben');
             f.energy.textContent = energy(box.energy) + (box.energyMethod === 'berechnet' ? ' (berechnet)' : '');
             f.phases.textContent = box.phases ? String(box.phases) : 'Unbestätigt';
@@ -263,7 +283,7 @@
         text('battery-request', power(data.battery.commanded));
         text('battery-power', power(data.battery.measured));
         text('battery-state', data.battery.reason);
-        text('updated', 'Aktualisiert: ' + new Date(data.time * 1000).toLocaleTimeString('de-DE'));
+        text('updated', 'Stand ' + new Date(data.time * 1000).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}));
         el('simulation').hidden = !data.simulation;
         countdown();
         updateLayout();
@@ -413,7 +433,8 @@
         catch (error) { showError(error); }
     };
     el('manager').addEventListener('change', function () { action('ManagerEnabled', this.checked); });
-    el('mode').addEventListener('change', function () { action('DistributionMode', Number(this.value)); });
+    el('mode-even').addEventListener('click', function () { action('DistributionMode', 0); });
+    el('mode-priority').addEventListener('click', function () { action('DistributionMode', 1); });
     el('battery-enable').addEventListener('change', function () { action('BatteryEnabled', this.checked); });
     el('energy-open').addEventListener('click', openDashboard);
     el('energy-close').addEventListener('click', closeDashboard);
