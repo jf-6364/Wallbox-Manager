@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/SymconStub.php';
 require_once __DIR__ . '/../WallboxManager/module.php';
 
-function fixture(int $count = 1, array $properties = []): array
+function fixture(int $count = 1, array $properties = [], bool $started = true): array
 {
     Kernel::reset();
     $m = new WallboxManager(50);
@@ -21,6 +21,8 @@ function fixture(int $count = 1, array $properties = []): array
             ]);
     }
     $m->properties = array_replace($m->properties, $properties);
+    // Most adapter cases begin with sessions already requested; manual-start cases opt out.
+    if ($started) for ($id = 1; $id <= $count; $id++) $m->SetValue('W' . $id . 'Manual', true);
     return [$m, $ids];
 }
 function runtimeOf(WallboxManager $m): array { return json_decode($m->attributes['Runtime'], true); }
@@ -335,7 +337,7 @@ test('Adapter: Instanzen sind unabhängig, doppelte Gerätesteuerung abgelehnt',
     [$m, $ids] = fixture(); $m->ApplyChanges();
     $second = new WallboxManager(60); $second->Create(); $second->properties = $m->properties; $second->ApplyChanges();
     check($second->status === 200); check(str_contains($second->GetValue('Status'), 'anderer Managerinstanz'));
-    check($m->GetValue('W1Manual') && $second->GetValue('W1Manual'));
+    check($m->GetValue('W1Manual') && !$second->GetValue('W1Manual'));
     $second->RequestAction('W1Manual', false); check($m->GetValue('W1Manual'));
     closeTo(GetValue($ids[1]['setpoint']), 11000);
     $m->Control(); check($m->status === 102);

@@ -78,6 +78,8 @@ body#wbm-page {
 #wbm input[type="checkbox"]:disabled { opacity: .5; cursor: default; }
 #wbm .switch { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; min-height: 32px; font-size: .8em; flex-shrink: 0; }
 #wbm .switch span { min-width: 2em; }
+#wbm .session-button { font-size: .8em; border-radius: 999px; flex-shrink: 0; }
+#wbm .session-button[aria-pressed="false"] { background: var(--wb-accent); border-color: var(--wb-accent); color: var(--wb-on-accent, #123b33); }
 #wbm .manager-switch { color: var(--wb-muted); }
 #wbm .wb-content {
     flex: 1; min-height: 0; min-width: 0; overflow: auto; display: flex; flex-direction: column; gap: var(--wb-gap);
@@ -98,7 +100,7 @@ body#wbm-page {
 #wbm .error { color: var(--wb-default-error); white-space: pre-line; }
 #wbm .boxes { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
 #wbm .box { padding: 12px 0; border-top: 1px solid var(--wb-line); min-width: 0; background: transparent; }
-#wbm .box-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+#wbm .box-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
 #wbm .box-heading { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; }
 #wbm .box-title { overflow-wrap: anywhere; }
 #wbm .badge { color: var(--wb-muted); font-size: .75em; overflow-wrap: anywhere; }

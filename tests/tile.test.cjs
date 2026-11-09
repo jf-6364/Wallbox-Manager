@@ -77,7 +77,7 @@ test('Initialzustand, deutsche Einheiten und Gesamtenergie', () => {
 });
 test('Namen werden als Text gesetzt; HTML wird nicht interpretiert', () => assert.equal(fields1.name.textContent, data.boxes[1].name));
 test('Externe Sperre bleibt sichtbar und wird durch manuellen Klick nicht geändert', () => {
-    assert.equal(fields1.lock.hidden, false); fields1.manual.checked = false; fields1.manual.change();
+    assert.equal(fields1.lock.hidden, false); fields1.manual.click();
     assert.deepEqual(actions.at(-1), {ident:'W1Manual', value:false}); assert.equal(data.boxes[1].external, false);
 });
 test('Manager-, Modus-, Speicher- und Prioritätsaktionen sind korrekt typisiert', () => {
@@ -112,7 +112,8 @@ test('Flache Hauptansicht zeigt bestätigten Modus, manuelle Freigabe und Sollst
     data.mode = 1; data.boxes[1].manual = false; deliver(data);
     assert.equal(elements['mode-priority']['aria-pressed'], 'true');
     assert.equal(elements['mode-even']['aria-pressed'], 'false');
-    assert.equal(fields1.manualText.textContent, 'Aus');
+    assert.equal(fields1.manual.textContent, 'Ladevorgang starten');
+    assert.equal(fields1.manual['aria-pressed'], 'false');
     assert.equal(fields1.setpoint.textContent, 'Soll 7,0 A · 3 Phasen');
     assert.equal(fields1.billingRates.textContent, 'Preise nicht eingerichtet');
 });
@@ -149,6 +150,26 @@ test('Verzögert angezeigte Countdown-Werte berücksichtigen die Empfangszeit', 
     snapshot.boxes[2].enabled = true;
     deliver(JSON.stringify(snapshot));
     assert.ok(fields2.reason.textContent.includes('Start in 18 s'));
+});
+test('Start- und Stopp-Button sendet pro Wallbox nur die ausdrücklich gewählte Aktion', () => {
+    data.boxes[1].manual = false; deliver(JSON.stringify(data));
+    assert.equal(fields1.manual.tagName, 'BUTTON');
+    assert.equal(fields1.manual.textContent, 'Ladevorgang starten');
+    fields1.manual.click(); assert.deepEqual(actions.at(-1), {ident:'W1Manual', value:true});
+    data.boxes[1].manual = true; deliver(JSON.stringify(data));
+    assert.equal(fields1.manual.textContent, 'Ladevorgang stoppen');
+    assert.equal(fields1.manual['aria-pressed'], 'true');
+    fields1.manual.click(); assert.deepEqual(actions.at(-1), {ident:'W1Manual', value:false});
+});
+test('PV-Wechsel und Nullleistung ändern den bestätigten Startzustand des Buttons nicht', () => {
+    const actionCount = actions.length;
+    for (const pv of [true, false, true]) {
+        data.pvActive = pv; data.base = 0; data.boxes[1].measured = 0;
+        deliver(JSON.stringify(data));
+        assert.equal(fields1.manual.textContent, 'Ladevorgang stoppen');
+        assert.equal(fields1.manual['aria-pressed'], 'true');
+    }
+    assert.equal(actions.length, actionCount);
 });
 test('Aufräumen beendet den Anzeigetimer und entfernt Bedienereignisse', () => {
     context.window.WBM_TILE_CLEANUP();

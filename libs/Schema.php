@@ -67,7 +67,7 @@ final class Schema
 
     public static function isLegacy(string $name): bool
     {
-        return preg_match('/^W[1-4](.+)$/', $name, $match) && in_array($match[1], self::sharedMap(), true);
+        return $name === 'BillingIdleSeconds' || preg_match('/^W[1-4](.+)$/', $name, $match) && in_array($match[1], self::sharedMap(), true);
     }
 
     public static function invoice(): array
@@ -141,7 +141,7 @@ final class Schema
             'BillingPVPrice' => [0.0, 'PV-Preis (EUR/kWh)', 'Abrechnung'],
             'BillingNormalPrice' => [0.0, 'Normalpreis (EUR/kWh)', 'Abrechnung'],
             'BillingIdleSeconds' => [600, 'Ladepause bis zum Abschluss (s)', 'Abrechnung'],
-            'BillingMinPowerW' => [50.0, 'Leistungsschwelle für einen Ladegang (W)', 'Abrechnung'],
+            'BillingMinPowerW' => [50.0, 'Leistungsschwelle für die Abrechnungsenergie (W)', 'Abrechnung'],
             'MaxAge' => [0, 'Messwertalter / Heartbeat-Timeout (s; 0 = aus)', 'Messwerte'],
             'HeartbeatVar' => [0, 'Geräte-Heartbeat (optional; Aktualisierung zählt)', 'Messwerte', 'read', [0, 1, 2, 3], false],
             'Voltage' => [230.0, 'Spannung Außenleiter–Neutralleiter (V)', 'Phasen'],

@@ -35,7 +35,6 @@ final class Validation
             foreach (['BillingPVPrice', 'BillingNormalPrice'] as $key) {
                 if (abs($g[$key] - round($g[$key], 2)) > 1e-8) $errors[] = $key . ': höchstens zwei Nachkommastellen';
             }
-            if ($g['BillingIdleSeconds'] < 1 || $g['BillingIdleSeconds'] > 604800) $errors[] = 'Abrechnung: Ladepause muss 1 bis 604800 s betragen';
         }
         if ($g['Interval'] < 1 || $g['Interval'] > 3600) $errors[] = 'Regelintervall muss zwischen 1 und 3600 s liegen';
         foreach (['Hysteresis', 'HardLimitW', 'BudgetMaxAge', 'PVBudgetMaxAge', 'Rotation', 'OverrunW', 'Watchdog', 'FeedbackToleranceW', 'MeterJumpSlack'] as $k) {
@@ -131,12 +130,14 @@ final class Form
         $form['elements'][] = ['type' => 'Label', 'caption' => $errors ? implode("\n", $errors) : 'Konfiguration geprüft. Laufzeitfehler und Messlücken siehe Diagnose.'];
         $groups = []; $invoice = [];
         foreach (Schema::global() as $name => $d) {
+            if (Schema::isLegacy($name)) continue;
             if (str_starts_with($d[2], 'Rechnung: ')) $invoice[substr($d[2], 10)][] = self::field($name, $d, $flat);
             else $groups[$d[2]][] = self::field($name, $d, $flat);
         }
         $invoicePanels = [];
         foreach ($invoice as $caption => $items) $invoicePanels[] = ['type' => 'ExpansionPanel', 'caption' => $caption, 'items' => $items];
         $invoicePanels[] = ['type' => 'Label', 'caption' => 'PV- und Normalpreise sind Endpreise. Bei Umsatzsteuerausweis wird die enthaltene Steuer herausgerechnet. Rechnungsdaten werden beim Abschluss gespeichert; bestehende PDFs bleiben unverändert.'];
+        $groups['Abrechnung'][] = ['type' => 'Label', 'caption' => 'Ladevorgänge werden je Wallbox mit Start und Stopp in der Visualisierung gesteuert. Ladepausen und Moduswechsel schließen die Abrechnung nicht ab.'];
         $groups['Abrechnung'][] = ['type' => 'ExpansionPanel', 'caption' => 'Rechnung', 'items' => $invoicePanels];
         $general = $groups['Allgemein'];
         foreach (['Zeitbedingungen', 'Abrechnung'] as $caption) $general[] = ['type' => 'ExpansionPanel', 'caption' => $caption, 'items' => $groups[$caption]];

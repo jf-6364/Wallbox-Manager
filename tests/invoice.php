@@ -70,7 +70,7 @@ test('Adapter Rechnung: Daten und Nummer bleiben bei Schreibfehler / späteren �
     [$m] = billingFixture();
     $m->properties['InvoiceSenderName'] = 'Absender ALT'; $m->properties['InvoiceRecipientName'] = 'Empfänger ALT';
     $m->properties['InvoiceTaxMode'] = 'included'; $m->properties['InvoiceTaxRate'] = 19.0; $m->ApplyChanges();
-    seedIdleBill($m); Kernel::$failures['media'] = 'Datenträger voll'; $m->Control();
+    seedCompletedBill($m); Kernel::$failures['media'] = 'Datenträger voll'; $m->Control();
     $s = runtimeOf($m); $frozen = $s['billing'][1]['last']['invoice'];
     check($frozen['profile']['SenderName'] === 'Absender ALT'); check($frozen['sequence'] === 1); check($s['invoiceSequence'] === 1);
     $m->properties['InvoiceSenderName'] = 'Absender NEU'; $m->properties['InvoiceRecipientName'] = 'Empfänger NEU'; $m->properties['InvoiceTaxRate'] = 7.0;
@@ -80,7 +80,7 @@ test('Adapter Rechnung: Daten und Nummer bleiben bei Schreibfehler / späteren �
     $s = runtimeOf($m); check($s['billing'][1]['last']['invoice'] === $frozen); check($s['invoiceSequence'] === 1);
     $oldMedia = $s['billing'][1]['last']['mediaID']; $oldPDF = IPS_GetMediaContent($oldMedia);
     $m->ResetEnergy('ENERGIE ZURÜCKSETZEN'); check(runtimeOf($m)['invoiceSequence'] === 1);
-    seedIdleBill($m); $m->Control(); $s = runtimeOf($m);
+    seedCompletedBill($m); $m->Control(); $s = runtimeOf($m);
     check(count(Kernel::$media) === 2); check(IPS_GetMediaContent($oldMedia) === $oldPDF);
     check($s['billing'][1]['last']['invoice']['sequence'] === 2);
     check($s['billing'][1]['last']['invoice']['profile']['SenderName'] === 'Absender NEU');

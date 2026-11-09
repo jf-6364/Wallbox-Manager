@@ -128,16 +128,31 @@ async function palette(page) {
         assert.equal(await page.locator('[data-field="energy"]').first().isVisible(), true);
         await page.locator('#manager').uncheck();
         await page.locator('#mode-priority').click();
-        await page.locator('.box').first().locator('[data-field="manual"]').uncheck();
+        await page.locator('.box').first().locator('[data-field="manual"]').click();
         assert.deepEqual(await page.evaluate(() => actions.slice(-3)), [
             {ident: 'ManagerEnabled', value: false}, {ident: 'DistributionMode', value: 1}, {ident: 'W1Manual', value: false}
         ]);
         const confirmed = structuredClone(data); confirmed.mode = 1; confirmed.boxes[1].manual = false;
         await deliver(page, confirmed);
         assert.equal(await page.locator('#mode-priority').getAttribute('aria-pressed'), 'true');
-        assert.equal(await page.locator('[data-field="manualText"]').first().innerText(), 'Aus');
-        assert.equal(await page.locator('[data-field="manual"]').last().isChecked(), true);
+        assert.equal(await page.locator('[data-field="manual"]').first().innerText(), 'Ladevorgang starten');
+        assert.equal(await page.locator('[data-field="manual"]').last().getAttribute('aria-pressed'), 'true');
         console.log('OK  Compact details, resize and device actions');
+        const sessionButton = page.locator('[data-field="manual"]').first();
+        assert.equal(await sessionButton.getAttribute('type'), 'button');
+        await sessionButton.click();
+        assert.deepEqual(await page.evaluate(() => actions.at(-1)), {ident:'W1Manual', value:true});
+        const sessionStarted = structuredClone(data); sessionStarted.pvActive = true; sessionStarted.base = 0;
+        sessionStarted.boxes[1].measured = 0; sessionStarted.boxes[1].status = 'Warten auf Leistung';
+        await deliver(page, sessionStarted);
+        assert.equal(await sessionButton.innerText(), 'Ladevorgang stoppen');
+        assert.equal(await sessionButton.getAttribute('aria-pressed'), 'true');
+        sessionStarted.pvActive = false; await deliver(page, sessionStarted);
+        assert.equal(await sessionButton.innerText(), 'Ladevorgang stoppen');
+        await sessionButton.focus(); await page.keyboard.press('Enter');
+        assert.deepEqual(await page.evaluate(() => actions.at(-1)), {ident:'W1Manual', value:false});
+        console.log('OK  Separate Start/Stop button, typed session actions, keyboard activation and unchanged session across PV changes and zero power');
+
         await page.evaluate(() => {
             document.documentElement.style.setProperty('--content-color', '#24262b');
             document.documentElement.style.setProperty('--card-color', '#ffffff');

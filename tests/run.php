@@ -258,6 +258,7 @@ require __DIR__ . '/regression.php';
 require __DIR__ . '/billing.php';
 require __DIR__ . '/invoice.php';
 require __DIR__ . '/pv.php';
+require __DIR__ . '/sessions.php';
 
 $results = [];
 foreach ($tests as $name => $fn) {

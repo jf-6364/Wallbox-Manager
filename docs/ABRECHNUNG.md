@@ -1,7 +1,7 @@
 # Ladeabrechnung
 
 Jede der vier Wallboxen kann ihre Ladegänge getrennt abrechnen. Die Funktion ist
-standardmäßig deaktiviert und beginnt nach ihrer Aktivierung mit der Erfassung.
+standardmäßig deaktiviert. Erfasst wird Energie innerhalb manuell gestarteter Ladevorgänge.
 
 ## Gemeinsame Einstellungen
 
@@ -13,10 +13,9 @@ Unter **Allgemein → Abrechnung** werden folgende Werte einmal für alle Wallbo
 | PV-Überschussladen | Boolvariable: true = PV-Tarif, false = Normaltarif | Ohne Verknüpfung: Normal |
 | PV-Preis | Preis pro kWh im PV-Modus, in EUR | 0,00 |
 | Normalpreis | Preis pro kWh im Normalmodus, in EUR | 0,00 |
-| Ladepause bis zum Abschluss | Durchgehende Zeit ohne Ladeleistung in Sekunden | 600 |
 | Leistungsschwelle | Nur gemessene Leistung oberhalb dieser Grenze zählt als Laden | 50,00 W |
 
-PV-Boolvariable, Preise, Ladepause und Leistungsschwelle gelten für alle Wallboxen.
+PV-Boolvariable, Preise und Leistungsschwelle gelten für alle Wallboxen.
 Energie, Kosten, Ladegänge und PDFs werden weiterhin je Wallbox getrennt erfasst.
 0,00 EUR/kWh bedeutet
 kostenlos. Preise haben höchstens zwei Nachkommastellen und werden mit Komma
@@ -81,20 +80,32 @@ Adressblöcke, Datum und Nummer, Bankangaben, Positionstabelle, Summen und Fußb
 
 ## Beginn und Abschluss eines Ladegangs
 
-Ein Ladegang beginnt, wenn die tatsächlich gemessene Leistung die eingestellte
-Schwelle überschreitet. Die ersten bekannten Messwerte bilden die Messbasis;
-vor Aktivierung unbekannte Ladeenergie wird nicht rückwirkend zugeordnet.
+Ein Ladegang wird je Wallbox mit **„Ladevorgang starten“** in der Visualisierung
+begonnen und mit **„Ladevorgang stoppen“** beendet. Ohne Start wird die Wallbox
+nicht zur Ladung freigegeben und keine neue Abrechnung eröffnet. Die ersten
+Messwerte nach dem Start bilden die Messbasis; vorherige Energie wird nicht
+rückwirkend zugeordnet.
 
-Sinkt die Leistung auf oder unter die Schwelle, beginnt die Ladepause. Wird noch
-vor Ablauf der Pause weitergeladen, bleibt es derselbe Ladegang. Nach Ablauf
-wird die Abrechnung im nächsten Regeldurchlauf abgeschlossen und als PDF
-abgelegt. Als Ende wird der Beginn der abschließenden Ladepause ausgewiesen.
-Lange Unterbrechungen, beispielsweise wegen fehlendem PV-Budget, erzeugen nach
-der gewählten Pausenzeit getrennte Abrechnungen.
+Der Vorgang bleibt bei Normal-/PV-Wechseln und beliebig langen Ladepausen aktiv.
+Bei fehlendem Budget oder einer externen Sperre ruht die tatsächliche Ladung;
+sobald Leistung und Freigaben wieder vorhanden sind, lädt dieselbe Wallbox im
+selben Vorgang weiter. Preise und Tarifanteile werden innerhalb dieses Vorgangs
+getrennt erfasst. Die frühere Zeit für den automatischen Abschluss entfällt.
 
-Fehlende oder ungültige Leistungswerte sind kein bestätigtes Ladeende. Eine
-solche Messlücke unterbricht die Erkennung der durchgehenden Ladepause. Nach
-Wiederkehr gültiger Nullwerte beginnt die Pausenzeit erneut.
+Mit Stopp wird die gemessene Energie bis zum Stopp-Regeldurchlauf abgerechnet und
+bei erfasster Energie eine PDF erstellt. Start und Ende der Rechnung beziehen
+sich auf die manuelle Steuerung, einschließlich dazwischenliegender Pausen.
+Ein gestarteter Vorgang ohne Ladeenergie erzeugt kein leeres PDF.
+Energie außerhalb eines gestarteten Vorgangs wird keiner Rechnung zugeschlagen;
+die allgemeinen Energiezähler erfassen weiterhin die gemessene Gesamtenergie.
+Fehlende oder ungültige Messwerte bleiben als Messlücken behandelt und beenden
+den Vorgang nicht.
+
+Beim ersten Update auf diese Steuerung werden frühere automatische Freigaben
+zurückgesetzt. Bereits erfasste Energie wird bewahrt und ein noch laufender alter
+Abrechnungsvorgang abgeschlossen; vorhandene PDFs bleiben erhalten. Anschließend
+ist einmalig je Wallbox „Ladevorgang starten“ erforderlich. Spätere Neustarts
+behalten den Startzustand und laufende Rechnungen bei.
 
 ## Energie und Tarifwechsel
 
@@ -151,8 +162,7 @@ aufklappen und **„Rechnung … als PDF“** anklicken (bei älteren Dokumenten
 „Letzte Abrechnung als PDF“). Der Browser speichert
 die Datei im Download-Ordner oder fragt nach einem Speicherort. Solange kein
 abgeschlossener Ladegang mit erfasster Energie vorliegt, ist der Button deaktiviert.
-Der Ladegang wird nach der eingestellten Ladepause abgeschlossen, standardmäßig
-nach 600 Sekunden. Bei einem PDF-Schreibfehler zeigt die Kachel den Fehler an.
+Der Ladegang wird mit **„Ladevorgang stoppen“** abgeschlossen. Bei einem PDF-Schreibfehler zeigt die Kachel den Fehler an.
 
 Im Symcon-Objektbaum die Managerinstanz und darunter **„Abrechnung – Wallbox n“**
 öffnen. Jedes dortige Dokument steht für einen abgeschlossenen Ladegang und kann

@@ -13,7 +13,7 @@ class WallboxManager extends IPSModule
     public function Create()
     {
         parent::Create();
-        foreach (['Runtime', 'Configuration', 'Telemetry', 'OwnedTargets', 'SharedDefaults'] as $key) $this->RegisterAttributeString($key, '{}');
+        foreach (['Runtime', 'Configuration', 'Telemetry', 'OwnedTargets', 'SharedDefaults', 'SessionControl'] as $key) $this->RegisterAttributeString($key, '{}');
         foreach (Schema::definitions() as $key => $def) {
             if (isset(Schema::sharedMap()[$key])) continue;
             $method = 'RegisterProperty' . (is_bool($def[0]) ? 'Boolean' : (is_int($def[0]) ? 'Integer' : (is_float($def[0]) ? 'Float' : 'String')));
@@ -36,6 +36,11 @@ class WallboxManager extends IPSModule
         $this->SetBuffer('ColdStart', '1');
         $this->profiles();
         $this->variables();
+        if (($this->jsonAttribute('SessionControl')['version'] ?? 0) < 1) {
+            // Former automatic releases must not start a charging session after this update.
+            for ($id = 1; $id <= 4; $id++) $this->SetValue('W' . $id . 'Manual', false);
+            $this->WriteAttributeString('SessionControl', $this->encode(['version' => 1]));
+        }
         $this->SetVisualizationType(self::VISUALIZATION_TYPE_HTML);
     }
 
@@ -167,7 +172,13 @@ class WallboxManager extends IPSModule
             if (!is_int($Value) || $Value < 1 || $Value > 999) throw new InvalidArgumentException('Priorität muss 1 bis 999 sein');
         } else throw new InvalidArgumentException('Unbekannte Aktion: ' . $Ident);
         if (!IPS_SemaphoreEnter($this->lockName(), 1000)) throw new RuntimeException('Regelung beschäftigt; Aktion erneut ausführen');
-        try { $this->SetValue($Ident, $Value); }
+        try {
+            if ($Value === true && preg_match('/^W([1-4])Manual$/', $Ident, $match)) {
+                $cfg = Schema::unpack($this->configuration());
+                if (!$cfg['boxes'][(int)$match[1]]['Enabled']) throw new InvalidArgumentException('Wallbox ist nicht aktiviert');
+            }
+            $this->SetValue($Ident, $Value);
+        }
         finally { IPS_SemaphoreLeave($this->lockName()); }
         $this->Control();
     }
@@ -854,7 +865,7 @@ class WallboxManager extends IPSModule
                 $pv = $v !== null && $v['type'] === 0 && is_bool($v['value']) ? $v['value'] : null;
             }
             Billing::observe($id, $c, $state['billing'][$id], $power, $sample, $now, $cfg['global']['EnergyMaxGap'], $fresh, $pv,
-                $cfg['global']['BillingTimezone'], Invoice::profile($cfg['global'], $c));
+                $cfg['global']['BillingTimezone'], Invoice::profile($cfg['global'], $c), (bool)$this->GetValue('W' . $id . 'Manual'));
         }
     }
 
@@ -923,7 +934,7 @@ class WallboxManager extends IPSModule
         $summary['enabled'] = $c['BillingEnabled'];
         $summary['pvPrice'] = $c['BillingPVPrice'];
         $summary['normalPrice'] = $c['BillingNormalPrice'];
-        $summary['idleSeconds'] = $c['BillingIdleSeconds'];
+        $summary['manualSession'] = true;
         $summary['pdf'] = '';
         $media = $summary['last']['mediaID'] ?? 0;
         if ($media && IPS_MediaExists($media)) {
@@ -1027,7 +1038,7 @@ class WallboxManager extends IPSModule
             $unit = $this->ReadPropertyString('W' . $i . 'SetpointUnit');
             $setpointProfile = 'WBM.Setpoint.' . (in_array($unit, ['A', 'W', 'kW'], true) ? $unit : 'W');
             $wb = [
-                'Manual' => [0, 'Manuelle Freigabe', '~Switch', true, true], 'Priority' => [1, 'Priorität', 'WBM.Priority', true, $i],
+                'Manual' => [0, 'Ladevorgang aktiv', '~Switch', true, false], 'Priority' => [1, 'Priorität', 'WBM.Priority', true, $i],
                 'Power' => [2, 'Ladeleistung', 'WBM.Power', false, 0.0], 'Assigned' => [2, 'Zugewiesene Leistung', 'WBM.Power', false, 0.0],
                 'Setpoint' => [2, 'Sollwert (Einheit laut Konfiguration)', $setpointProfile, false, 0.0], 'Phases' => [1, 'Bestätigte / feste Phasen', '', false, 0],
                 'Energy' => [2, 'Geladene Energie', 'WBM.Energy', false, 0.0], 'ExternalLocked' => [0, 'Externe Sperre', '~Switch', false, false],

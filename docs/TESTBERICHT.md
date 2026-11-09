@@ -2,10 +2,21 @@
 
 ## Ausgeführt
 
-- **133 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- **146 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
-- **15 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
+- **17 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
+- Manuelle Ladevorgänge geprüft: kein Start durch hohes Budget, einzelne
+  Start-/Stoppaktionen je Wallbox, unmittelbarer Stopp trotz Mindestlaufzeit,
+  Erhalt über PV-Wechsel, Nullbudget, ApplyChanges und Neustart. Mennekes-Stopp
+  mit 1 A und Start bis 16 A bleiben wirksam. Lange Pausen schließen keine
+  Rechnung; Normal-/PV-Energie bleiben im selben Vorgang getrennt. Nur ein
+  expliziter Stopp erstellt bei Energie ein PDF, wiederholte Aktionen erzeugen
+  keine Duplikate. Energie vor Start und zwischen Vorgängen wird nicht
+  rückwirkend abgerechnet. Einmalige Migration erhält Energie und bestehende
+  PDFs; deaktivierte Plätze und falsche Aktionstypen werden abgelehnt. Der alte
+  automatische Abschluss ist aus dem Formular entfernt. Start-/Stopp-Buttons,
+  Tastaturbedienung und unveränderte Freigabe bei PV-Wechsel im Browser geprüft.
 - PV-Budgetumschaltung geprüft: eigener Formularbereich, Bool unverbunden/false/
   true, wiederholter Wechsel und Rückkehr zum Normalbudget. Nur die gewählte
   Budgetquelle wird ausgewertet; ungültige inaktive Daten stören die Regelung
@@ -82,7 +93,7 @@
   stimmen centgenau mit dem unveränderten Endpreis überein.
 - UI in Chromium mit Systemschrift, großen leichten Leistungswerten, flachen
   Bereichen, SVG-Linienicons und Mint-/Türkisakzenten geprüft; Symcon-Farben
-  haben Vorrang. Verteilungsbuttons sowie manuelle Ein/Aus-Schalter senden
+  haben Vorrang. Verteilungsbuttons sowie Start-/Stopp-Buttons senden
   korrekt typisierte Aktionen. Beide Tarife in ct/kWh und Ladegangkosten sind
   direkt sichtbar, der PDF-Download benötigt nur eine zusätzliche Detailebene
   und nennt die Rechnungsnummer. Hell-/Dunkelmodus und alle vorhandenen
@@ -94,7 +105,7 @@
   Geänderte/ausgeblendete Kopfzeilen und bereits vorhandene Abstände sind geprüft;
   ein Sandbox-iframe verwendet den Abstand auch bei einer außerhalb liegenden
   Kopfzeile. Budgetmodus und Aktualisierungszeit werden nicht mehr im Footer gerendert.
-- Alle **23 PHP-Dateien** syntaktisch geprüft; alle **7 vorhandenen JSON-Dateien**
+- Alle **24 PHP-Dateien** syntaktisch geprüft; alle **7 vorhandenen JSON-Dateien**
   syntaktisch geprüft (einschließlich lokalem Testergebnis).
 - Metadaten, unterschiedliche gültige GUIDs, Präfix, Modulstruktur,
   vollständige Formularfelder und Beispielkonfigurationen geprüft.

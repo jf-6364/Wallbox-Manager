@@ -120,8 +120,8 @@ Nachlauf, Mindestpause, Wallbox-Hysterese und Mindestabstand für Erhöhungsbefe
 einmal für alle Wallboxen eingestellt. Sie vermeiden häufiges Umschalten.
 Standardmäßig beträgt das Regelintervall 5 Sekunden.
 
-Die globale Managerfreigabe, die manuelle Freigabe je Box und optionale externe
-Freigaben bestimmen gemeinsam, welche Geräte laden dürfen. Externe Freigaben
+Die globale Managerfreigabe, der manuell gestartete Ladegang je Wallbox und
+optionale externe Freigaben bestimmen gemeinsam, welche Geräte laden dürfen. Externe Freigaben
 werden ausschließlich gelesen.
 
 Im strikten Modus bleiben die zugeteilten Sollleistungen innerhalb des Budgets;
@@ -176,18 +176,22 @@ Boolvariable gilt der Normaltarif.
 Die Boolvariable bestimmt die Abrechnung; die Leistungsregelung erfolgt weiterhin
 über das Budget und die Freigaben.
 
-Ein Ladegang beginnt bei gemessener Ladeleistung oberhalb der einstellbaren
-Schwelle. Er endet nach einer **einstellbaren Zeit ohne Ladeleistung**, standardmäßig
-600 Sekunden. Kürzere Pausen bleiben Teil desselben Ladegangs. Nach dem Abschluss
-entsteht automatisch eine PDF mit Zeitraum, beiden Energiemengen, Tarifpositionen
-und Gesamtkosten. Alle PDFs bleiben unter der Instanz im jeweiligen Ordner
+Ein Ladegang beginnt je Wallbox mit **„Ladevorgang starten“** in der Kachel und
+endet mit **„Ladevorgang stoppen“**. Ein Wechsel zwischen Normal- und PV-Betrieb
+sowie beliebig lange Ladepausen lassen den Vorgang aktiv. Bei zu wenig Budget
+wartet die Wallbox und setzt das Laden bei ausreichender Leistung fort.
+Die Abrechnung erfasst nur die tatsächlich gemessene Energie oberhalb der
+Leistungsschwelle innerhalb dieses Vorgangs; PV- und Normalanteile bleiben getrennt.
+Nach Stopp entsteht bei erfasster Energie automatisch eine PDF mit Zeitraum,
+beiden Energiemengen, Tarifpositionen und Gesamtkosten. Ohne Ladeenergie entsteht
+kein leeres Dokument. Alle PDFs bleiben unter der Instanz im jeweiligen Ordner
 „Abrechnung – Wallbox n“; die letzte PDF ist auch in der Kachel herunterladbar.
 
 Für eine zeitliche Tarifaufteilung wird die Abrechnungsenergie **aus der gemessenen
 Ladeleistung berechnet**, auch bei verknüpftem Geräte-Energiezähler. PV-Wechsel
 werden als Ereignisse verarbeitet; Messlücken werden nicht mit angenommener
 Ladeleistung aufgefüllt. Daher können Abrechnung und Geräte-Energiezähler
-voneinander abweichen. Die Aufzeichnung beginnt mit aktivierter Abrechnung.
+voneinander abweichen. Die Aufzeichnung setzt aktivierte Abrechnung und einen gestarteten Ladegang voraus.
 
 Preise sind standardmäßig 0,00 EUR/kWh und vor der Nutzung einzustellen.
 Preisänderungen gelten für kommende Energieintervalle. Laufende Ladegänge und
@@ -224,9 +228,18 @@ Oben stehen die aktuelle Gesamtleistung in kW, Gesamtenergie und Budget.
 Manager-Schalter aktiviert oder stoppt die gesamte Regelung.
 
 Jede aktive Wallbox zeigt ihre gemessene Ladeleistung, den Sollwert und einen
-**Ein/Aus-Schalter** für die manuelle Freigabe. Ausschalten nimmt die Wallbox aus
-der Verteilung; Einschalten gibt sie wieder für die automatische Regelung frei.
-Externe Sperren und Gerätegrenzen bleiben wirksam.
+eigenen Button **„Ladevorgang starten“**. Nach dem Start heißt er
+**„Ladevorgang stoppen“**. Ohne Start nimmt die Wallbox nicht an der Verteilung teil.
+Stopp nimmt sie sofort heraus, auch während einer Mindestlaufzeit, und beendet
+den zugehörigen Abrechnungsvorgang. Verteilungsart, PV-Modus und Ladepausen ändern
+diesen Startzustand nicht. Der Zustand bleibt über Neustarts erhalten.
+Budget, Gerätegrenzen und externe Sperren begrenzen weiterhin die tatsächliche
+Ladeleistung; der gestartete Vorgang bleibt dabei erhalten.
+
+Beim ersten Update auf die Start-/Stopp-Steuerung werden bisher automatisch
+freigegebene Wallboxen einmalig auf „nicht gestartet“ gesetzt. Danach ist je
+Wallbox ein Startklick erforderlich. Vorhandene Energie und PDFs bleiben erhalten;
+ein bisher laufender Abrechnungsvorgang wird mit seiner erfassten Energie abgeschlossen.
 
 Bei aktivierter Abrechnung sind **PV- und Normalpreis in ct/kWh**, der aktuelle
 Tarif sowie Energie und Kosten des laufenden oder letzten Ladegangs unmittelbar

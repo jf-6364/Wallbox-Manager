@@ -37,7 +37,7 @@ Der eigene Bereich PV-Überschuss verwendet PVModeVar (Boolean) und PVBudgetVar 
 | `BPowerVar` | Tatsächliche Speicherleistung (optional) | Integer/Float | W/kW (PowerUnit) | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
 | `BLimitVar` | Aktuelle Entladeleistungsgrenze (optional) | Integer/Float | W/kW (LimitUnit) | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
 
-Externe Freigabe = zusätzliche Sperrbedingung. DeviceEnableVar = tatsächlicher Gerätebefehl mit konfigurierbarer Polaritität. Manual = eigene Bedienvariable des Managers. Diese Rollen sind nicht austauschbar.
+Externe Freigabe = zusätzliche Sperrbedingung. DeviceEnableVar = tatsächlicher Gerätebefehl mit konfigurierbarer Polaritität. Manual = eigener Start-/Stoppzustand des Ladegangs. RequestAction mit true startet, mit false stoppt und schließt die Abrechnung ab; Budget und Sperrbedingungen bleiben wirksam. Diese Rollen sind nicht austauschbar.
 
 ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilligen Zustand. HeartbeatVar: der Wert ist unerheblich, seine letzte Aktualisierung zählt.
 
@@ -104,8 +104,7 @@ ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilli
 | `BillingPVVar` | `0` | PV-Überschussladen (true = PV, false = Normal; optional) | Abrechnung |
 | `BillingPVPrice` | `0` | PV-Preis (EUR/kWh) | Abrechnung |
 | `BillingNormalPrice` | `0` | Normalpreis (EUR/kWh) | Abrechnung |
-| `BillingIdleSeconds` | `600` | Ladepause bis zum Abschluss (s) | Abrechnung |
-| `BillingMinPowerW` | `50` | Leistungsschwelle für einen Ladegang (W) | Abrechnung |
+| `BillingMinPowerW` | `50` | Leistungsschwelle für die Abrechnungsenergie (W) | Abrechnung |
 | `InvoiceRecipientName` | `(leer)` | Rechnungsempfänger: Name / Firma | Rechnung: Empfänger |
 | `InvoiceRecipientStreet` | `(leer)` | Straße / Hausnummer | Rechnung: Empfänger |
 | `InvoiceRecipientZip` | `(leer)` | Postleitzahl | Rechnung: Empfänger |
@@ -212,7 +211,7 @@ Alle vier Plätze werden dauerhaft angelegt. Unverknüpfte / ungültige numerisc
 | `BatteryEnergy` | Float | kWh | nein | Geschätzte Energie oberhalb Reserve |
 | `BatteryState` | String | – | nein | Zustand / Begrenzungsgrund |
 | `BatteryExternalLocked` | Boolean | – | nein | Externe Speicherfreigabe false |
-| `WnManual` | Boolean | – | ja | Eigene manuelle Freigabe, bedeutet automatischer Betrieb |
+| `WnManual` | Boolean | – | ja | Manueller Ladegang: false = gestoppt (Standard), true = gestartet; bleibt bei PV-Wechsel und Pausen aktiv |
 | `WnPriority` | Integer | 1–999 | ja | Persistente Laufzeitpriorität, 1 ist höchste |
 | `WnPower` | Float | W | nein | Tatsächliche gemessene Ladeleistung |
 | `WnAssigned` | Float | W | nein | Erfolgreich beauftragte nominelle Ladeleistung |
@@ -248,4 +247,4 @@ Die 17 Manager-/Speichervariablen und 21 Variablen je Platz ergeben 101 Variable
 | `WBM_GetBillingPDF(int InstanceID, int Wallbox)` | Letzte gespeicherte PDF als Base64-String; leer, solange kein Dokument bereitliegt |
 | `WBM_ControlTargets(int InstanceID)` | Internes JSON der beanspruchten Steuerziele; dient Instanzkonfliktprüfung |
 
-Runtime, Configuration, Telemetry, OwnedTargets und SharedDefaults sind persistente String-Attribute. Laufende Abrechnungen, Tarifpositionen und die PDF-Warteschlange liegen in Runtime. PDFs sind Dokumentmedien im Objektbaum und im media-Verzeichnis. Puffer halten flüchtige Startmarkierung und PDF-Kopien für die Kachel. Steuerzielübernahme ist instanzübergreifend durch eine Semaphore geschützt. Details: [Ladeabrechnung](ABRECHNUNG.md).
+Runtime, Configuration, Telemetry, OwnedTargets, SharedDefaults und SessionControl sind persistente String-Attribute. SessionControl markiert die einmalige Migration auf manuell gestartete Ladevorgänge; frühere automatische Freigaben werden dabei zurückgesetzt. BillingIdleSeconds bleibt ausschließlich für gespeicherte Alt-Konfigurationen registriert, ist ausgeblendet und beendet keinen Ladegang mehr. Laufende Abrechnungen, Tarifpositionen und die PDF-Warteschlange liegen in Runtime. PDFs sind Dokumentmedien im Objektbaum und im media-Verzeichnis. Puffer halten flüchtige Startmarkierung und PDF-Kopien für die Kachel. Steuerzielübernahme ist instanzübergreifend durch eine Semaphore geschützt. Details: [Ladeabrechnung](ABRECHNUNG.md).

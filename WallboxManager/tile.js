@@ -200,9 +200,6 @@
         put(fields.billingUnknown, 'Tarif ungeklärt: ' + energy(session && session.unassignedEnergy) + ' – Abrechnung prüfen');
         var billingState = billing.error || (billing.pending ? 'PDF wird erstellt …' : 'Energie aus gemessener Ladeleistung berechnet.');
         if (session && session.warnings && session.warnings.length) billingState += ' Hinweise im PDF beachten.';
-        if (billing.active && billing.idleSince !== null && billing.idleSince !== undefined) {
-            billingState += ' Ladepause: Abschluss nach ' + number.format(billing.idleSeconds) + ' s ohne Ladeleistung.';
-        }
         put(fields.billingState, billingState);
         assign(fields.billingPDF, 'disabled', !billing.pdf);
         put(fields.billingPDF, billing.last && billing.last.invoice ? 'Rechnung ' + billing.last.invoice.number + ' als PDF' : 'Letzte Abrechnung als PDF');
@@ -241,16 +238,10 @@
         secondary.append(metric('Geladene Energie', 'energy'));
         var controls = document.createElement('div');
         controls.className = 'device-controls';
-        var manualLabel = document.createElement('label');
-        manualLabel.className = 'switch';
-        var manual = document.createElement('input');
-        manual.type = 'checkbox';
-        attribute(manual, 'aria-label', 'Wallbox ' + id + ' freigeben');
+        var manual = document.createElement('button');
+        manual.type = 'button'; manual.className = 'wb-button session-button';
         manual.dataset.field = 'manual';
-        on(manual, 'change', function () { action('W' + id + 'Manual', manual.checked); });
-        var manualText = document.createElement('span');
-        put(manualText, 'Ein'); manualText.dataset.field = 'manualText';
-        manualLabel.append(manual, manualText);
+        on(manual, 'click', function () { action('W' + id + 'Manual', manual.dataset.active !== 'true'); });
         var priorityLabel = document.createElement('label');
         priorityLabel.className = 'priority-label';
         put(priorityLabel, 'Priorität');
@@ -264,7 +255,7 @@
             else showError(new Error('Priorität muss zwischen 1 und 999 liegen'));
         });
         priorityLabel.append(priority);
-        head.append(heading, manualLabel);
+        head.append(heading, manual);
         controls.append(priorityLabel);
         details.append(summary, metrics, secondary, controls, billingDetails(id));
         var powerRow = document.createElement('div'); powerRow.className = 'box-power';
@@ -312,14 +303,15 @@
             put(f.name, box.name);
             put(f.status, box.status);
             assign(f.lock, 'hidden', box.external);
-            assign(f.manual, 'checked', box.manual);
-            put(f.manualText, box.manual ? 'Ein' : 'Aus');
+            datum(f.manual, 'active', String(!!box.manual));
+            attribute(f.manual, 'aria-pressed', String(!!box.manual));
+            put(f.manual, box.manual ? 'Ladevorgang stoppen' : 'Ladevorgang starten');
             assign(f.manual, 'disabled', !box.enabled);
             if (document.activeElement !== f.priority) assign(f.priority, 'value', String(box.priority));
             put(f.measured, chargingPower(box.measured));
             put(f.command, (box.unit === 'kW' ? number : ampereFormat).format(box.command) + ' ' + box.unit);
             put(f.setpoint, 'Soll ' + f.command.textContent + (box.phases ? ' · ' + box.phases + (box.phases === 1 ? ' Phase' : ' Phasen') : ''));
-            attribute(f.manual, 'aria-label', box.name + ' freigeben');
+            attribute(f.manual, 'aria-label', box.name + ': ' + f.manual.textContent);
             put(f.energy, energy(box.energy) + (box.energyMethod === 'berechnet' ? ' (berechnet)' : ''));
             put(f.phases, box.phases ? String(box.phases) : 'Unbestätigt');
             put(f.gap, box.gap || '');

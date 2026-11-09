@@ -5,15 +5,15 @@ use WBM\{Billing, BillingPdf, Schema, Validation};
 function billingConfig(array $changes = []): array {
     return box(array_replace(['Name' => 'Garage Süd', 'BillingEnabled' => true, 'BillingPVPrice' => 0.10, 'BillingNormalPrice' => 0.30, 'BillingIdleSeconds' => 60], $changes));
 }
-function billTick(array &$s, array $c, float $at, ?float $power = 3600.0, ?bool $pv = false, ?float $sample = null): void {
-    Billing::observe(1, $c, $s, $power, $sample ?? $at, $at, 3600, $sample ?? $at, $pv, 'Europe/Berlin');
+function billTick(array &$s, array $c, float $at, ?float $power = 3600.0, ?bool $pv = false, ?float $sample = null, bool $sessionActive = true): void {
+    Billing::observe(1, $c, $s, $power, $sample ?? $at, $at, 3600, $sample ?? $at, $pv, 'Europe/Berlin', [], $sessionActive);
 }
 function finishedBill(): array {
     $s = []; $c = billingConfig();
     billTick($s, $c, 0); billTick($s, $c, 1000);
     billTick($s, $c, 1000, 3600.0, true); billTick($s, $c, 2000, 3600.0, true);
     billTick($s, $c, 2000, 3600.0, false); billTick($s, $c, 3000, 0.0);
-    billTick($s, $c, 3060, 0.0);
+    billTick($s, $c, 3060, 0.0, sessionActive: false);
     return $s;
 }
 
@@ -22,7 +22,7 @@ test('Abrechnung: PV- und Normalenergie werden bei mehreren Moduswechseln getren
     closeTo($r['pvEnergy'], 1.0); closeTo($r['normalEnergy'], 2.0); closeTo($r['totalEnergy'], 3.0);
     closeTo($r['pvCost'], 0.10); closeTo($r['normalCost'], 0.60); closeTo($r['totalCost'], 0.70);
     check(count($r['lines']) === 2); check(count($s['pending']) === 1); check($s['active'] === null);
-    closeTo($r['ended'], 3000); check($s['totals']['sessions'] === 1);
+    closeTo($r['ended'], 3060); check($s['totals']['sessions'] === 1);
 });
 test('Abrechnung: unveränderte Ereignisse und Timer zählen Zeitintervalle nur einmal', function () {
     $s = []; $c = billingConfig(); billTick($s, $c, 0);
@@ -33,7 +33,7 @@ test('Abrechnung: unveränderte Ereignisse und Timer zählen Zeitintervalle nur 
 });
 test('Abrechnung: Preisänderungen gelten nur für kommende Energieintervalle', function () {
     $s = []; $c = billingConfig(); billTick($s, $c, 0); billTick($s, $c, 1000);
-    $c['BillingNormalPrice'] = 0.40; billTick($s, $c, 1000); billTick($s, $c, 2000, 0.0); billTick($s, $c, 2060, 0.0);
+    $c['BillingNormalPrice'] = 0.40; billTick($s, $c, 1000); billTick($s, $c, 2000, 0.0); billTick($s, $c, 2060, 0.0, sessionActive: false);
     $r = $s['last']; check(count($r['lines']) === 2);
     closeTo($r['lines'][0]['price'], 0.30); closeTo($r['lines'][1]['price'], 0.40);
     closeTo($r['normalEnergy'], 2.0); closeTo($r['totalCost'], 0.70);
@@ -43,16 +43,16 @@ test('Abrechnung: kurze Ladepause bleibt Teil desselben Ladegangs', function () 
     billTick($s, $c, 1000, 0.0); billTick($s, $c, 1030);
     check($s['active']['id'] === $id); check(count($s['pending']) === 0);
     billTick($s, $c, 2030, 0.0); billTick($s, $c, 2089, 0.0); check($s['active'] !== null);
-    billTick($s, $c, 2090, 0.0); closeTo($s['last']['totalEnergy'], 2.0); check($s['totals']['sessions'] === 1);
+    billTick($s, $c, 2090, 0.0, sessionActive: false); closeTo($s['last']['totalEnergy'], 2.0); check($s['totals']['sessions'] === 1);
 });
-test('Abrechnung: späte positive Messung nach langer Pause beginnt neuen Ladegang', function () {
+test('Abrechnung: lange PV-Pause und spätere Leistung bleiben im gestarteten Ladegang', function () {
     $s = []; $c = billingConfig(); billTick($s, $c, 0); billTick($s, $c, 1000, 0.0); $old = $s['active']['id'];
     billTick($s, $c, 1100, 3600.0, false, 1080);
-    check($s['last']['id'] === $old); check($s['active']['id'] !== $old);
-    closeTo($s['last']['normalEnergy'], 1.0); closeTo(Billing::summary($s)['active']['normalEnergy'], 0.02);
+    check($s['last'] === null); check($s['active']['id'] === $old);
+    closeTo(Billing::summary($s)['active']['normalEnergy'], 1.02);
 });
 test('Abrechnung: Standby unter Leistungsschwelle erzeugt keine leeren PDFs', function () {
-    $s = []; $c = billingConfig(); billTick($s, $c, 0, 30.0); billTick($s, $c, 1000, 0.0); billTick($s, $c, 2000, 0.0);
+    $s = []; $c = billingConfig(); billTick($s, $c, 0, 30.0); billTick($s, $c, 1000, 0.0); billTick($s, $c, 2000, 0.0, sessionActive: false);
     check($s['active'] === null); check(count($s['pending']) === 0); check($s['totals']['sessions'] === 0);
     billTick($s, $c, 3000); billTick($s, $c, 3000, null); $c['BillingEnabled'] = false; billTick($s, $c, 3000);
     check(count($s['pending']) === 0);
@@ -61,18 +61,18 @@ test('Abrechnung: Messwertausfall gilt nicht als Ladeende und erfindet keine Ene
     $s = []; $c = billingConfig(); billTick($s, $c, 0); billTick($s, $c, 1000, 0.0);
     billTick($s, $c, 1040, null); billTick($s, $c, 2000, null); check($s['active'] !== null); check($s['idleSince'] === null);
     billTick($s, $c, 2000, 0.0); billTick($s, $c, 2059, 0.0); check($s['active'] !== null);
-    billTick($s, $c, 2060, 0.0); closeTo($s['last']['totalEnergy'], 1.0); check(count($s['last']['warnings']) > 0);
+    billTick($s, $c, 2060, 0.0, sessionActive: false); closeTo($s['last']['totalEnergy'], 1.0); check(count($s['last']['warnings']) > 0);
 });
 test('Abrechnung: Neustart-Basis zählt eine Unterbrechung nicht als Ladeenergie', function () {
     $s = []; $c = billingConfig(); billTick($s, $c, 0); billTick($s, $c, 1000);
     unset($s['integrator']['cursor']); Billing::note($s['active'], 'Neustart');
     billTick($s, $c, 5000); closeTo(Billing::summary($s)['active']['totalEnergy'], 1.0);
-    billTick($s, $c, 6000, 0.0); billTick($s, $c, 6060, 0.0); closeTo($s['last']['totalEnergy'], 2.0);
+    billTick($s, $c, 6000, 0.0); billTick($s, $c, 6060, 0.0, sessionActive: false); closeTo($s['last']['totalEnergy'], 2.0);
 });
 test('Abrechnung: rückwärts laufende Uhr erzeugt weder negative Energie noch verfrühten Abschluss', function () {
     $s = []; $c = billingConfig(); billTick($s, $c, 1000); billTick($s, $c, 2000, 0.0);
-    billTick($s, $c, 1500, 0.0); check($s['active'] !== null); closeTo($s['idleSince'], 1500);
-    billTick($s, $c, 1560, 0.0); closeTo($s['last']['totalEnergy'], 1.0);
+    billTick($s, $c, 1500, 0.0); check($s['active'] !== null); check($s['idleSince'] === null);
+    billTick($s, $c, 1560, 0.0, sessionActive: false); closeTo($s['last']['totalEnergy'], 1.0);
 });
 test('Abrechnung: deaktivieren und Gerätetausch bewahren bisherige Energie und PDFs', function () {
     $s = []; $c = billingConfig(); billTick($s, $c, 0); billTick($s, $c, 1000);
@@ -83,7 +83,7 @@ test('Abrechnung: deaktivieren und Gerätetausch bewahren bisherige Energie und 
 });
 test('Abrechnung: ungültige PV-Boolvariable wird nicht heimlich zum Normaltarif', function () {
     $s = []; $c = billingConfig(); billTick($s, $c, 0, 3600.0, null); billTick($s, $c, 1000, 3600.0, null);
-    billTick($s, $c, 1000, 3600.0, false); billTick($s, $c, 2000, 0.0); billTick($s, $c, 2060, 0.0);
+    billTick($s, $c, 1000, 3600.0, false); billTick($s, $c, 2000, 0.0); billTick($s, $c, 2060, 0.0, sessionActive: false);
     closeTo($s['last']['unassignedEnergy'], 1.0); closeTo($s['last']['normalEnergy'], 1.0); closeTo($s['last']['totalCost'], 0.30);
     check(count($s['last']['warnings']) > 0);
 });
@@ -91,21 +91,21 @@ test('Abrechnung: vier Wallboxen mit gemeinsamem PV-Signal bleiben unabhängig',
     $states = [];
     foreach ([1, 2, 3, 4] as $id) {
         $c = billingConfig(); $states[$id] = [];
-        foreach ([0, 1000] as $at) Billing::observe($id, $c, $states[$id], 3600.0 * $id, $at, $at, 3600, $at, true, 'Europe/Berlin');
+        foreach ([0, 1000] as $at) Billing::observe($id, $c, $states[$id], 3600.0 * $id, $at, $at, 3600, $at, true, 'Europe/Berlin', [], true);
         closeTo(Billing::summary($states[$id])['active']['pvEnergy'], (float)$id);
     }
 });
 test('Abrechnung: kostenloser PV-Tarif bleibt kostenlos und Gesamtsumme entspricht Centpositionen', function () {
     $s = []; $c = billingConfig(); $c['BillingPVPrice'] = 0.0;
     billTick($s, $c, 0, 3600.0, true); billTick($s, $c, 1000, 3600.0, true); billTick($s, $c, 1000, 3600.0, false);
-    billTick($s, $c, 2000, 0.0); billTick($s, $c, 2060, 0.0);
+    billTick($s, $c, 2000, 0.0); billTick($s, $c, 2060, 0.0, sessionActive: false);
     closeTo($s['last']['pvCost'], 0.0); closeTo($s['last']['normalCost'], 0.30); closeTo($s['last']['totalCost'], 0.30);
     closeTo(array_sum(array_column($s['last']['lines'], 'cost')), $s['last']['totalCost']);
 });
 test('Abrechnung: Formularvalidierung prüft Preise, Pause, Booltypen und Zeitzone', function () {
     $flat = Schema::defaults(); $flat['W1Enabled'] = true; $flat['BillingEnabled'] = true;
     check(Validation::properties($flat) === []);
-    foreach (['BillingPVPrice' => -0.01, 'BillingNormalPrice' => 0.123, 'BillingIdleSeconds' => 0, 'BillingMinPowerW' => -1.0, 'BillingTimezone' => 'Falsche/Zone'] as $key => $value) {
+    foreach (['BillingPVPrice' => -0.01, 'BillingNormalPrice' => 0.123, 'BillingMinPowerW' => -1.0, 'BillingTimezone' => 'Falsche/Zone'] as $key => $value) {
         check(count(Validation::properties(array_replace($flat, [$key => $value]))) > 0, $key);
     }
     $flat['BillingPVVar'] = 987; check(isset(Schema::links($flat)['BillingPVVar']));
@@ -134,13 +134,14 @@ function billingFixture(): array {
         'BillingIdleSeconds' => 60, 'EnergyMaxGap' => 3600]);
     $m->ApplyChanges(); return [$m, $ids];
 }
-function seedIdleBill(WallboxManager $m): void {
+function seedCompletedBill(WallboxManager $m): void {
     $now = microtime(true); $s = runtimeOf($m); $c = Schema::unpack($m->properties)['boxes'][1]; $bill = [];
     billTick($bill, $c, $now - 1100); billTick($bill, $c, $now - 100, 0.0);
-    $bill['idleSince'] = $now - 100; $s['billing'][1] = $bill; setRuntime($m, $s);
+    billTick($bill, $c, $now - 40, 0.0, sessionActive: false);
+    $m->SetValue('W1Manual', false); $s['billing'][1] = $bill; setRuntime($m, $s);
 }
 test('Adapter Abrechnung: Umverknüpfen erhält Energie und PDFs ohne alte Variablen zu lesen', function () {
-    [$m, $ids] = billingFixture(); seedIdleBill($m); $m->Control();
+    [$m, $ids] = billingFixture(); seedCompletedBill($m); $m->Control();
     $media = Kernel::$media;
     $s = runtimeOf($m); $invoiceSequence = $s['invoiceSequence'];
     $s['energy'][1]['energy'] = 7.0; $s['totalEnergy'] = 7.0;
@@ -162,9 +163,9 @@ test('Adapter Abrechnung: Umverknüpfen erhält Energie und PDFs ohne alte Varia
     check(count(Kernel::$media) === count($media) + 1);
 });
 test('Adapter Abrechnung: Ladeende erstellt genau ein PDF-Medienobjekt pro Ladegang', function () {
-    [$m, $ids] = billingFixture(); seedIdleBill($m); Kernel::update($ids[1]['power'], 0.0, microtime(true)); $m->Control();
+    [$m, $ids] = billingFixture(); seedCompletedBill($m); Kernel::update($ids[1]['power'], 0.0, microtime(true)); $m->Control();
     $s = runtimeOf($m); check(count(Kernel::$media) === 1); check(count($s['billing'][1]['pending']) === 0);
-    check($s['billing'][1]['last']['reason'] === 'Eingestellte Ladepause erreicht');
+    check($s['billing'][1]['last']['reason'] === 'Ladevorgang manuell gestoppt');
     $media = $s['billing'][1]['last']['mediaID']; check($media > 0); check(IPS_GetMedia($media)['MediaType'] === 5);
     $pdf = base64_decode($m->GetBillingPDF(1), true); check(str_starts_with($pdf, '%PDF-1.4')); check(str_contains($pdf, '0,30 ' . chr(128)));
     check($m->GetValue('W1BillingLastPDF') === $media); closeTo($m->GetValue('W1BillingNormalEnergy'), 1.0);
@@ -173,7 +174,7 @@ test('Adapter Abrechnung: Ladeende erstellt genau ein PDF-Medienobjekt pro Ladeg
     check(telemetryOf($m)['boxes'][1]['billing']['pdf'] === $m->GetBillingPDF(1));
 });
 test('Adapter Abrechnung: PDF-Schreibfehler sperrt keine Wallbox und wird ohne Duplikat wiederholt', function () {
-    [$m, $ids] = billingFixture(); seedIdleBill($m); Kernel::$failures['media'] = 'Datenträger voll'; $m->Control();
+    [$m, $ids] = billingFixture(); seedCompletedBill($m); Kernel::$failures['media'] = 'Datenträger voll'; $m->Control();
     $s = runtimeOf($m); check(count($s['billing'][1]['pending']) === 1); check(str_contains($s['billing'][1]['error'], 'Datenträger voll'));
     check($m->status === 102, $m->GetValue('Status')); check(count(Kernel::$media) === 1);
     unset(Kernel::$failures['media']); $m->Control();
@@ -181,13 +182,13 @@ test('Adapter Abrechnung: PDF-Schreibfehler sperrt keine Wallbox und wird ohne D
     closeTo($s['billing'][1]['totals']['totalCost'], 0.30); check($s['billing'][1]['totals']['sessions'] === 1);
 });
 test('Adapter Abrechnung: PDF-Versandwarteschlange und Ladegang überleben Neustart', function () {
-    [$m] = billingFixture(); seedIdleBill($m); Kernel::$failures['media'] = 'Dateifehler'; $m->Control();
+    [$m] = billingFixture(); seedCompletedBill($m); Kernel::$failures['media'] = 'Dateifehler'; $m->Control();
     $lastID = runtimeOf($m)['billing'][1]['last']['id']; $m->buffers = []; $m->Create(); unset(Kernel::$failures['media']); $m->ApplyChanges();
     $s = runtimeOf($m); check($s['billing'][1]['last']['id'] === $lastID); check(count(Kernel::$media) === 1);
     check(count($s['billing'][1]['pending']) === 0); check($m->GetBillingPDF(1) !== '');
 });
 test('Adapter Abrechnung: Energie-Reset lässt Ladeabrechnungen und PDFs erhalten', function () {
-    [$m] = billingFixture(); seedIdleBill($m); $m->Control(); $pdf = $m->GetBillingPDF(1);
+    [$m] = billingFixture(); seedCompletedBill($m); $m->Control(); $pdf = $m->GetBillingPDF(1);
     $m->ResetEnergy('ENERGIE ZURÜCKSETZEN');
     check($m->GetBillingPDF(1) === $pdf); check(count(Kernel::$media) === 1);
     closeTo($m->GetValue('TotalEnergy'), 0.0); closeTo($m->GetValue('W1BillingNormalEnergy'), 1.0);
@@ -210,7 +211,7 @@ test('Gemeinsame Abrechnung: PV-Signal und Preiswechsel gelten für alle, PDFs b
     $now = microtime(true); $s = runtimeOf($m); $cfg = Schema::unpack($m->properties);
     foreach ([1, 2] as $id) {
         $s['billing'][$id] = [];
-        Billing::observe($id, $cfg['boxes'][$id], $s['billing'][$id], 3600.0, $now - 1000, $now - 1000, 3600, $now - 1000, false, 'Europe/Berlin');
+        Billing::observe($id, $cfg['boxes'][$id], $s['billing'][$id], 3600.0, $now - 1000, $now - 1000, 3600, $now - 1000, false, 'Europe/Berlin', [], true);
         Kernel::update($ids[$id]['power'], 3600.0, $now);
     }
     setRuntime($m, $s); Kernel::update($pv, true, $now);
@@ -239,13 +240,13 @@ test('Gemeinsame Abrechnung: PV-Signal und Preiswechsel gelten für alle, PDFs b
     }
 });
 
-test('Abrechnung: veraltete positive Messwerte starten und überbrücken keinen Ladegang', function () {
+test('Abrechnung: veraltete positive Messwerte zählen auch im gestarteten Ladegang keine Energie', function () {
     $c = billingConfig(); $s = [];
-    billTick($s, $c, 5000, 3600.0, false, 0); check($s['active'] === null);
+    billTick($s, $c, 5000, 3600.0, false, 0); check($s['active'] !== null); closeTo(Billing::summary($s)['active']['totalEnergy'], 0);
     billTick($s, $c, 6000); billTick($s, $c, 7000); closeTo(Billing::summary($s)['active']['totalEnergy'], 1.0);
     billTick($s, $c, 11000, 3600.0, false, 7000); billTick($s, $c, 11001);
     closeTo(Billing::summary($s)['active']['totalEnergy'], 1.0);
-    billTick($s, $c, 12001, 0.0); billTick($s, $c, 12061, 0.0); closeTo($s['last']['totalEnergy'], 2.0);
+    billTick($s, $c, 12001, 0.0); billTick($s, $c, 12061, 0.0, sessionActive: false); closeTo($s['last']['totalEnergy'], 2.0);
 });
 test('Adapter Abrechnung: kW-Leistungsmessung wird trotz seltenem Gerätezähler tarifgenau integriert', function () {
     [$m, $ids] = billingFixture(); $meter = Kernel::variable(100.0);
@@ -269,7 +270,7 @@ test('Adapter Abrechnung: Übernehmen einer Preisänderung bewahrt alte Tarifpos
     closeTo($r['normalEnergy'], 2.0, .001); closeTo($r['totalCost'], 0.70, .001);
 });
 test('Adapter Abrechnung: Unterbrechung nach PDF-Schreiben erzeugt nach Neustart kein Doppel-Dokument', function () {
-    [$m] = billingFixture(); seedIdleBill($m); Kernel::$failures['mediaAfterWrite'] = true; $m->Control();
+    [$m] = billingFixture(); seedCompletedBill($m); Kernel::$failures['mediaAfterWrite'] = true; $m->Control();
     $s = runtimeOf($m); check(count($s['billing'][1]['pending']) === 1); check(count(Kernel::$media) === 1);
     $pdf = array_values(Kernel::$media)[0]['content']; check($pdf !== '');
     $m->buffers = []; $m->Create(); $m->ApplyChanges();
@@ -279,7 +280,7 @@ test('Adapter Abrechnung: Unterbrechung nach PDF-Schreiben erzeugt nach Neustart
 
 test('Adapter Abrechnung: native Medienwarnungen und false bleiben lokal; Fehlerhandler wird wiederhergestellt', function () {
     foreach (['warning', 'false'] as $failure) {
-        [$m] = billingFixture(); seedIdleBill($m); Kernel::$failures['media'] = $failure;
+        [$m] = billingFixture(); seedCompletedBill($m); Kernel::$failures['media'] = $failure;
         $messages = [];
         set_error_handler(static function ($severity, $message) use (&$messages) { $messages[] = $message; return true; });
         try {
@@ -294,12 +295,12 @@ test('Adapter Abrechnung: native Medienwarnungen und false bleiben lokal; Fehler
 test('Adapter Abrechnung: Reduzieren der Wallboxanzahl schließt Ladegang ab und bewahrt vorhandene PDFs', function () {
     [$m, $ids] = fixture(2, ['BillingEnabled' => true, 'BillingEnabled' => true, 'BillingNormalPrice' => 0.30,
         'BillingPVPrice' => 0.10, 'BillingIdleSeconds' => 60, 'EnergyMaxGap' => 3600]);
-    $m->ApplyChanges(); seedIdleBill($m); $m->Control(); $firstPDF = $m->GetBillingPDF(1);
+    $m->ApplyChanges(); seedCompletedBill($m); $m->Control(); $firstPDF = $m->GetBillingPDF(1);
     check($firstPDF !== '');
     $now = microtime(true); $c = Schema::unpack($m->properties)['boxes'][2]; $s = runtimeOf($m);
     $s['billing'][2] = [];
-    Billing::observe(2, $c, $s['billing'][2], 3600.0, $now - 1000, $now - 1000, 3600, $now - 1000, true, 'Europe/Berlin');
-    Billing::observe(2, $c, $s['billing'][2], 3600.0, $now, $now, 3600, $now, true, 'Europe/Berlin');
+    Billing::observe(2, $c, $s['billing'][2], 3600.0, $now - 1000, $now - 1000, 3600, $now - 1000, true, 'Europe/Berlin', [], true);
+    Billing::observe(2, $c, $s['billing'][2], 3600.0, $now, $now, 3600, $now, true, 'Europe/Berlin', [], true);
     setRuntime($m, $s); Kernel::update($ids[2]['power'], 0.0, $now);
     $m->properties['WallboxCount'] = 1; $m->ApplyChanges();
     $s = runtimeOf($m); check($s['billing'][2]['active'] === null); check($s['billing'][2]['last']['mediaID'] > 0);

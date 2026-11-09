@@ -24,12 +24,13 @@ foreach (['' => Schema::global(), 'Wn' => Schema::visibleWallbox(), 'B' => Schem
         $md .= "| $t$prefix$key$t | {$d[1]} | $type | $unit | $mandatory | $read |\n";
     }
 }
-$md .= "\nExterne Freigabe = zusätzliche Sperrbedingung. DeviceEnableVar = tatsächlicher Gerätebefehl mit konfigurierbarer Polaritität. Manual = eigene Bedienvariable des Managers. Diese Rollen sind nicht austauschbar.\n";
+$md .= "\nExterne Freigabe = zusätzliche Sperrbedingung. DeviceEnableVar = tatsächlicher Gerätebefehl mit konfigurierbarer Polaritität. Manual = eigener Start-/Stoppzustand des Ladegangs. RequestAction mit true startet, mit false stoppt und schließt die Abrechnung ab; Budget und Sperrbedingungen bleiben wirksam. Diese Rollen sind nicht austauschbar.\n";
 $md .= "\nErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilligen Zustand. HeartbeatVar: der Wert ist unerheblich, seine letzte Aktualisierung zählt.\n";
 foreach (['Allgemein' => Schema::global(), 'Wallbox Wn' => Schema::visibleWallbox(), 'Speicher B' => Schema::battery()] as $caption => $defs) {
     $prefix = $caption === 'Allgemein' ? '' : ($caption === 'Wallbox Wn' ? 'Wn' : 'B');
     $md .= "\n## $caption: sämtliche Einstellungen\n\n| Eigenschaft | Standard | Bedeutung / Einheit | Bereich |\n|---|---|---|---|\n";
     foreach ($defs as $key => $d) {
+        if (Schema::isLegacy($key)) continue;
         $value = is_bool($d[0]) ? ($d[0] ? 'true' : 'false') : ($d[0] === '' ? '(leer)' : (string)$d[0]);
         if ($key === 'Name' && $prefix === 'Wn') $value = 'Wallbox n';
         if ($key === 'Priority' && $prefix === 'Wn') $value = 'n';
@@ -57,7 +58,7 @@ $status = [
 'BatteryEnergy' => ['Float', 'kWh', 'nein', 'Geschätzte Energie oberhalb Reserve'],
 'BatteryState' => ['String', '–', 'nein', 'Zustand / Begrenzungsgrund'],
 'BatteryExternalLocked' => ['Boolean', '–', 'nein', 'Externe Speicherfreigabe false'],
-'WnManual' => ['Boolean', '–', 'ja', 'Eigene manuelle Freigabe, bedeutet automatischer Betrieb'],
+'WnManual' => ['Boolean', '–', 'ja', 'Manueller Ladegang: false = gestoppt (Standard), true = gestartet; bleibt bei PV-Wechsel und Pausen aktiv'],
 'WnPriority' => ['Integer', '1–999', 'ja', 'Persistente Laufzeitpriorität, 1 ist höchste'],
 'WnPower' => ['Float', 'W', 'nein', 'Tatsächliche gemessene Ladeleistung'],
 'WnAssigned' => ['Float', 'W', 'nein', 'Erfolgreich beauftragte nominelle Ladeleistung'],
@@ -87,7 +88,7 @@ foreach (['WBM_Control(int InstanceID)' => 'Einen Regeldurchlauf auslösen', 'WB
 'WBM_GetBillingStatus(int InstanceID, int Wallbox)' => 'JSON mit laufendem/letztem Ladegang, Tarifmengen, Kosten, Summen und PDF-Status (Wallbox 1–4)',
 'WBM_GetBillingPDF(int InstanceID, int Wallbox)' => 'Letzte gespeicherte PDF als Base64-String; leer, solange kein Dokument bereitliegt',
 'WBM_ControlTargets(int InstanceID)' => 'Internes JSON der beanspruchten Steuerziele; dient Instanzkonfliktprüfung'] as $name => $purpose) $md .= "| $t$name$t | $purpose |\n";
-$md .= "\nRuntime, Configuration, Telemetry, OwnedTargets und SharedDefaults sind persistente String-Attribute. Laufende Abrechnungen, Tarifpositionen und die PDF-Warteschlange liegen in Runtime. PDFs sind Dokumentmedien im Objektbaum und im media-Verzeichnis. Puffer halten flüchtige Startmarkierung und PDF-Kopien für die Kachel. Steuerzielübernahme ist instanzübergreifend durch eine Semaphore geschützt. Details: [Ladeabrechnung](ABRECHNUNG.md).\n";
+$md .= "\nRuntime, Configuration, Telemetry, OwnedTargets, SharedDefaults und SessionControl sind persistente String-Attribute. SessionControl markiert die einmalige Migration auf manuell gestartete Ladevorgänge; frühere automatische Freigaben werden dabei zurückgesetzt. BillingIdleSeconds bleibt ausschließlich für gespeicherte Alt-Konfigurationen registriert, ist ausgeblendet und beendet keinen Ladegang mehr. Laufende Abrechnungen, Tarifpositionen und die PDF-Warteschlange liegen in Runtime. PDFs sind Dokumentmedien im Objektbaum und im media-Verzeichnis. Puffer halten flüchtige Startmarkierung und PDF-Kopien für die Kachel. Steuerzielübernahme ist instanzübergreifend durch eine Semaphore geschützt. Details: [Ladeabrechnung](ABRECHNUNG.md).\n";
 file_put_contents(__DIR__ . '/../docs/KONFIGURATION.md', $md);
 
 $two = [

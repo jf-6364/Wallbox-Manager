@@ -8,10 +8,10 @@ for ($i = 1; $i <= 2; $i++) $cfg['boxes'][$i] = array_replace($cfg['boxes'][$i],
 $cfg['battery']['Enabled'] = true; $cfg['battery']['PowerVar'] = 100;
 $time = time();
 $in = ['manager' => true, 'mode' => 0, 'budget' => 12000.0, 'battery' => ['soc' => 76.0, 'power' => 4000.0, 'manual' => true, 'external' => true], 'boxes' => []];
-for ($i = 1; $i <= 2; $i++) $in['boxes'][$i] = ['manual' => true, 'external' => true, 'demand' => true, 'power' => 5500.0, 'powerUpdated' => $time, 'phases' => 3, 'priority' => $i];
+for ($i = 1; $i <= 2; $i++) $in['boxes'][$i] = ['manual' => $i === 1, 'external' => true, 'demand' => true, 'power' => $i === 1 ? 5500.0 : 0.0, 'powerUpdated' => $time, 'phases' => 3, 'priority' => $i];
 $state = ['battery' => ['requested' => 4000.0, 'requestAt' => $time - 60]];
 $plan = Engine::plan($cfg, $in, $state, $time);
-$plan['managerEnabled'] = true; $plan['measured'] = 11000.0; $plan['energy'] = 124.312;
+$plan['managerEnabled'] = true; $plan['measured'] = 5500.0; $plan['energy'] = 124.312;
 $plan['status'] = 'Automatische Regelung aktiv'; $plan['strict'] = true; $plan['batteryEnabled'] = true; $plan['batteryConfigured'] = true;
 $plan['battery']['capacity'] = 10.0; $plan['battery']['commanded'] = 4000.0; $plan['simulation'] = true;
 foreach ($plan['boxes'] as $id => &$row) { $row['energy'] = $id === 1 ? 82.183 : ($id === 2 ? 42.129 : 0.0); $row['archivedEnergy'] = 0.0; $row['energyMethod'] = 'berechnet'; $row['gap'] = ''; }
@@ -21,14 +21,14 @@ foreach ([1, 2] as $id) {
     $session = ['id' => 'beispiel-w' . $id, 'wallbox' => $id, 'name' => $plan['boxes'][$id]['name'], 'device' => 'vorschau',
         'started' => $time - 7800, 'timezone' => 'Europe/Berlin', 'method' => 'berechnet', 'warnings' => [],
         'lines' => [['mode' => 'pv', 'energy' => $id === 1 ? 8.5 : 4.2, 'price' => 0.10], ['mode' => 'normal', 'energy' => $id === 1 ? 3.25 : 2.0, 'price' => 0.32]]];
-    $record = Billing::record($session) + ['ended' => $time - 600, 'reason' => 'Eingestellte Ladepause erreicht', 'mediaID' => 0, 'fileName' => 'Wallbox-' . $id . '-Beispiel.pdf'];
+    $record = Billing::record($session) + ['ended' => $time - 600, 'reason' => 'Ladevorgang manuell gestoppt', 'mediaID' => 0, 'fileName' => 'Wallbox-' . $id . '-Beispiel.pdf'];
     $profile = array_replace(Invoice::profile([], []), ['SenderName' => 'Solarservice Muster', 'SenderStreet' => 'Sonnenstraße 12',
         'SenderZip' => '90443', 'SenderCity' => 'Nürnberg', 'RecipientName' => 'Max Beispiel',
         'RecipientStreet' => 'Musterstraße 14', 'RecipientZip' => '90443', 'RecipientCity' => 'Nürnberg',
         'Prefix' => 'MUSTER', 'TaxMode' => 'included', 'LogoText' => 'SM']);
     $record = Invoice::issue($record, $profile, $previewInvoiceSequence, $time);
     $record['fileName'] = $record['invoice']['number'] . '.pdf';
-    $plan['boxes'][$id]['billing'] = ['enabled' => true, 'active' => null, 'last' => $record, 'totals' => Billing::totals(),
+    $plan['boxes'][$id]['billing'] = ['enabled' => true, 'active' => $id === 1 ? $record : null, 'last' => $record, 'totals' => Billing::totals(),
         'idleSince' => null, 'mode' => 'normal', 'pvPrice' => 0.10, 'normalPrice' => 0.32, 'idleSeconds' => 600,
         'pending' => 0, 'error' => '', 'pdf' => base64_encode(BillingPdf::create($record))];
 }

@@ -38,7 +38,7 @@ final class Engine
             $s = &$state['boxes'][$id];
             $b = $in['boxes'][$id] ?? [];
             $s += ['power' => 0.0, 'fault' => '', 'lastServed' => 0.0];
-            $reason = !$c['Enabled'] ? 'Deaktiviert' : (!$manager || !($b['manual'] ?? true) || !($b['external'] ?? true) ? 'Gesperrt' : (!($b['demand'] ?? true) ? 'Kein Ladebedarf' : ''));
+            $reason = !$c['Enabled'] ? 'Deaktiviert' : (!($b['manual'] ?? false) ? 'Nicht gestartet' : (!$manager || !($b['external'] ?? true) ? 'Gesperrt' : (!($b['demand'] ?? true) ? 'Kein Ladebedarf' : '')));
             $fault = ($b['error'] ?? '') ?: $s['fault'];
             if ($fault !== '') $reason = 'Fehler';
             $phases = $c['PhaseMode'] === 'dynamic' ? ($b['phases'] ?? 0) : (int)$c['PhaseMode'];
@@ -47,7 +47,7 @@ final class Engine
                 $reason = 'Fehler';
             }
             $eligible[$id] = $reason === '';
-            $rows[$id] = ['id' => $id, 'name' => $c['Name'], 'enabled' => $c['Enabled'], 'manual' => $b['manual'] ?? true, 'external' => $b['external'] ?? true,
+            $rows[$id] = ['id' => $id, 'name' => $c['Name'], 'enabled' => $c['Enabled'], 'manual' => $b['manual'] ?? false, 'external' => $b['external'] ?? true,
                 'priority' => $b['priority'] ?? $c['Priority'], 'measured' => $b['power'] ?? null, 'phases' => $phases,
                 'power' => 0.0, 'command' => $c['Stop'], 'unit' => $c['SetpointUnit'], 'status' => $reason ?: 'Warten auf Leistung',
                 'reason' => $fault ?: $reason, 'remaining' => 0, 'phaseCommand' => null, 'fault' => $fault];

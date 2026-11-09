@@ -4,6 +4,8 @@ JSON-Dateien enthalten Eigenschaftsnamen und Beispieleinstellungen. Alle
 Variablen-IDs sind **Illustrationswerte** und müssen durch existierende IDs des
 eigenen Symcon-Servers ersetzt werden. Nicht ungeprüft ausführen.
 Nicht aufgeführte Eigenschaften verwenden die dokumentierten Standardwerte.
+Die globale Managerfreigabe startet keine Wallbox automatisch: Jede Wallbox
+benötigt zusätzlich einen Klick auf „Ladevorgang starten“ in der Visualisierung.
 
 ## Zwei dreiphasige Wallboxen, Leistungsklasse 11 kW
 
