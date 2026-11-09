@@ -83,15 +83,15 @@ async function palette(page) {
         assert.equal(colors.background, 'rgb(28, 28, 33)');
         assert.ok((await page.evaluate(() => getComputedStyle(document.body).fontFamily)).startsWith('system-ui, -apple-system, BlinkMacSystemFont'));
         assert.equal(await page.locator('.tile-view').evaluate(node => getComputedStyle(node).borderTopWidth), '0px');
-        assert.equal(await page.locator('#measured').evaluate(node => getComputedStyle(node).fontWeight), '300');
+        assert.equal(await page.locator('#measured').evaluate(node => getComputedStyle(node).fontWeight), '700');
         assert.equal(await page.locator('#mode-even').getAttribute('aria-pressed'), 'true');
         assert.equal(await page.locator('.device-details details').count(), 0);
-        assert.equal(await page.locator('#tile-view h1, #tile-view header, #energy-open svg, #energy-fullscreen').count(), 0);
+        assert.equal(await page.locator('#tile-view h1, #tile-view header, #energy-fullscreen').count(), 0);
         assert.equal(await page.locator('#energy-open').innerText(), 'Energie-Dashboard');
         assert.equal(await page.locator('#wbm').getAttribute('data-header-space'), '64'); // Also reserve a native/WebView header outside this DOM.
         assert.equal(await page.locator('#policy, #updated').count(), 0);
         assert.equal(await page.locator('footer').isVisible(), false);
-        assert.equal(await page.locator('.toolbar-buttons > #energy-open').count(), 1);
+        assert.equal(await page.locator('.toolbar > #energy-open').count(), 1);
         const buttonStyles = await page.locator('.mode-button').evaluateAll(nodes => nodes.map(node => {
             const style = getComputedStyle(node);
             return [style.fontSize, style.borderRadius, style.padding, style.borderWidth].join('|');
@@ -126,11 +126,11 @@ async function palette(page) {
         // Resizing preserves the user's detail selection; other wallboxes stay concise.
         assert.equal(await page.locator('.device-details').last().getAttribute('open'), null);
         assert.equal(await page.locator('[data-field="energy"]').first().isVisible(), true);
-        await page.locator('#manager').uncheck();
+        assert.equal(await page.locator('#manager, .manager-switch').count(), 0);
         await page.locator('#mode-priority').click();
         await page.locator('.box').first().locator('[data-field="manual"]').click();
-        assert.deepEqual(await page.evaluate(() => actions.slice(-3)), [
-            {ident: 'ManagerEnabled', value: false}, {ident: 'DistributionMode', value: 1}, {ident: 'W1Manual', value: false}
+        assert.deepEqual(await page.evaluate(() => actions.slice(-2)), [
+            {ident: 'DistributionMode', value: 1}, {ident: 'W1Manual', value: false}
         ]);
         const confirmed = structuredClone(data); confirmed.mode = 1; confirmed.boxes[1].manual = false;
         await deliver(page, confirmed);
@@ -162,6 +162,7 @@ async function palette(page) {
         colors = await palette(page);
         assert.equal(colors.text, 'rgb(36, 38, 43)');
         assert.equal(colors.accent, '#00796b');
+        assert.equal(await page.locator('#energy-open').evaluate(node => getComputedStyle(node).backgroundColor), colors.background, 'Theme switches must change button surface and label together');
         await page.evaluate(() => {
             document.documentElement.style.setProperty('--content-color', '#f0f0f3');
             document.documentElement.style.setProperty('--card-color', '#1c1c21');
@@ -318,6 +319,26 @@ async function palette(page) {
         await page.locator('#energy-close').click();
         assert.equal(errors.length, 0, errors.join('\n'));
         console.log('OK  Four wallboxes, storage and long error messages');
+        await page.setViewportSize({width: 1672, height: 941}); await layout(page);
+        const referenceLayout = await page.evaluate(() => {
+            const rect = node => { const r = node.getBoundingClientRect(); return {x:r.x, y:r.y, right:r.right}; };
+            return {cards:Array.from(document.querySelectorAll('.box')).map(rect),
+                columns:Array.from(document.querySelector('.box-body').children).map(rect),
+                dashboard:rect(document.getElementById('energy-open')), toolbar:rect(document.querySelector('.toolbar')),
+                mode:rect(document.getElementById('mode')), manager:document.getElementById('manager'),
+                icons:Array.from(document.querySelectorAll('use[href^="#wb-i-"]')).every(node => document.getElementById(node.getAttribute('href').slice(1)))};
+        });
+        assert.equal(referenceLayout.manager, null);
+        assert.ok(referenceLayout.icons, 'Every decorative icon must resolve to an inline symbol');
+        assert.equal(referenceLayout.cards[0].x, referenceLayout.cards[2].x);
+        assert.equal(referenceLayout.cards[1].x, referenceLayout.cards[3].x);
+        assert.equal(referenceLayout.cards[0].y, referenceLayout.cards[1].y);
+        assert.ok(referenceLayout.columns[0].x < referenceLayout.columns[1].x && referenceLayout.columns[1].x < referenceLayout.columns[2].x);
+        assert.ok(Math.abs(referenceLayout.columns[0].y - referenceLayout.columns[2].y) < 1);
+        assert.ok(Math.abs(referenceLayout.dashboard.right - referenceLayout.toolbar.right) < 1);
+        assert.ok(Math.abs(referenceLayout.dashboard.y - referenceLayout.mode.y) < 3);
+        console.log('OK  Reference layout at 1672x941: dashboard top right, four cards in two columns, three aligned information areas and self-contained SVG icons');
+
         const touchContext = await browser.newContext({hasTouch: true, viewport: {width: 390, height: 844}});
         const touchPage = await touchContext.newPage();
         await touchPage.clock.install();
@@ -421,7 +442,7 @@ async function palette(page) {
         await deliver(page, billed);
         assert.equal(await page.locator('.billing-details').last().isVisible(), false);
         assert.equal(await page.locator('[data-field="billingRates"]').first().innerText(), 'PV 10 ct/kWh · Normal 32 ct/kWh');
-        assert.equal(await page.locator('[data-field="billingCostSummary"]').first().innerText(), 'Ladegang 0,93 € · 3,75 kWh');
+        assert.equal(await page.locator('[data-field="billingCostSummary"]').first().innerText(), 'Ladevorgang: 0,93 € · 3,75 kWh');
         assert.equal(await page.locator('[data-field="billingMode"]').first().innerText(), 'PV-Überschussladen');
         assert.equal(await page.locator('.device-details').first().getAttribute('open'), null);
         assert.equal(await page.locator('[data-field="billingPDF"]').first().isVisible(), false);
@@ -544,7 +565,7 @@ async function palette(page) {
         await perf.evaluate(() => {
             window.WBM_TILE_CLEANUP();
             lastSnapshot.measured = 1000; window.handleMessage(JSON.stringify(lastSnapshot));
-            document.getElementById('manager').dispatchEvent(new Event('change'));
+            document.getElementById('mode-priority').click();
         });
         await perf.clock.runFor(10000);
         assert.equal(await perf.locator('#measured').innerText(), '9 kW');

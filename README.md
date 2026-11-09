@@ -221,11 +221,16 @@ Preisänderungen berechnen frühere Energieintervalle nicht neu.
 
 ## Kachelvisualisierung
 
-Die eigene Symcon-Kachel folgt dem schlichten Energierechner-Stil: große, leichte
-Leistungswerte, dezente Beschriftungen und flache Bereiche ohne Unterkacheln.
-Oben stehen die aktuelle Gesamtleistung in kW, Gesamtenergie und Budget.
-**„Gleichmäßig“ / „Priorität“** ändern die Verteilungsart direkt; der
-Manager-Schalter aktiviert oder stoppt die gesamte Regelung.
+Die Kachel zeigt eine gemeinsame Übersicht für **aktuelle Ladeleistung,
+Gesamtenergie und Budget** sowie den aktuellen Managerstatus. Darunter stehen
+abgerundete Wallbox-Karten mit feinen Rahmen, dezenten Schatten und türkisen
+Linienicons. Große Leistungswerte, Statusmarkierungen und getrennte Bereiche für
+Sollwert, Lademodus und Preise folgen der Dashboard-Vorlage.
+
+Oben links ändern **„Gleichmäßig“ / „Priorität“** die Verteilungsart direkt.
+Oben rechts öffnet **„Energie-Dashboard“** die Energieverteilung. Die globale
+Managerfreigabe wird über die Symcon-Bedienvariable **Managerfreigabe** gesteuert;
+die Kachel zeigt ihren Zustand an.
 
 Jede aktive Wallbox zeigt ihre gemessene Ladeleistung, den Sollwert und einen
 eigenen Button **„Ladevorgang starten“**. Nach dem Start heißt er
@@ -248,11 +253,10 @@ sichtbar. Ohne aktivierte Abrechnung steht „Preise nicht eingerichtet“.
 Priorität, Tarifaufteilung und PDF-Download; ohne Abrechnung heißt sie „Details“.
 Das Layout passt Schriftgrößen und Spalten an die Kachelgröße an. Auf breiten
 Kacheln stehen zwei Wallboxen nebeneinander, auf schmalen untereinander.
-Bei wenig Höhe scrollt der Inhalt innerhalb der Kachel; alle Schalter bleiben
+Bei wenig Höhe scrollt der Inhalt innerhalb der Kachel; alle Bedienelemente bleiben
 erreichbar.
 
-Der Button **„Energie-Dashboard“** steht oben neben **„Gleichmäßig“** und
-**„Priorität“**, im gleichen runden Buttonstil. Er öffnet ein Ringdiagramm mit der Gesamtenergie
+Der Button **„Energie-Dashboard“** oben rechts öffnet ein Ringdiagramm mit der Gesamtenergie
 und den Anteilen der einzelnen Wallboxen. Beim Bewegen des Mauszeigers über
 Diagramm, Legende oder Verbrauchsliste werden Wallbox, kWh und Prozentanteil
 hervorgehoben. Auch Berührung und Tastaturbedienung sind möglich.
@@ -283,12 +287,18 @@ mit einer Nachkommastelle. Die Leistungsübersicht verwendet kW; das ändert kei
 Einheiten oder Werte der verknüpften Gerätevariablen.
 
 Die Oberfläche nutzt die Systemschrift des WebFronts. Ohne Symcon-Farben gilt
-im Dunkelmodus ein dunkelgrauer Hintergrund (`#323338`) mit Mint (`#56CDB0`),
-im Hellmodus Weiß mit Türkis (`#00B5AD`). Übergebene Symcon-Farben haben Vorrang.
-Runde Auswahlbuttons, schlichte Schalter und feine Trennlinien folgen dem Dashboard.
+im Dunkelmodus eine dunkelgraue Kartenfläche mit Mint (`#56CDB0`), im Hellmodus
+weiße Karten auf einem dezent graublauen Hintergrund mit Türkis (`#00B79D`).
+Übergebene Symcon-Farben haben Vorrang. Verteilungswahl, Start-/Stopp-Buttons und
+aufklappbare Detailzeilen verwenden einheitliche Formen und Abstände. Die Icons
+sind eingebettete SVGs; zusätzliche Schriftarten oder externe Grafikdienste sind
+nicht erforderlich.
 
-Ansicht mit Beispieldaten: [Dunkelmodus](docs/images/kachel-dunkel.png) ·
-[Hellmodus](docs/images/kachel-hell.png).
+Ansicht mit Beispieldaten: [Übersicht hell](docs/images/uebersicht-hell.png) ·
+[Übersicht dunkel](docs/images/uebersicht-dunkel.png) ·
+[Schmale Kachel hell](docs/images/kachel-hell.png) ·
+[Schmale Kachel dunkel](docs/images/kachel-dunkel.png).
+Die Vorschau stellt die normalerweise von Symcon gelieferte Titelzeile nach.
 
 ## Weitere Informationen
 

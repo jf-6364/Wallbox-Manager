@@ -8,23 +8,34 @@
 </head>
 <body id="wbm-page">
 <main id="wbm">
+<svg class="wb-symbols" aria-hidden="true" width="0" height="0"><defs><symbol id="wb-i-bolt" viewBox="0 0 24 24"><path d="m13 2-10 12h8l-1 8L21 9h-8l1-7"/></symbol><symbol id="wb-i-balance" viewBox="0 0 24 24"><path d="M12 3v17M5 21h14M4 6h16M5 6 1 14h8L5 6Zm14 0-4 8h8l-4-8Z"/></symbol><symbol id="wb-i-layers" viewBox="0 0 24 24"><path d="m12 3 10 5-10 5L2 8l10-5ZM2 12l10 5 10-5M2 16l10 5 10-5"/></symbol><symbol id="wb-i-chart" viewBox="0 0 24 24"><path d="M4 19v-5M10 19V9M16 19V4M22 20H1"/></symbol><symbol id="wb-i-battery" viewBox="0 0 24 24"><path d="M9 2h6M8 4h8a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Zm1 10h6m-6 0 2 2 3-4"/></symbol><symbol id="wb-i-database" viewBox="0 0 24 24"><path d="M21 6c0 2.2-4 4-9 4S3 8.2 3 6s4-4 9-4 9 1.8 9 4Zm0 0v12c0 2.2-4 4-9 4s-9-1.8-9-4V6m0 6c0 2.2 4 4 9 4s9-1.8 9-4"/></symbol><symbol id="wb-i-wallbox" viewBox="0 0 24 24"><path d="M8 2h8a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm5 4-5 7h4l-1 5 5-8h-4l1-4Z"/></symbol><symbol id="wb-i-plug" viewBox="0 0 24 24"><path d="M7 2v6m10-6v6M5 8h14v3a7 7 0 0 1-14 0V8Zm7 10v4"/></symbol><symbol id="wb-i-car" viewBox="0 0 24 24"><path d="m5 8 2-5h10l2 5M3 8h18v10H3V8Zm2 10v3m14-3v3M6 12h2m8 0h2"/></symbol><symbol id="wb-i-check" viewBox="0 0 24 24"><path d="M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Zm-15 0 3 3 7-7"/></symbol><symbol id="wb-i-circle" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></symbol><symbol id="wb-i-clock" viewBox="0 0 24 24"><path d="M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0ZM12 6v6l4 2"/></symbol><symbol id="wb-i-alert" viewBox="0 0 24 24"><path d="M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0ZM12 6v7m0 4v1"/></symbol><symbol id="wb-i-play" viewBox="0 0 24 24"><path d="m7 3 14 9-14 9V3Z"/></symbol><symbol id="wb-i-stop" viewBox="0 0 24 24"><path d="M4 4h16v16H4V4Z"/></symbol><symbol id="wb-i-chevron" viewBox="0 0 24 24"><path d="m5 9 7 7 7-7"/></symbol></defs></svg>
 <div id="tile-view" class="tile-view">
   <div class="wb-content">
   <div class="toolbar">
     <div class="toolbar-buttons">
       <div id="mode" class="mode-options" role="group" aria-label="Verteilungsart">
-        <button id="mode-even" class="mode-button" type="button" aria-pressed="false">Gleichmäßig</button>
-        <button id="mode-priority" class="mode-button" type="button" aria-pressed="false">Priorität</button>
+        <button id="mode-even" class="mode-button" type="button" aria-pressed="false"><svg class="wb-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#wb-i-balance"/></svg><span>Gleichmäßig</span></button>
+        <button id="mode-priority" class="mode-button" type="button" aria-pressed="false"><svg class="wb-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#wb-i-layers"/></svg><span>Priorität</span></button>
       </div>
-      <button id="energy-open" class="mode-button" type="button" aria-haspopup="dialog" aria-expanded="false">Energie-Dashboard</button>
     </div>
-    <label class="switch manager-switch"><input id="manager" type="checkbox" aria-label="Manager aktiv"><span>Manager</span></label>
+    <button id="energy-open" class="wb-button dashboard-button" type="button" aria-haspopup="dialog" aria-expanded="false"><svg class="wb-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#wb-i-chart"/></svg><span>Energie-Dashboard</span></button>
   </div>
   <section class="metrics" aria-label="Gesamtübersicht">
-    <span class="hero-label">Aktuelle Ladeleistung</span>
-    <div class="hero-values"><strong id="measured">–</strong><span id="energy" title="Gesamtenergie seit Zählbeginn">–</span></div>
-    <div class="budget-line"><span><span id="budget-label">Budget</span> <span id="base">–</span></span><span id="support-metric" hidden>Speicher <span id="support">–</span></span></div>
-    <p id="status" role="status" aria-live="polite">Status wird geladen …</p>
+    <div class="overview-metric overview-power">
+      <svg class="wb-icon overview-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#wb-i-bolt"/></svg>
+      <div><span class="overview-label">Aktuelle Ladeleistung</span><strong id="measured">–</strong></div>
+    </div>
+    <div class="overview-metric overview-energy">
+      <svg class="wb-icon overview-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#wb-i-battery"/></svg>
+      <div><span class="overview-label">Gesamtenergie</span><strong id="energy" title="Gesamtenergie seit Zählbeginn">–</strong></div>
+    </div>
+    <div class="overview-metric overview-budget">
+      <svg class="wb-icon overview-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#wb-i-database"/></svg>
+      <div><span id="budget-label" class="overview-label">Budget</span><strong id="base">–</strong><span id="support-metric" hidden>Speicher <span id="support">–</span></span></div>
+    </div>
+    <div class="overview-state">
+      <div class="status-pill" id="status-pill"><svg class="wb-icon" viewBox="0 0 24 24" aria-hidden="true"><use id="status-icon" href="#wb-i-check"/></svg><p id="status" role="status" aria-live="polite">Status wird geladen …</p></div>
+    </div>
   </section>
   <p id="overrun" class="notice" hidden></p>
   <div id="errors" class="notice error" role="alert" hidden></div>

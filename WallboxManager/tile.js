@@ -129,7 +129,7 @@
         var dark = backgroundBrightness !== null ? backgroundBrightness < 128 : (textBrightness !== null ? textBrightness > 128 : preferredDark);
         var theme = dark ? 'dark' : 'light';
         if (root.dataset.wbTheme !== theme) root.dataset.wbTheme = theme;
-        var onAccent = accent && brightness(accent) < 110 ? '#fff' : '#123b33';
+        var onAccent = (accent ? brightness(accent) > 155 : dark) ? '#123b33' : '#fff';
         if (root.style.getPropertyValue('--wb-on-accent') !== onAccent) root.style.setProperty('--wb-on-accent', onAccent);
     }
     function action(ident, value) {
@@ -142,6 +142,20 @@
     function showError(error) {
         text('errors', 'Bedienaktion fehlgeschlagen: ' + (error.message || error));
         assign(el('errors'), 'hidden', false);
+    }
+    function icon(name) {
+        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        attribute(svg, 'class', 'wb-icon'); attribute(svg, 'viewBox', '0 0 24 24'); attribute(svg, 'aria-hidden', 'true');
+        var use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        attribute(use, 'href', '#wb-i-' + name); svg.append(use);
+        return svg;
+    }
+    function tone(box) {
+        if (box.fault || box.status === 'Fehler') return 'error';
+        if (!box.manual || !box.enabled) return 'idle';
+        if (box.status === 'Laden') return 'charging';
+        if (box.status === 'Gesperrt' || box.external === false) return 'idle';
+        return 'waiting';
     }
     function metric(label, key) {
         var div = document.createElement('div');
@@ -183,6 +197,8 @@
         assign(fields.billing, 'hidden', !enabled);
         assign(fields.billingCostSummary, 'hidden', !enabled);
         assign(fields.billingMode, 'hidden', !enabled);
+        assign(fields.billingModeRow, 'hidden', !enabled);
+        assign(fields.billingCostSummaryRow, 'hidden', !enabled);
         put(fields.detailsLabel, enabled ? 'Details & Rechnung' : 'Details');
         if (!enabled) { put(fields.billingRates, 'Preise nicht eingerichtet'); return; }
         var session = billing.active || billing.last;
@@ -195,7 +211,7 @@
         put(fields.billingMode, mode);
         datum(fields.billingMode, 'mode', billing.mode);
         put(fields.billingRates, 'PV ' + priceFormat.format(billing.pvPrice * 100) + ' ct/kWh · Normal ' + priceFormat.format(billing.normalPrice * 100) + ' ct/kWh');
-        put(fields.billingCostSummary, session ? (billing.active ? 'Ladegang ' : 'Letzter Ladegang ') + money(session.totalCost) + ' · ' + energy(session.totalEnergy) : 'Noch kein Ladegang erfasst');
+        put(fields.billingCostSummary, session ? (billing.active ? 'Ladevorgang: ' : 'Letzter Ladevorgang: ') + money(session.totalCost) + ' · ' + energy(session.totalEnergy) : 'Noch kein Ladegang erfasst');
         assign(fields.billingUnknown, 'hidden', !(session && session.unassignedEnergy > 0));
         put(fields.billingUnknown, 'Tarif ungeklärt: ' + energy(session && session.unassignedEnergy) + ' – Abrechnung prüfen');
         var billingState = billing.error || (billing.pending ? 'PDF wird erstellt …' : 'Energie aus gemessener Ladeleistung berechnet.');
@@ -205,81 +221,71 @@
         put(fields.billingPDF, billing.last && billing.last.invoice ? 'Rechnung ' + billing.last.invoice.number + ' als PDF' : 'Letzte Abrechnung als PDF');
     }
     function createCard(id) {
-        var card = document.createElement('article');
-        card.className = 'box';
-        var head = document.createElement('div');
-        head.className = 'box-top';
-        var heading = document.createElement('div');
-        heading.className = 'box-heading';
-        var title = document.createElement('h2');
-        title.className = 'box-title';
-        title.dataset.field = 'name';
-        var badge = document.createElement('span');
-        badge.className = 'badge';
-        badge.dataset.field = 'status';
-        heading.append(title, badge);
-        var measured = document.createElement('strong');
-        measured.className = 'box-measured'; measured.dataset.field = 'measured';
-        var lock = document.createElement('p');
-        lock.className = 'lock';
-        lock.dataset.field = 'lock';
-        put(lock, 'Extern gesperrt – manuelle Freigabe hebt die Sperre nicht auf');
-        var metrics = document.createElement('div');
-        metrics.className = 'device-metrics';
-        metrics.append(metric('Sollwert', 'command'), metric('Aktive Phasen', 'phases'));
-        var details = document.createElement('details');
-        details.className = 'device-details';
-        details.open = false;
-        var summary = document.createElement('summary');
-        put(summary, 'Details');
-        summary.dataset.field = 'detailsLabel';
-        var secondary = document.createElement('div');
-        secondary.className = 'device-secondary';
-        secondary.append(metric('Geladene Energie', 'energy'));
-        var controls = document.createElement('div');
-        controls.className = 'device-controls';
-        var manual = document.createElement('button');
-        manual.type = 'button'; manual.className = 'wb-button session-button';
-        manual.dataset.field = 'manual';
+        var card = document.createElement('article'); card.className = 'box';
+        var head = document.createElement('div'); head.className = 'box-top';
+        var heading = document.createElement('div'); heading.className = 'box-heading';
+        var symbol = document.createElement('span'); symbol.className = 'box-symbol'; symbol.append(icon('wallbox'));
+        var identity = document.createElement('div'); identity.className = 'box-identity';
+        var title = document.createElement('h2'); title.className = 'box-title'; title.dataset.field = 'name';
+        var badge = document.createElement('span'); badge.className = 'badge';
+        var badgeIcon = icon('circle'); badgeIcon.firstChild.dataset.field = 'statusIcon';
+        var badgeText = document.createElement('span'); badgeText.dataset.field = 'status';
+        badge.append(badgeIcon, badgeText); identity.append(title, badge); heading.append(symbol, identity);
+        var manual = document.createElement('button'); manual.type = 'button'; manual.className = 'wb-button session-button'; manual.dataset.field = 'manual';
+        var manualIcon = icon('play'); manualIcon.firstChild.dataset.field = 'manualIcon';
+        var manualText = document.createElement('span'); manualText.dataset.field = 'manualText'; manual.append(manualIcon, manualText);
         on(manual, 'click', function () { action('W' + id + 'Manual', manual.dataset.active !== 'true'); });
-        var priorityLabel = document.createElement('label');
-        priorityLabel.className = 'priority-label';
-        put(priorityLabel, 'Priorität');
-        var priority = document.createElement('input');
-        priority.type = 'number';
-        priority.min = '1'; priority.max = '999'; priority.step = '1';
-        priority.dataset.field = 'priority';
+        head.append(heading, manual);
+        var body = document.createElement('div'); body.className = 'box-body';
+        var reading = document.createElement('div'); reading.className = 'box-reading';
+        var readingValues = document.createElement('div');
+        var readingLabel = document.createElement('span'); readingLabel.className = 'reading-label'; put(readingLabel, 'Ladeleistung');
+        var measured = document.createElement('strong'); measured.className = 'box-measured'; measured.dataset.field = 'measured';
+        readingValues.append(readingLabel, measured); reading.append(icon('bolt'), readingValues);
+        var request = document.createElement('div'); request.className = 'box-request';
+        var requestLabel = document.createElement('span'); requestLabel.className = 'reading-label'; requestLabel.append(icon('plug'), document.createTextNode('Sollwert'));
+        var setpoint = document.createElement('span'); setpoint.dataset.field = 'setpoint'; setpoint.className = 'box-setpoint'; request.append(requestLabel, setpoint);
+        var info = document.createElement('div'); info.className = 'box-info';
+        function infoRow(symbolName, key, label) {
+            var row = document.createElement('p'); row.className = 'box-info-row'; row.dataset.field = key + 'Row';
+            var content = document.createElement('span');
+            if (label) { var caption = document.createElement('span'); put(caption, label); content.append(caption); }
+            var value = document.createElement('span'); value.dataset.field = key; content.append(value);
+            row.append(icon(symbolName), content); return row;
+        }
+        info.append(infoRow('car', 'billingMode', 'Lademodus: '), infoRow('database', 'billingRates', 'Tarif: '), infoRow('chart', 'billingCostSummary', ''));
+        body.append(reading, request, info);
+        var lock = document.createElement('p'); lock.className = 'lock'; lock.dataset.field = 'lock';
+        put(lock, 'Extern gesperrt – der gestartete Vorgang bleibt erhalten');
+        var reason = document.createElement('p'); reason.className = 'reason'; reason.dataset.field = 'reason';
+        var gap = document.createElement('p'); gap.className = 'gap'; gap.dataset.field = 'gap';
+        var details = document.createElement('details'); details.className = 'device-details';
+        var summary = document.createElement('summary');
+        var summaryText = document.createElement('span'); summaryText.dataset.field = 'detailsLabel'; put(summaryText, 'Details');
+        summary.append(icon('chevron'), summaryText);
+        var metrics = document.createElement('div'); metrics.className = 'device-metrics'; metrics.append(metric('Sollwert', 'command'), metric('Aktive Phasen', 'phases'));
+        var secondary = document.createElement('div'); secondary.className = 'device-secondary'; secondary.append(metric('Geladene Energie', 'energy'));
+        var controls = document.createElement('div'); controls.className = 'device-controls';
+        var priorityLabel = document.createElement('label'); priorityLabel.className = 'priority-label'; put(priorityLabel, 'Priorität');
+        var priority = document.createElement('input'); priority.type = 'number'; priority.min = '1'; priority.max = '999'; priority.step = '1'; priority.dataset.field = 'priority';
         on(priority, 'change', function () {
             var v = Number(priority.value);
             if (Number.isInteger(v) && v >= 1 && v <= 999) action('W' + id + 'Priority', v);
             else showError(new Error('Priorität muss zwischen 1 und 999 liegen'));
         });
-        priorityLabel.append(priority);
-        head.append(heading, manual);
-        controls.append(priorityLabel);
+        priorityLabel.append(priority); controls.append(priorityLabel);
         details.append(summary, metrics, secondary, controls, billingDetails(id));
-        var powerRow = document.createElement('div'); powerRow.className = 'box-power';
-        var setpoint = document.createElement('span'); setpoint.dataset.field = 'setpoint'; setpoint.className = 'box-setpoint';
-        powerRow.append(measured, setpoint);
-        var rates = document.createElement('p'); rates.dataset.field = 'billingRates'; rates.className = 'box-tariffs';
-        var mode = document.createElement('p'); mode.dataset.field = 'billingMode'; mode.className = 'box-billing-mode';
-        var cost = document.createElement('p'); cost.dataset.field = 'billingCostSummary'; cost.className = 'box-cost';
-        var reason = document.createElement('p');
-        reason.className = 'reason'; reason.dataset.field = 'reason';
-        var gap = document.createElement('p');
-        gap.className = 'gap'; gap.dataset.field = 'gap';
-        card.append(head, powerRow, mode, rates, cost, lock, reason, gap, details);
+        card.append(head, body, lock, reason, gap, details);
         var fields = {};
         card.querySelectorAll('[data-field]').forEach(function (node) { fields[node.dataset.field] = node; });
-        cards.set(id, { node: card, fields: fields, details: details });
-        el('boxes').append(card);
+        cards.set(id, {node: card, fields: fields, details: details}); el('boxes').append(card);
         return cards.get(id);
     }
     function render(data, arrival) {
         if (!data || !data.boxes) return;
         latest = data;
         receivedAt = arrival;
-        assign(el('manager'), 'checked', !!(data.managerEnabled === undefined ? data.manager : data.managerEnabled));
+        var managerEnabled = !!(data.managerEnabled === undefined ? data.manager : data.managerEnabled);
         attribute(el('mode-even'), 'aria-pressed', String(data.mode === 0));
         attribute(el('mode-priority'), 'aria-pressed', String(data.mode === 1));
         text('budget-label', data.pvActive ? 'PV-Budget' : 'Budget');
@@ -289,8 +295,9 @@
         text('measured', chargingPower(data.measured));
         text('energy', energy(data.energy));
         text('status', data.status);
-        datum(el('status'), 'active', String(el('manager').checked));
-        datum(el('status'), 'error', String(!!(data.errors && data.errors.length)));
+        datum(el('status-pill'), 'active', String(managerEnabled));
+        datum(el('status-pill'), 'error', String(!!(data.errors && data.errors.length)));
+        attribute(el('status-icon'), 'href', '#wb-i-' + (data.errors && data.errors.length ? 'alert' : (managerEnabled ? 'check' : 'circle')));
         assign(el('errors'), 'hidden', !data.errors || data.errors.length === 0);
         text('errors', (data.errors || []).join('\n'));
         assign(el('overrun'), 'hidden', !(data.overrun > 0));
@@ -299,19 +306,22 @@
             var item = cards.get(box.id) || createCard(box.id);
             assign(item.node, 'hidden', !box.enabled);
             datum(item.node, 'state', box.status);
+            var stateTone = tone(box); datum(item.node, 'tone', stateTone);
+            attribute(item.fields.statusIcon, 'href', '#wb-i-' + ({error: 'alert', idle: 'circle', charging: 'bolt', waiting: 'clock'}[stateTone]));
             var f = item.fields;
             put(f.name, box.name);
             put(f.status, box.status);
             assign(f.lock, 'hidden', box.external);
             datum(f.manual, 'active', String(!!box.manual));
             attribute(f.manual, 'aria-pressed', String(!!box.manual));
-            put(f.manual, box.manual ? 'Ladevorgang stoppen' : 'Ladevorgang starten');
+            put(f.manualText, box.manual ? 'Ladevorgang stoppen' : 'Ladevorgang starten');
+            attribute(f.manualIcon, 'href', '#wb-i-' + (box.manual ? 'stop' : 'play'));
             assign(f.manual, 'disabled', !box.enabled);
             if (document.activeElement !== f.priority) assign(f.priority, 'value', String(box.priority));
             put(f.measured, chargingPower(box.measured));
             put(f.command, (box.unit === 'kW' ? number : ampereFormat).format(box.command) + ' ' + box.unit);
             put(f.setpoint, 'Soll ' + f.command.textContent + (box.phases ? ' · ' + box.phases + (box.phases === 1 ? ' Phase' : ' Phasen') : ''));
-            attribute(f.manual, 'aria-label', box.name + ': ' + f.manual.textContent);
+            attribute(f.manual, 'aria-label', box.name + ': ' + f.manualText.textContent);
             put(f.energy, energy(box.energy) + (box.energyMethod === 'berechnet' ? ' (berechnet)' : ''));
             put(f.phases, box.phases ? String(box.phases) : 'Unbestätigt');
             put(f.gap, box.gap || '');
@@ -524,7 +534,6 @@
         pendingMessage = message; pendingAt = Date.now();
         if (!latest && !paused()) resumeDisplay();
     };
-    on(el('manager'), 'change', function () { action('ManagerEnabled', this.checked); });
     on(el('mode-even'), 'click', function () { action('DistributionMode', 0); });
     on(el('mode-priority'), 'click', function () { action('DistributionMode', 1); });
     on(el('battery-enable'), 'change', function () { action('BatteryEnabled', this.checked); });

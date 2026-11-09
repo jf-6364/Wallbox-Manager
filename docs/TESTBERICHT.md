@@ -5,7 +5,7 @@
 - **146 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
-- **17 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
+- **18 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
 - Manuelle Ladevorgänge geprüft: kein Start durch hohes Budget, einzelne
   Start-/Stoppaktionen je Wallbox, unmittelbarer Stopp trotz Mindestlaufzeit,
   Erhalt über PV-Wechsel, Nullbudget, ApplyChanges und Neustart. Mennekes-Stopp
@@ -50,8 +50,8 @@
   Alte Configuration-Schnappschüsse bewahren ihre Tarifwerte; ein gemeinsamer
   PV-/Preiswechsel wird für beide gleichzeitig laufenden Ladegänge verarbeitet.
   PDFs bleiben je Wallbox getrennt. Das Formular zeigt keine alten Einzelbereiche.
-- Zusätzliche Chromium-Prüfung der tatsächlichen HTML/CSS/JS-Kachel: acht Größen
-  von 240 × 260 bis 1440 × 900 Pixeln, flache Hauptansicht, eine aufklappbare
+- Zusätzliche Chromium-Prüfung der tatsächlichen HTML/CSS/JS-Kachel: neun Größen
+  von 240 × 260 bis 1672 × 941 Pixeln, Gesamtübersicht und Wallbox-Karten, eine aufklappbare
   Detailebene, erreichbare Bedienung und keine horizontale Überbreite.
 - Anzeigenaktualisierung mit kontrollierter Uhr geprüft: 200 eingehende
   Telemetrie-Meldungen werden erst beim 2,5-Sekunden-Takt einmal geparst und
@@ -60,8 +60,8 @@
   die Empfangszeit. 200 Mausbewegungen vor einem Bildaufbau benötigen nur eine
   Diagramm-Geometriemessung; weitere Bewegungen nutzen den Cache. Ausgeblendete
   Ansichten pausieren und übernehmen beim Sichtbarwerden den neuesten Stand.
-  Aufräumen beendet Timer und Listener. Der Dashboard-Button ist oben mit
-  identischer Buttonformatierung erreichbar, auch unter der Symcon-Kopfzeile.
+  Aufräumen beendet Timer und Listener. Der Dashboard-Button ist oben rechts
+  erreichbar, auch unter der Symcon-Kopfzeile.
 - Helle/dunkle Symcon-Farbparameter und CSS-Variablen als Testvorgaben,
   Wechsel ohne Neuladen und Browser-Fallback geprüft; zusätzlich vier Wallboxen,
   optionaler Speicher und lange Fehlertexte.
@@ -91,14 +91,18 @@
 - Umsatzsteuer einbeziehen/ignorieren sowie §-19-Auswahl geprüft. Bei enthaltenen
   19 % ergeben 1,89 EUR Endpreis 1,59 EUR netto und 0,30 EUR USt. Steuer und Netto
   stimmen centgenau mit dem unveränderten Endpreis überein.
-- UI in Chromium mit Systemschrift, großen leichten Leistungswerten, flachen
-  Bereichen, SVG-Linienicons und Mint-/Türkisakzenten geprüft; Symcon-Farben
+- UI in Chromium mit Systemschrift, hervorgehobenen Leistungswerten,
+  abgerundeten Karten, SVG-Linienicons und Mint-/Türkisakzenten geprüft; Symcon-Farben
   haben Vorrang. Verteilungsbuttons sowie Start-/Stopp-Buttons senden
   korrekt typisierte Aktionen. Beide Tarife in ct/kWh und Ladegangkosten sind
   direkt sichtbar, der PDF-Download benötigt nur eine zusätzliche Detailebene
   und nennt die Rechnungsnummer. Hell-/Dunkelmodus und alle vorhandenen
   Größenprüfungen bleiben abgedeckt. Die Modulansicht enthält keinen eigenen
-  Titel oder Vergrößern-Pfeil; der Dashboard-Button bleibt erreichbar. Eine
+  Titel oder Vergrößern-Pfeil; der Dashboard-Button steht oben rechts anstelle
+  des bisherigen Manager-Schalters. Der Managerzustand wird weiterhin korrekt
+  angezeigt, ohne dabei eine Manageraktion zu senden. Bei 1672 × 941 stehen
+  vier Karten in zwei Spalten und die drei Informationsbereiche je Karte
+  nebeneinander. Alle SVG-Verweise werden ohne externe Dateien aufgelöst. Eine
   nachgestellte Symcon-Kopfzeile wird genau einmal angezeigt.
 - Überlagernde Symcon-Kopfzeile nachgestellt: Bedienelemente und Dashboard bleiben
   bei 938 × 782, 430 × 375 und 240 × 260 Pixeln unter der Kopfzeile erreichbar.

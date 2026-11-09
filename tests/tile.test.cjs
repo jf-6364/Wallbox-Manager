@@ -11,6 +11,7 @@ class Element {
         this.tagName = tag.toUpperCase(); this.children = []; this.dataset = {};
         this.listeners = {}; this.value = ''; this.textContent = ''; this.hidden = false;
     }
+    get firstChild() { return this.children[0] || null; }
     append(...elements) { this.children.push(...elements); }
     addEventListener(name, callback) { this.listeners[name] = callback; }
     removeEventListener(name, callback) { if (this.listeners[name] === callback) delete this.listeners[name]; }
@@ -26,11 +27,11 @@ class Element {
     change() { this.listeners.change.call(this); }
     click() { this.listeners.click.call(this); }
 }
-const ids = ['wbm', 'manager', 'mode-even', 'mode-priority', 'budget-label', 'base', 'support-metric', 'support', 'measured', 'energy', 'overrun', 'status', 'errors', 'boxes', 'battery',
+const ids = ['wbm', 'status-pill', 'status-icon', 'mode-even', 'mode-priority', 'budget-label', 'base', 'support-metric', 'support', 'measured', 'energy', 'overrun', 'status', 'errors', 'boxes', 'battery',
     'battery-enable', 'battery-lock', 'soc', 'capacity', 'reserve-energy', 'battery-request', 'battery-power', 'battery-state', 'simulation', 'simulation-footer',
     'energy-open', 'energy-close'];
 const elements = Object.fromEntries(ids.map(id => [id, new Element()]));
-const document = {getElementById: id => {assert.ok(elements[id], id); return elements[id];}, createElement: tag => new Element(tag), activeElement: null};
+const document = {getElementById: id => {assert.ok(elements[id], id); return elements[id];}, createElement: tag => new Element(tag), createElementNS: (ns, tag) => new Element(tag), createTextNode: value => { const node = new Element('#text'); node.textContent = value; return node; }, activeElement: null};
 const actions = [];
 const data = {
     manager:true, managerEnabled:true, mode:0, strict:true, base:12000, measured:6000, assigned:10000, energy:124.312,
@@ -80,8 +81,7 @@ test('Externe Sperre bleibt sichtbar und wird durch manuellen Klick nicht geänd
     assert.equal(fields1.lock.hidden, false); fields1.manual.click();
     assert.deepEqual(actions.at(-1), {ident:'W1Manual', value:false}); assert.equal(data.boxes[1].external, false);
 });
-test('Manager-, Modus-, Speicher- und Prioritätsaktionen sind korrekt typisiert', () => {
-    elements.manager.checked = false; elements.manager.change(); assert.deepEqual(actions.at(-1), {ident:'ManagerEnabled',value:false});
+test('Modus-, Speicher- und Prioritätsaktionen sind korrekt typisiert', () => {
     elements['mode-priority'].click(); assert.deepEqual(actions.at(-1), {ident:'DistributionMode',value:1});
     elements['mode-even'].click(); assert.deepEqual(actions.at(-1), {ident:'DistributionMode',value:0});
     elements['battery-enable'].checked = false; elements['battery-enable'].change(); assert.deepEqual(actions.at(-1), {ident:'BatteryEnabled',value:false});
@@ -108,11 +108,11 @@ test('Deaktivierte Plätze und optionaler Speicher werden ausgeblendet', () => {
     assert.equal(card2.hidden,true); assert.equal(elements.battery.hidden,true);
     assert.equal(elements['support-metric'].hidden,true);
 });
-test('Flache Hauptansicht zeigt bestätigten Modus, manuelle Freigabe und Sollstrom je Phase', () => {
+test('Wallboxkarte zeigt bestätigten Modus, manuellen Ladegang und Sollstrom je Phase', () => {
     data.mode = 1; data.boxes[1].manual = false; deliver(data);
     assert.equal(elements['mode-priority']['aria-pressed'], 'true');
     assert.equal(elements['mode-even']['aria-pressed'], 'false');
-    assert.equal(fields1.manual.textContent, 'Ladevorgang starten');
+    assert.equal(fields1.manualText.textContent, 'Ladevorgang starten');
     assert.equal(fields1.manual['aria-pressed'], 'false');
     assert.equal(fields1.setpoint.textContent, 'Soll 7,0 A · 3 Phasen');
     assert.equal(fields1.billingRates.textContent, 'Preise nicht eingerichtet');
@@ -123,7 +123,7 @@ test('Tarife und Ladegangkosten sind ohne Abrechnungsdetails sichtbar und unters
     deliver(data);
     assert.equal(fields1.billingRates.textContent, 'PV 10 ct/kWh · Normal 32 ct/kWh');
     assert.equal(fields1.billingMode.textContent, 'PV-Überschussladen');
-    assert.equal(fields1.billingCostSummary.textContent, 'Ladegang 1,23 € · 4,57 kWh');
+    assert.equal(fields1.billingCostSummary.textContent, 'Ladevorgang: 1,23 € · 4,57 kWh');
     assert.equal(fields1.billingCostSummary.hidden, false);
     data.boxes[1].billing.mode = 'unassigned'; deliver(data);
     assert.equal(fields1.billingMode.textContent, 'Ungeklärt');
@@ -154,10 +154,10 @@ test('Verzögert angezeigte Countdown-Werte berücksichtigen die Empfangszeit', 
 test('Start- und Stopp-Button sendet pro Wallbox nur die ausdrücklich gewählte Aktion', () => {
     data.boxes[1].manual = false; deliver(JSON.stringify(data));
     assert.equal(fields1.manual.tagName, 'BUTTON');
-    assert.equal(fields1.manual.textContent, 'Ladevorgang starten');
+    assert.equal(fields1.manualText.textContent, 'Ladevorgang starten');
     fields1.manual.click(); assert.deepEqual(actions.at(-1), {ident:'W1Manual', value:true});
     data.boxes[1].manual = true; deliver(JSON.stringify(data));
-    assert.equal(fields1.manual.textContent, 'Ladevorgang stoppen');
+    assert.equal(fields1.manualText.textContent, 'Ladevorgang stoppen');
     assert.equal(fields1.manual['aria-pressed'], 'true');
     fields1.manual.click(); assert.deepEqual(actions.at(-1), {ident:'W1Manual', value:false});
 });
@@ -166,15 +166,24 @@ test('PV-Wechsel und Nullleistung ändern den bestätigten Startzustand des Butt
     for (const pv of [true, false, true]) {
         data.pvActive = pv; data.base = 0; data.boxes[1].measured = 0;
         deliver(JSON.stringify(data));
-        assert.equal(fields1.manual.textContent, 'Ladevorgang stoppen');
+        assert.equal(fields1.manualText.textContent, 'Ladevorgang stoppen');
         assert.equal(fields1.manual['aria-pressed'], 'true');
     }
     assert.equal(actions.length, actionCount);
 });
+test('Managerzustand wird ohne Schalter korrekt angezeigt und sendet keine Manageraktion', () => {
+    const snapshot = JSON.parse(JSON.stringify(data)); const n = actions.length;
+    snapshot.managerEnabled = false; snapshot.manager = true; snapshot.errors = []; snapshot.status = 'Manager ausgeschaltet';
+    deliver(snapshot);
+    assert.equal(elements['status-pill'].dataset.active, 'false');
+    assert.equal(elements['status-icon'].href, '#wb-i-circle');
+    assert.equal(elements.status.textContent, 'Manager ausgeschaltet');
+    assert.equal(actions.length, n);
+});
 test('Aufräumen beendet den Anzeigetimer und entfernt Bedienereignisse', () => {
     context.window.WBM_TILE_CLEANUP();
     assert.equal(timers.size, 0);
-    assert.equal(elements.manager.listeners.change, undefined);
+    assert.equal(elements['energy-open'].listeners.click, undefined);
     const before = fields1.measured.textContent;
     data.boxes[1].measured = 9999;
     context.window.handleMessage(JSON.stringify(data)); advance(10000);
