@@ -102,7 +102,12 @@ trait WebAccess
             if ($route === '/api/action') {
                 if ($method !== 'POST') return WebView::json(405, ['error' => 'POST erforderlich.'], ['Allow' => 'POST']);
                 if (!hash_equals($csrf, (string)($server['HTTP_X_WBM_CSRF'] ?? ''))) return WebView::json(403, ['error' => 'Sitzung abgelaufen. Seite bitte neu laden.']);
-                if (strtolower(trim(explode(';', $server['CONTENT_TYPE'] ?? '')[0])) !== 'application/json' || strlen($body) > 4096) return WebView::json(400, ['error' => 'JSON-Bedienaktion erwartet.']);
+                // Symcon forwards Content-Type as HTTP_CONTENT_TYPE; CGI uses
+                // CONTENT_TYPE. A missing header still requires valid JSON below.
+                $contentType = trim((string)($server['CONTENT_TYPE'] ?? ''));
+                if ($contentType === '') $contentType = trim((string)($server['HTTP_CONTENT_TYPE'] ?? ''));
+                $mediaType = strtolower(trim(explode(';', $contentType, 2)[0]));
+                if (($mediaType !== '' && $mediaType !== 'application/json') || strlen($body) > 4096) return WebView::json(400, ['error' => 'JSON-Bedienaktion erwartet.']);
                 $action = json_decode($body, true, 16, JSON_THROW_ON_ERROR);
                 if (!is_array($action) || !is_string($action['ident'] ?? null) || !array_key_exists('value', $action)
                     || !preg_match('/^(DistributionMode|BatteryEnabled|W[1-4](Manual|Priority))$/D', $action['ident'])) return WebView::json(400, ['error' => 'Unbekannte Bedienaktion.']);

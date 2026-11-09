@@ -10,7 +10,8 @@ Ansichten mit Beispieldaten: [Webansicht](images/webansicht-hell.png) ·
 
 ## Aufrufen
 
-Im Modul den Bereich **Webansicht** öffnen, **Webansicht aktivieren** einschalten,
+Im Modul ganz unten bei den Diagnosefunktionen den Bereich **Webansicht** öffnen,
+**Webansicht aktivieren** einschalten,
 Benutzername und ein Passwort mit mindestens acht Zeichen eintragen und
 **Übernehmen** anklicken. Der Standardpfad lautet `/hook/wallboxen`:
 
@@ -42,6 +43,17 @@ int for TargetID“ erscheinen. **Ab Build 21 ist das korrigiert.** Nach dem Upd
 im Modul erneut **Übernehmen** drücken. Bereits gespeicherte fehlerhafte Einträge
 dieses Managers werden automatisch repariert; die Instanz muss nicht neu angelegt
 werden. Fremde WebHooks bleiben unverändert.
+
+## Fehler bei Bedienaktionen: JSON-Bedienaktion erwartet
+
+Build 22 berücksichtigt sowohl die CGI-Typangabe `CONTENT_TYPE` als auch Symcons
+`HTTP_CONTENT_TYPE`. Ohne übergebene Typangabe wird der Inhalt als JSON geprüft.
+Eine ausdrücklich andere Typangabe oder ungültiges JSON wird weiterhin abgelehnt;
+Anmeldung, CSRF-Token, erlaubte Aktionen und Datentypen bleiben erforderlich.
+
+Wenn die Meldung in einer älteren Version erscheint: Modul aktualisieren und die
+Webseite neu laden. Start/Stopp und die Verteilungswahl verwenden dieselbe
+korrigierte Schnittstelle.
 
 ## Dashboard
 

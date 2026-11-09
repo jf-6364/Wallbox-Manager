@@ -41,6 +41,11 @@ $path=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH); $found=false;
 foreach (json_decode($hooks->properties['Hooks'],true) as $hook) {
     if (($path===$hook['Hook'] || str_starts_with($path,$hook['Hook'].'/')) && (int)$hook['TargetID']===50) { $found=true; break; }
 }
+// Emulate Symcon's HTTP_ header mapping while retaining the real request body.
+if (getenv('WBM_WEB_TEST_SYMCON_HEADERS') === '1' && isset($_SERVER['CONTENT_TYPE'])) {
+    $_SERVER['HTTP_CONTENT_TYPE'] = $_SERVER['CONTENT_TYPE'];
+    unset($_SERVER['CONTENT_TYPE']);
+}
 if ($found) $m->serve(); else { http_response_code(404); echo 'Not found'; }
 $module=[]; foreach (['properties','attributes','buffers','references','messages','timers','idents','status','visualType','visualUpdates','debug'] as $name) $module[$name]=$m->$name;
 // Do not retain an unbounded test log across HTTP requests.

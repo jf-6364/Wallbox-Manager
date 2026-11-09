@@ -2,10 +2,18 @@
 
 ## Ausgeführt
 
-- **173 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- **175 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
 - **18 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
+- Bedienaktionen mit CGI-Header `CONTENT_TYPE`, Symcon-Header `HTTP_CONTENT_TYPE`,
+  Parametern wie charset, leerem CGI-Header und vollständig fehlender Typangabe
+  geprüft. Start/Stopp und Verteilungswechsel funktionieren über denselben JSON-Weg.
+  Explizit falsche Medientypen, fehlerhaftes/zu großes JSON, falsche Werttypen sowie
+  fehlende Anmeldung oder CSRF-Tokens lösen keine Geräteaktion aus. Die neue
+  Symcon-Header-Regression reproduzierte vor der Korrektur „JSON-Bedienaktion erwartet“.
+  Der HTTP-Browsertest bildet Symcons Headerzuordnung nach und bedient Start/Stopp
+  sowie beide Verteilungsarten über echte Browseranfragen.
 - WebHook-Registrierung gegen das offizielle Symcon-Beispiel abgeglichen: `Hook`
   und ganzzahlige `TargetID`. Das Testdouble lehnt die fehlerhafte Struktur aus
   Build 20 mit der gemeldeten nativen Warnung ab; die Regression schlug vor der

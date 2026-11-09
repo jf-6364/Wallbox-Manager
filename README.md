@@ -320,7 +320,8 @@ Browser: Verteilungswahl, Start/Stopp je Wallbox, Leistungswerte, Tarife und
 Rechnungen. Ihr erweitertes **Energie-Dashboard** ergänzt einen interaktiven
 Leistungsverlauf, Energie und Kosten je Wallbox sowie ein filterbares PDF-Archiv.
 
-Unter **Webansicht** aktivieren, Benutzername und Passwort festlegen und übernehmen.
+Unter **Webansicht** ganz unten bei den Diagnosefunktionen aktivieren, Benutzername
+und Passwort festlegen und übernehmen.
 Die Standardadresse lautet **`http://DEINE-SYMCON-IP:3777/hook/wallboxen`**. Der
 Browser fragt nach den eingestellten Zugangsdaten. Hell-/Dunkelmodus sind wählbar;
 die Seite passt sich an die Fenstergröße an. Die Registrierung in Symcons

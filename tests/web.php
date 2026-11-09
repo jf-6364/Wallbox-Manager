@@ -145,3 +145,39 @@ test('Webansicht: native Registrierungswarnungen bleiben lokal und unveränderte
         $m->ApplyChanges(); check($hooks->applied===1);
     }
 });
+
+test('Webansicht: JSON-Aktionen akzeptieren CGI- und Symcon-Header sowie fehlende Typangabe', function () {
+    [$m]=webFixture();
+    foreach ([['CONTENT_TYPE'=>'application/json; charset=utf-8'], ['HTTP_CONTENT_TYPE'=>'application/json; charset=UTF-8'],
+        ['CONTENT_TYPE'=>'','HTTP_CONTENT_TYPE'=>'Application/JSON'], []] as $headers) {
+        $server=$headers+['REQUEST_METHOD'=>'POST','REQUEST_URI'=>'/hook/wallboxen/api/action',
+            'HTTP_AUTHORIZATION'=>'Basic '.base64_encode('wallbox:local-test-password'),
+            'HTTP_X_WBM_CSRF'=>WebView::token($m->properties,$m->attributes['WebSecret'],50)];
+        foreach ([true,false] as $active) {
+            $r=$m->http($server,json_encode(['ident'=>'W1Manual','value'=>$active]));
+            check($r['status']===200,$r['body']); check($m->GetValue('W1Manual')===$active);
+        }
+        foreach ([1,0] as $mode) {
+            $r=$m->http($server,json_encode(['ident'=>'DistributionMode','value'=>$mode]));
+            check($r['status']===200,$r['body']); check($m->GetValue('DistributionMode')===$mode);
+        }
+    }
+});
+test('Webansicht: Symcon-Header lockern weder CSRF noch JSON-, Größen- oder Typprüfung', function () {
+    [$m]=webFixture();
+    $server=['REQUEST_METHOD'=>'POST','REQUEST_URI'=>'/hook/wallboxen/api/action','HTTP_CONTENT_TYPE'=>'application/json',
+        'HTTP_AUTHORIZATION'=>'Basic '.base64_encode('wallbox:local-test-password'),
+        'HTTP_X_WBM_CSRF'=>WebView::token($m->properties,$m->attributes['WebSecret'],50)];
+    $valid=json_encode(['ident'=>'W1Manual','value'=>true]); $before=Kernel::$calls;
+    foreach (['HTTP_CONTENT_TYPE'=>'text/plain','CONTENT_TYPE'=>'text/plain'] as $key=>$type) {
+        check($m->http(array_replace($server,[$key=>$type]),$valid)['status']===400);
+    }
+    foreach (['','{broken',str_repeat(' ',4097).$valid,json_encode(['ident'=>'W1Manual','value'=>'true'])] as $body) {
+        check($m->http($server,$body)['status']===400);
+    }
+    foreach (['','wrong'] as $token) check($m->http(array_replace($server,['HTTP_X_WBM_CSRF'=>$token]),$valid)['status']===403);
+    $missing=$server; unset($missing['HTTP_CONTENT_TYPE'],$missing['HTTP_X_WBM_CSRF']);
+    check($m->http($missing,$valid)['status']===403);
+    $missing=$server; unset($missing['HTTP_AUTHORIZATION']); check($m->http($missing,$valid)['status']===401);
+    check(Kernel::$calls===$before); check(!$m->GetValue('W1Manual'));
+});

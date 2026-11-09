@@ -144,7 +144,7 @@ final class Form
         foreach (['Zeitbedingungen', 'Abrechnung'] as $caption) $general[] = ['type' => 'ExpansionPanel', 'caption' => $caption, 'items' => $groups[$caption]];
         $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Allgemein', 'items' => $general];
         foreach ($groups as $caption => $fields) {
-            if (in_array($caption, ['Allgemein', 'Zeitbedingungen', 'Abrechnung'], true)) continue;
+            if (in_array($caption, ['Allgemein', 'Zeitbedingungen', 'Abrechnung', 'Webansicht'], true)) continue;
             $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => $caption, 'items' => $fields];
         }
         for ($i = 1; $i <= 4; $i++) {
@@ -165,6 +165,7 @@ final class Form
         $fields[] = ['type' => 'Label', 'caption' => 'Ohne Leistungsrückmeldung: nur der konfigurierte Anteil nach Anlaufwartezeit; reale Entladung bleibt ungeprüft.'];
         $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Batteriespeicher', 'items' => $fields];
         $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Aktuelle Diagnose', 'items' => [['type' => 'Label', 'caption' => $diagnostic ?: 'Noch kein Regeldurchlauf']]];
+        $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Webansicht', 'items' => $groups['Webansicht']];
         return $form;
     }
 

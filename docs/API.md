@@ -142,6 +142,11 @@ Alle Routen verlangen HTTP-Basic-Anmeldung. GET-Anfragen führen keinen
 Regeldurchlauf aus. POST erlaubt ausschließlich `DistributionMode`,
 `BatteryEnabled` und `W1Manual` bis `W4Manual` bzw. `W1Priority` bis `W4Priority`.
 Die Aktionen verwenden die vorhandene `RequestAction`-Validierung des Moduls.
+Ab Build 22 wird die Medientypangabe aus `CONTENT_TYPE` oder, falls diese fehlt
+oder leer ist, aus `HTTP_CONTENT_TYPE` gelesen. Ohne Typangabe bleibt ein gültiger
+JSON-Inhalt erforderlich. Ausdrücklich abweichende Medientypen, ungültige JSON-Daten
+und Inhalte über 4.096 Bytes werden abgelehnt. Anmeldung und CSRF-Prüfung erfolgen
+unabhängig von der Typangabe.
 Ein Passwortwechsel entwertet den seitenspezifischen CSRF-Token. Die HTML-Antwort
 verwendet eine Content Security Policy mit zufälliger Script-Nonce. Zugangsdaten,
 Rechnungsadressen und Bankdaten werden nicht in die Seitentelemetrie übernommen;

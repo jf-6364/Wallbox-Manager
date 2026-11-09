@@ -13,7 +13,7 @@ Zeitbedingungen stehen zentral unter Allgemein → Zeitbedingungen, Abrechnung u
 
 Der eigene Bereich PV-Überschuss verwendet PVModeVar (Boolean) und PVBudgetVar (Integer/Float): true wählt ausschließlich das PV-Budget, false oder PVModeVar = 0 das bisherige BudgetVar. PVBudgetUnit und PVBudgetMaxAge gelten nur für die PV-Quelle. Bei aktivem PV-Modus erhöhen weder Speicherunterstützung noch zeitweise Überschreitungen das Budget. Fehlende/ungültige aktive Daten führen zum Stopp ohne Rückfall auf die andere Quelle. Die Telemetrie enthält pvActive, budgetSource (normal/pv/invalid) und budgetVariable. Für die Tarifzuordnung kann dieselbe Boolvariable separat als BillingPVVar verknüpft werden.
 
-Die optionale Webansicht wird über WebEnabled, WebPath, WebUser und WebPassword konfiguriert. Sie verwendet Symcons WebHook Control und benötigt eine eigene Anmeldung. Details: [Webansicht](WEBANSICHT.md).
+Die optionale Webansicht wird über WebEnabled, WebPath, WebUser und WebPassword konfiguriert. Der Bereich steht ganz unten im Formular unmittelbar vor den Diagnoseaktionen. Sie verwendet Symcons WebHook Control und benötigt eine eigene Anmeldung. Details: [Webansicht](WEBANSICHT.md).
 
 ## Variablenverknüpfungen
 
