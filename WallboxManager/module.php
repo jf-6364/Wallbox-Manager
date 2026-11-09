@@ -41,8 +41,22 @@ class WallboxManager extends IPSModule
             $state = $this->runtime();
             $now = microtime(true);
             $cold = $this->GetBuffer('ColdStart') === '1';
-            // Settle the previous tariff/settings at the edit boundary before using new ones.
-            if ($previous && !$cold) $this->accountBilling(Schema::unpack($previous), $state, $now);
+            $cfg = Schema::unpack($flat);
+            $old = $previous ? Schema::unpack($previous) : null;
+            // Settle tariff edits only while the same variables are still linked.
+            // Relinking must never read a previous device or its tariff signal.
+            if ($old && !$cold) {
+                $settle = $old;
+                foreach ($settle['boxes'] as $id => $box) {
+                    foreach (['SetpointVar', 'PowerVar', 'HeartbeatVar', 'BillingPVVar'] as $key) {
+                        if ($box[$key] !== $cfg['boxes'][$id][$key]) {
+                            unset($settle['boxes'][$id]);
+                            break;
+                        }
+                    }
+                }
+                $this->accountBilling($settle, $state, $now);
+            }
             $this->profiles();
             $this->variables();
             foreach (['Enabled' => 'ManagerEnabled', 'Mode' => 'DistributionMode'] as $prop => $ident) {
@@ -51,13 +65,11 @@ class WallboxManager extends IPSModule
             for ($i = 1; $i <= 4; $i++) {
                 if (!$previous || $previous['W' . $i . 'Priority'] !== $flat['W' . $i . 'Priority']) $this->SetValue('W' . $i . 'Priority', $flat['W' . $i . 'Priority']);
             }
-            $cfg = Schema::unpack($flat);
-            $old = $previous ? Schema::unpack($previous) : null;
             for ($i = 1; $i <= 4; $i++) {
                 $c = $cfg['boxes'][$i];
                 $oldC = $old['boxes'][$i] ?? null;
                 $changed = $oldC !== null && $this->deviceIdentity($oldC) !== $this->deviceIdentity($c);
-                if ($oldC && $oldC['Enabled'] && ($changed || !$c['Enabled'])) $this->retire($state, 'W' . $i . '-alt', $oldC, $previous['Simulation'], $now);
+                if ($oldC && $oldC['Enabled'] && !$c['Enabled']) $this->retire($state, 'W' . $i . '-stop', $c, $flat['Simulation'], $now);
                 if ($c['Enabled'] && ($cold || !$oldC || !$oldC['Enabled'] || $changed)) $this->retire($state, 'W' . $i . '-start', $c, $flat['Simulation'], $now);
                 if ($cold || $changed || !$oldC || !$c['Enabled'] || !$oldC['Enabled']) {
                     $phase = $state['boxes'][$i]['phase'] ?? [];
@@ -74,15 +86,19 @@ class WallboxManager extends IPSModule
             }
             $b = $cfg['battery'];
             $oldB = $old['battery'] ?? null;
-            if ($oldB && $oldB['Enabled'] && (!$b['Enabled'] || $oldB['SetpointVar'] !== $b['SetpointVar'] || $oldB['Stop'] !== $b['Stop'] || $oldB['Sign'] !== $b['Sign'] || $oldB['SetpointUnit'] !== $b['SetpointUnit'])) {
-                $this->retireBattery($state, 'B-alt', $oldB, $previous['Simulation'], $now);
+            $batteryKeys = array_flip(['SetpointVar', 'SetpointUnit', 'Stop', 'Sign', 'PowerVar', 'PowerUnit', 'PowerSign', 'SocVar', 'ExternalVar', 'LimitVar']);
+            $batteryChanged = $oldB && array_intersect_key($oldB, $batteryKeys) !== array_intersect_key($b, $batteryKeys);
+            if ($oldB && $oldB['Enabled'] && !$b['Enabled']) {
+                $this->retireBattery($state, 'B-stop', $b, $flat['Simulation'], $now);
             }
-            if ($b['Enabled'] && ($cold || !$oldB || !$oldB['Enabled'] || $oldB['SetpointVar'] !== $b['SetpointVar'])) $this->retireBattery($state, 'B-start', $b, $flat['Simulation'], $now);
-            if ($cold || !$b['Enabled']) {
+            if ($b['Enabled'] && ($cold || !$oldB || !$oldB['Enabled'] || $batteryChanged)) $this->retireBattery($state, 'B-start', $b, $flat['Simulation'], $now);
+            if ($batteryChanged) $state['battery'] = [];
+            if ($cold || !$b['Enabled'] || $batteryChanged) {
                 $state['battery']['requested'] = 0.0;
                 $state['battery']['requestAt'] = $now;
                 $state['battery']['shortSince'] = null;
             }
+            $this->pruneStops($flat, $state);
             $this->WriteAttributeString('Configuration', $this->encode($flat));
             $this->saveRuntime($state);
             $this->SetBuffer('ColdStart', '0');
@@ -101,6 +117,7 @@ class WallboxManager extends IPSModule
             if (IPS_GetKernelRunlevel() === KR_READY) $this->ApplyChanges();
             return;
         }
+        if (!in_array((int)$SenderID, $this->GetReferenceList(), true)) return;
         // The SDK timestamp is a sequence number, not a Unix timestamp.
         // VariableUpdated and real wall time are used when reading measurements.
         if (IPS_GetKernelRunlevel() !== KR_READY) return;
@@ -197,7 +214,8 @@ class WallboxManager extends IPSModule
 
     public function ControlTargets(): string
     {
-        return $this->ReadAttributeString('OwnedTargets');
+        // Other instances can query us before our next timer/apply call.
+        return $this->encode(array_values(array_intersect($this->jsonAttribute('OwnedTargets'), $this->configuredTargets($this->configuration()))));
     }
 
     public function GetConfigurationForm()
@@ -358,6 +376,15 @@ class WallboxManager extends IPSModule
             foreach ($targets as $target) $out[] = (int)$target;
         }
         return array_values(array_unique($out));
+    }
+
+    private function configuredTargets(array $flat): array
+    {
+        $ids = [$flat['BSetpointVar']];
+        for ($i = 1; $i <= 4; $i++) {
+            foreach (['SetpointVar', 'DeviceEnableVar', 'PhaseCommandVar'] as $key) $ids[] = $flat['W' . $i . $key];
+        }
+        return array_values(array_unique(array_filter($ids, static fn($id) => $id > 0)));
     }
 
     private function claimTargets(array $flat, array $state): void
@@ -607,6 +634,7 @@ class WallboxManager extends IPSModule
 
     private function command(int $id, $value, bool $simulation, array &$state, float $now, bool $force = false): bool
     {
+        if (!in_array($id, $this->configuredTargets($this->configuration()), true)) return false;
         $v = $this->inspect($id);
         $error = '';
         if (!$v || $v['owner'] === $this->InstanceID || $v['locked'] || in_array($id, $this->otherTargets(), true)) $error = 'Steuerziel fehlt, ist gesperrt oder gehört zum Manager';
@@ -652,8 +680,7 @@ class WallboxManager extends IPSModule
     private function retire(array &$state, string $key, array $c, bool $simulation, float $now): void
     {
         if (!$c['SetpointVar']) return;
-        $record = ['key' => $key, 'target' => $c['SetpointVar'], 'stop' => $c['Stop'], 'enable' => $c['DeviceEnableVar'], 'disable' => !$c['EnablePolarity'],
-            'power' => $c['PowerVar'], 'powerUnit' => $c['PowerUnit'], 'simulation' => $simulation, 'created' => $now, 'sent' => null];
+        $record = ['key' => $key] + $this->stopBinding($c, false) + ['simulation' => $simulation, 'created' => $now, 'sent' => null];
         $hash = hash('sha256', $this->encode(array_diff_key($record, ['created' => true, 'sent' => true])));
         $state['retired'][$hash] ??= $record;
     }
@@ -661,14 +688,40 @@ class WallboxManager extends IPSModule
     private function retireBattery(array &$state, string $key, array $c, bool $simulation, float $now): void
     {
         if (!$c['SetpointVar']) return;
-        $record = ['key' => $key, 'target' => $c['SetpointVar'], 'stop' => $c['Stop'], 'enable' => 0, 'disable' => false,
-            'power' => 0, 'powerUnit' => 'W', 'simulation' => $simulation, 'created' => $now, 'sent' => null];
+        $record = ['key' => $key] + $this->stopBinding($c, true) + ['simulation' => $simulation, 'created' => $now, 'sent' => null];
         $hash = hash('sha256', $this->encode(array_diff_key($record, ['created' => true, 'sent' => true])));
         $state['retired'][$hash] ??= $record;
     }
 
+    private function stopBinding(array $c, bool $battery): array
+    {
+        return ['target' => $c['SetpointVar'], 'stop' => $c['Stop'],
+            'enable' => $battery ? 0 : $c['DeviceEnableVar'], 'disable' => $battery ? false : !$c['EnablePolarity'],
+            'power' => $battery ? 0 : $c['PowerVar'], 'powerUnit' => $battery ? 'W' : $c['PowerUnit']];
+    }
+
+    private function pruneStops(array $flat, array &$state): void
+    {
+        $cfg = Schema::unpack($flat);
+        foreach ($state['retired'] as $key => $record) {
+            $slot = explode('-', $record['key'] ?? '')[0];
+            $c = $slot === 'B' ? $cfg['battery'] : (preg_match('/^W([1-4])$/', $slot, $match) ? $cfg['boxes'][(int)$match[1]] : null);
+            $matches = $c && $c['SetpointVar'];
+            if ($matches) foreach ($this->stopBinding($c, $slot === 'B') as $field => $value) {
+                if (!array_key_exists($field, $record) || $record[$field] != $value) { $matches = false; break; }
+            }
+            if (!$matches) unset($state['retired'][$key]);
+            else $state['retired'][$key]['simulation'] = $flat['Simulation'];
+        }
+        $targets = $this->configuredTargets($flat);
+        $state['commands'] = array_intersect_key($state['commands'], array_fill_keys($targets, true));
+        $this->WriteAttributeString('OwnedTargets', $this->encode(array_values(array_intersect($this->jsonAttribute('OwnedTargets'), $targets))));
+    }
+
     private function processRetired(array &$state, float $now): array
     {
+        // Also migrates pending stops persisted by earlier versions, before any I/O.
+        $this->pruneStops($this->configuration(), $state);
         $errors = [];
         foreach ($state['retired'] as $key => &$r) {
             // A rejected new configuration never acquired a foreign target.
@@ -681,14 +734,14 @@ class WallboxManager extends IPSModule
                 $ok = $this->command($r['target'], $r['stop'], ($r['simulation'] || $this->ReadPropertyBoolean('Simulation')), $state, $now, true) && $ok;
                 if ($ok) $r['sent'] = $now;
                 else {
-                    $errors[] = $r['key'] . ': bisheriges Steuerziel konnte nicht gestoppt werden (' . $r['target'] . ')';
+                    $errors[] = $r['key'] . ': verknüpftes Steuerziel konnte nicht gestoppt werden (' . $r['target'] . ')';
                     continue;
                 }
             }
             if ($r['power']) {
                 [$p, $sample, $error] = $this->number($r['power'], 0, $now);
                 if ($error || $p === null || Setpoint::watts($p, $r['powerUnit']) > $this->ReadPropertyFloat('FeedbackToleranceW') || $sample < floor($r['sent'])) {
-                    $errors[] = $r['key'] . ': Warten auf bestätigten Stillstand des bisherigen Steuerziels';
+                    $errors[] = $r['key'] . ': Warten auf bestätigten Stillstand des verknüpften Steuerziels';
                     continue;
                 }
             }

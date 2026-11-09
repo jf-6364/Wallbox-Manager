@@ -62,6 +62,19 @@ Geräte-Ladefreigaben, Energiezähler und Heartbeats verknüpft werden. Ohne ein
 Ladebedarfsvariable nimmt der Manager Ladebedarf an; 0 W Messleistung allein
 bedeutet daher nicht, dass ein Fahrzeug voll oder abgesteckt ist.
 
+Nach dem Übernehmen geänderter Verknüpfungen verwendet der Manager ausschließlich
+die aktuell eingetragenen Variablen. Abgewählte IDs werden weder gelesen noch
+beschrieben; alte Stoppaufträge, Referenzen und Steuerzielreservierungen werden
+automatisch entfernt. Das gilt auch für bereits gespeicherte Altaufträge nach
+einem Modulupdate. Energiezähler, archivierte Geräteenergie und Rechnungen bleiben
+erhalten. Ein abgewähltes Gerät erhält auch keinen nachträglichen Stoppbefehl:
+Eine laufende Wallbox daher vor dem Entfernen ihrer Verknüpfungen stoppen.
+
+Die Stoppprüfung der **aktuell verknüpften** Wallboxen bleibt aktiv. Nach einem
+Neustart oder Gerätewechsel beginnt die Verteilung erst nach erfolgreichem
+Stoppbefehl und frischer Leistungsrückmeldung nahe 0 W. Ein manuell festgehaltener
+Messwert von beispielsweise 11.040 W bestätigt diesen Stillstand nicht.
+
 ## Grenzen, Zeiten und Freigaben
 
 Jede Wallbox besitzt eigene Strom- und Leistungsgrenzen, ein Sollwertraster und

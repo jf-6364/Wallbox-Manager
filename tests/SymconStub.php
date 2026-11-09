@@ -13,13 +13,14 @@ final class Kernel
     public static array $instances = [];
     public static array $profiles = [];
     public static array $calls = [];
+    public static array $reads = [];
     public static array $failures = [];
     public static array $locks = [];
     public static array $media = [];
     public static int $next = 1000;
     public static function reset(): void
     {
-        self::$variables = self::$objects = self::$instances = self::$profiles = self::$calls = self::$failures = self::$locks = self::$media = [];
+        self::$variables = self::$objects = self::$instances = self::$profiles = self::$calls = self::$reads = self::$failures = self::$locks = self::$media = [];
         self::$next = 1000;
     }
     public static function variable($value, bool $action = false, int $parent = 0): int
@@ -106,8 +107,8 @@ class IPSModule
     }
 }
 function IPS_GetKernelRunlevel() { return KR_READY; }
-function IPS_VariableExists($id) { return isset(Kernel::$variables[$id]); }
-function IPS_GetVariable($id) { return Kernel::$variables[$id]; }
+function IPS_VariableExists($id) { Kernel::$reads[] = $id; return isset(Kernel::$variables[$id]); }
+function IPS_GetVariable($id) { Kernel::$reads[] = $id; return Kernel::$variables[$id]; }
 function IPS_GetObject($id) { return Kernel::$objects[$id]; }
 function IPS_GetChildrenIDs($parent) { return array_keys(array_filter(Kernel::$objects, fn($v) => $v['ParentID'] === $parent)); }
 function IPS_CreateCategory() {
@@ -140,7 +141,7 @@ function IPS_SetMediaContent(int $id, string $content) {
 function IPS_GetMediaContent(int $id) { return Kernel::$media[$id]['content']; }
 function IPS_GetInstanceListByModuleID($id) { return array_keys(Kernel::$instances); }
 function IPS_GetProperty($id, $name) { return Kernel::$instances[$id]->properties[$name]; }
-function GetValue($id) { return Kernel::$variables[$id]['value']; }
+function GetValue($id) { Kernel::$reads[] = $id; return Kernel::$variables[$id]['value']; }
 function SetValue($id, $value) { Kernel::update($id, $value); return true; }
 function HasAction($id)
 {

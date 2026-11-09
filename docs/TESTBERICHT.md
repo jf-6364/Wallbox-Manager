@@ -2,7 +2,7 @@
 
 ## Ausgeführt
 
-- **114 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- **120 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
 - **12 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
@@ -14,6 +14,14 @@
   erst mit „Übernehmen“, Ausblenden ohne Einstellungsverlust, Stoppen mit
   Rückmeldung beim Reduzieren, erneutes Aktivieren sowie Erhalt von Energie und
   Abrechnungen. Bestehende Konfigurationen behalten standardmäßig vier Plätze.
+- Umverknüpfen geprüft: abgewählte IDs werden weder gelesen noch beschrieben.
+  Bereits gespeicherte Stoppaufträge werden vor Gerätezugriffen bei Regelung,
+  Übernehmen und Destroy bereinigt, auch bei gelöschten/gesperrten alten Variablen
+  und teilweise geänderten Verknüpfungen. Referenzen, Ereignisabonnements und
+  Reservierungen werden freigegeben. Andere Instanzen können diese Ziele übernehmen.
+  Gerätefreigaben und Speicherwechsel sind abgedeckt. Die Stillstandsprüfung
+  aktueller Wallboxen bleibt wirksam; Energiearchive und vorhandene PDFs bleiben
+  erhalten, laufende Abrechnungen werden beim Gerätewechsel abgeschlossen.
 - Zusätzliche Chromium-Prüfung der tatsächlichen HTML/CSS/JS-Kachel: acht Größen
   von 240 × 260 bis 1440 × 900 Pixeln, flache Hauptansicht, eine aufklappbare
   Detailebene, erreichbare Bedienung und keine horizontale Überbreite.
@@ -87,7 +95,7 @@
 | 19 | Ungültige Variablen / Aktionen | Fehlende Aktion, false, Exception, gelöschte Variable, Heartbeat |
 
 Weitere Regressionstests prüfen Zielübernahme zwischen Instanzen, Wiederholung
-durch Watchdog, Lastabbau vor Erhöhung, Umkonfiguration alter Ziele, Runtime-Modus,
+durch Watchdog, Lastabbau vor Erhöhung, Bereinigung abgewählter Ziele, Runtime-Modus,
 Geschützter Reset, gültige selten gebündelte Energiezähler und den Erhalt des
 Gerätearchivs nach Beginn einer neuen Integration.
 

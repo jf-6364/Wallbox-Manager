@@ -32,8 +32,10 @@ laufenden Symcon-Kernel noch echte Hardware.
 - [ ] Integration gegen echten Zähler vergleichen; schnelle Änderungen,
       gleichzeitige Timer/Ereignisse und Ausfälle.
 - [ ] Energiezähler: Wh/kWh, Reset, Wechsel, Sprung, ApplyChanges und Neustart.
-- [ ] Gerät deaktivieren/entfernen/ersetzen: alte Ziele stoppen, neue Basis,
-      Archiv und Gesamtenergie nachvollziehbar.
+- [ ] Gerät deaktivieren: aktuell verknüpfte Ziele stoppen und Rückmeldung abwarten.
+- [ ] Variablen entfernen/ersetzen: keine Lese- oder Schreibzugriffe auf abgewählte
+      IDs; alte Aufträge, Referenzen und Reservierungen verschwinden automatisch.
+      Neue Basis, Gerätearchiv, Gesamtenergie und Rechnungen bleiben nachvollziehbar.
 - [ ] Zweite Instanz: unabhängig; doppelte Ziele ohne Eingriff in das erste Gerät ablehnen.
 - [ ] Eigene Kachel in Symcon: Aktionen, Priorität, Energie, Phasen und Zeitbedingungen.
 - [ ] Smartphone/Tablet, schmale Kacheln, Hell-/Dunkelmodus visuell prüfen.

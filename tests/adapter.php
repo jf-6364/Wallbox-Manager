@@ -214,15 +214,101 @@ test('Adapter: fehlgeschlagene Geräteaktion sperrt Erhöhungen', function () {
     check($m->status === 201); check(str_contains($m->GetValue('Status'), 'fehlgeschlagen'));
     check(GetValue($ids[2]['setpoint']) <= 6000);
 });
-test('Adapter: Umkonfiguration hält alte Referenzen bis bestätigt gestoppt', function () {
+test('Adapter: Umverknüpfen verwendet ausschließlich die neuen Variablen', function () {
     [$m, $ids] = fixture(); $m->ApplyChanges();
     Kernel::update($ids[1]['power'], 9000.0, microtime(true));
     $newTarget = Kernel::variable(0.0, true); $newPower = Kernel::variable(0.0);
+    Kernel::$calls = Kernel::$reads = [];
     $m->properties['W1SetpointVar'] = $newTarget; $m->properties['W1PowerVar'] = $newPower; $m->ApplyChanges();
-    closeTo(GetValue($ids[1]['setpoint']), 0); closeTo(GetValue($newTarget), 0);
-    check(in_array($ids[1]['setpoint'], $m->GetReferenceList(), true));
+    Kernel::update($newPower, 0.0, microtime(true)); $m->Control();
+    check(callsTo($ids[1]['setpoint']) === []);
+    check(!array_intersect($ids[1], Kernel::$reads));
+    check(!array_intersect($ids[1], $m->GetReferenceList()));
+    check(!($m->GetMessageList()[$ids[1]['power']] ?? []));
+    check(!in_array($ids[1]['setpoint'], json_decode($m->ControlTargets(), true), true));
+    check(!isset(runtimeOf($m)['commands'][$ids[1]['setpoint']]));
+    closeTo(GetValue($ids[1]['setpoint']), 11000);
+    check(GetValue($newTarget) > 0); check($m->status === 102, $m->GetValue('Status'));
+    $timers = $m->timers;
+    $m->MessageSink(12345, $ids[1]['power'], VM_UPDATE, [true, false]);
+    check($m->timers === $timers);
+});
+test('Adapter: gespeicherte alte Stoppaufträge verschwinden auch ohne erneutes Übernehmen', function () {
+    foreach (['Control', 'ApplyChanges', 'Destroy'] as $entry) {
+        [$m, $ids] = fixture(2); $m->ApplyChanges();
+        $oldTarget = Kernel::variable(16.0, true); $oldPower = Kernel::variable(11040.0); $oldEnable = Kernel::variable(true, true);
+        Kernel::$variables[$oldTarget]['VariableIsLocked'] = true;
+        unset(Kernel::$variables[$oldPower]);
+        $s = runtimeOf($m);
+        $s['retired']['legacy'] = ['key' => 'W1-alt', 'target' => $oldTarget, 'stop' => 0.0, 'enable' => $oldEnable,
+            'disable' => false, 'power' => $oldPower, 'powerUnit' => 'W', 'simulation' => false, 'created' => 1, 'sent' => null];
+        // A partly changed binding must not keep an old measurement or enable link either.
+        $s['retired']['legacy-feedback'] = array_replace($s['retired']['legacy'], ['key' => 'W2-start', 'target' => $ids[2]['setpoint']]);
+        $s['commands'][$oldTarget] = ['value' => 16.0, 'time' => 1];
+        $s['commands'][$oldEnable] = ['value' => true, 'time' => 1];
+        setRuntime($m, $s);
+        $m->attributes['OwnedTargets'] = json_encode([$oldTarget, $oldEnable, $ids[1]['setpoint'], $ids[2]['setpoint']]);
+        foreach ([$oldTarget, $oldPower, $oldEnable] as $id) { $m->RegisterReference($id); $m->RegisterMessage($id, VM_UPDATE); }
+        check(!in_array($oldTarget, json_decode($m->ControlTargets(), true), true));
+        Kernel::$calls = Kernel::$reads = [];
+        $m->$entry();
+        check(!array_intersect([$oldTarget, $oldPower, $oldEnable], Kernel::$reads), $entry . ': alter Variablenzugriff');
+        check(callsTo($oldTarget) === [] && callsTo($oldEnable) === [], $entry . ': alter Schreibbefehl');
+        check(!isset(runtimeOf($m)['commands'][$oldTarget]));
+        check(!isset(runtimeOf($m)['commands'][$oldEnable]));
+        check(!isset(runtimeOf($m)['retired']['legacy'])); check(!isset(runtimeOf($m)['retired']['legacy-feedback']));
+        if ($entry !== 'Destroy') {
+            check($m->status === 102, $m->GetValue('Status'));
+            check(!array_intersect([$oldTarget, $oldPower, $oldEnable], $m->GetReferenceList()));
+            check(!($m->GetMessageList()[$oldPower] ?? []));
+            check(telemetryOf($m)['errors'] === []);
+        }
+    }
+});
+test('Adapter: Entfernen einer Gerätefreigabe lässt diese Variable unverändert', function () {
+    [$m, $ids] = fixture(); $enable = Kernel::variable(true, true); $m->properties['W1DeviceEnableVar'] = $enable;
+    $m->ApplyChanges();
+    Kernel::$calls = Kernel::$reads = [];
+    $m->properties['W1DeviceEnableVar'] = 0;
+    $m->ApplyChanges(); Kernel::update($ids[1]['power'], 0.0, microtime(true)); $m->Control();
+    check(callsTo($enable) === []); check(!in_array($enable, Kernel::$reads, true));
+    check(!in_array($enable, $m->GetReferenceList(), true));
+    check(GetValue($enable) === true); check($m->status === 102, $m->GetValue('Status'));
+});
+test('Adapter: aktuelle Stopp-Rückmeldung bleibt nach Bereinigung erforderlich', function () {
+    [$m, $ids] = fixture(); Kernel::update($ids[1]['power'], 11040.0, microtime(true));
+    $m->ApplyChanges(); $m->Control();
+    closeTo(GetValue($ids[1]['setpoint']), 0.0);
+    check($m->status === 201); check(str_contains($m->GetValue('Status'), 'Stillstand'));
+    check(count(runtimeOf($m)['retired']) > 0);
     Kernel::update($ids[1]['power'], 0.0, microtime(true)); $m->Control();
-    check(!in_array($ids[1]['setpoint'], $m->GetReferenceList(), true)); check(GetValue($newTarget) > 0);
+    check($m->status === 102, $m->GetValue('Status')); check(GetValue($ids[1]['setpoint']) > 0);
+});
+test('Adapter: abgewähltes Steuerziel kann von einer anderen Instanz übernommen werden', function () {
+    [$m, $ids] = fixture(); $m->ApplyChanges();
+    $previous = $m->properties;
+    $m->properties['W1SetpointVar'] = Kernel::variable(0.0, true); $m->properties['W1PowerVar'] = Kernel::variable(0.0);
+    $second = new WallboxManager(60); $second->Create(); $second->properties = $previous;
+    $second->ApplyChanges(); check($second->status === 102, $second->GetValue('Status'));
+    Kernel::$calls = Kernel::$reads = [];
+    $m->ApplyChanges();
+    check(callsTo($ids[1]['setpoint']) === []);
+    check(!array_intersect($ids[1], Kernel::$reads));
+    check($m->status === 102, $m->GetValue('Status'));
+});
+test('Adapter: Speicherwechsel liest und beschreibt keine früheren Speicher-Variablen', function () {
+    [$m] = fixture(); $oldTarget = Kernel::variable(0.0, true); $oldSoc = Kernel::variable(80.0); $oldPower = Kernel::variable(0.0);
+    $m->properties = array_replace($m->properties, ['BEnabled' => true, 'BSetpointVar' => $oldTarget, 'BSocVar' => $oldSoc, 'BPowerVar' => $oldPower]);
+    $m->ApplyChanges();
+    $s = runtimeOf($m); $s['battery']['fault'] = 'Befehlsfehler des alten Speichers'; setRuntime($m, $s);
+    $newTarget = Kernel::variable(0.0, true);
+    $m->properties = array_replace($m->properties, ['BSetpointVar' => $newTarget, 'BSocVar' => Kernel::variable(80.0), 'BPowerVar' => Kernel::variable(0.0)]);
+    unset(Kernel::$variables[$oldTarget]); Kernel::$calls = Kernel::$reads = [];
+    $m->ApplyChanges(); $m->Control();
+    check(callsTo($oldTarget) === []); check(!array_intersect([$oldTarget, $oldSoc, $oldPower], Kernel::$reads));
+    check(!array_intersect([$oldTarget, $oldSoc, $oldPower], $m->GetReferenceList()));
+    check($m->status === 102, $m->GetValue('Status')); check(count(callsTo($newTarget)) > 0);
+    check(runtimeOf($m)['battery']['fault'] === '');
 });
 test('Adapter: deaktivierter Platz löscht keine Gesamtenergie', function () {
     [$m] = fixture(); $m->ApplyChanges(); $s = runtimeOf($m); $s['totalEnergy'] = 12.5; $s['energy'][1]['energy'] = 12.5; setRuntime($m, $s);

@@ -139,6 +139,28 @@ function seedIdleBill(WallboxManager $m): void {
     billTick($bill, $c, $now - 1100); billTick($bill, $c, $now - 100, 0.0);
     $bill['idleSince'] = $now - 100; $s['billing'][1] = $bill; setRuntime($m, $s);
 }
+test('Adapter Abrechnung: Umverknüpfen erhält Energie und PDFs ohne alte Variablen zu lesen', function () {
+    [$m, $ids] = billingFixture(); seedIdleBill($m); $m->Control();
+    $media = Kernel::$media;
+    $s = runtimeOf($m); $invoiceSequence = $s['invoiceSequence'];
+    $s['energy'][1]['energy'] = 7.0; $s['totalEnergy'] = 7.0;
+    $c = Schema::unpack($m->properties)['boxes'][1]; $now = microtime(true);
+    $s['billing'][1]['integrator'] = []; $s['billing'][1]['idleSince'] = null;
+    billTick($s['billing'][1], $c, $now - 50); billTick($s['billing'][1], $c, $now);
+    setRuntime($m, $s);
+    $m->properties['W1SetpointVar'] = Kernel::variable(0.0, true);
+    $m->properties['W1PowerVar'] = Kernel::variable(0.0);
+    unset(Kernel::$variables[$ids[1]['setpoint']], Kernel::$variables[$ids[1]['power']]);
+    Kernel::$calls = Kernel::$reads = [];
+    $m->ApplyChanges(); $m->Control();
+    check(!array_intersect($ids[1], Kernel::$reads)); check(callsTo($ids[1]['setpoint']) === []);
+    check($m->status === 102, $m->GetValue('Status'));
+    foreach ($media as $id => $document) check(Kernel::$media[$id] === $document);
+    closeTo(runtimeOf($m)['totalEnergy'], 7.0);
+    closeTo(array_sum(array_column(runtimeOf($m)['energy'][1]['archive'], 'energy')), 7.0);
+    check(runtimeOf($m)['invoiceSequence'] === $invoiceSequence + 1);
+    check(count(Kernel::$media) === count($media) + 1);
+});
 test('Adapter Abrechnung: Ladeende erstellt genau ein PDF-Medienobjekt pro Ladegang', function () {
     [$m, $ids] = billingFixture(); seedIdleBill($m); Kernel::update($ids[1]['power'], 0.0, microtime(true)); $m->Control();
     $s = runtimeOf($m); check(count(Kernel::$media) === 1); check(count($s['billing'][1]['pending']) === 0);
