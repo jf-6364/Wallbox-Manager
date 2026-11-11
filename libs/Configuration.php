@@ -168,7 +168,7 @@ final class Form
         $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Aktuelle Diagnose', 'items' => [['type' => 'Label', 'caption' => $diagnostic ?: 'Noch kein Regeldurchlauf']]];
         $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Webansicht', 'items' => $groups['Webansicht']];
         array_splice($form['actions'], 3, 0, [[
-            'type' => 'OpenURL', 'caption' => 'Webansicht', 'url' => $flat['WebPath'],
+            'type' => 'Button', 'caption' => 'Webansicht', 'link' => $flat['WebPath'],
             'enabled' => $flat['WebEnabled'] && !WebView::errors($flat)
         ]]);
         return $form;

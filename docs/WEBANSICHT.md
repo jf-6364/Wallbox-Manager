@@ -40,6 +40,15 @@ Andere registrierte WebHooks werden nicht verändert. Ausschalten der Webansicht
 entfernt ihre Registrierung und beendet den Browserzugriff; die Laderegelung und
 die gespeicherten Daten bleiben erhalten.
 
+## Konfiguration öffnet nicht: Nicht unterstützter Typ OpenURL
+
+Build 23 verwendete für die neue Webansicht-Schaltfläche versehentlich einen
+nicht unterstützten Formulartyp. **Ab Build 24** verwendet sie einen normalen
+`Button` mit Link-Ziel. Das Modul über die Modulverwaltung beziehungsweise den
+Modulstore aktualisieren und die Instanzkonfiguration erneut öffnen. Dafür muss
+die Instanz weder gelöscht noch neu angelegt werden; Verknüpfungen, Energiezähler
+und Rechnungen bleiben erhalten.
+
 ## Fehler beim Übernehmen: TargetID
 
 Build 20 verwendete bei der Registrierung versehentlich `Target` statt der von

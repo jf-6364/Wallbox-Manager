@@ -181,3 +181,21 @@ test('Webansicht: Symcon-Header lockern weder CSRF noch JSON-, Größen- oder Ty
     $missing=$server; unset($missing['HTTP_AUTHORIZATION']); check($m->http($missing,$valid)['status']===401);
     check(Kernel::$calls===$before); check(!$m->GetValue('W1Manual'));
 });
+
+test('Konfigurationsformular: Webansicht verwendet unterstützten Button mit Link statt eigenem URL-Typ', function () {
+    $supported=['Label','ExpansionPanel','CheckBox','Select','SelectVariable','NumberSpinner','RowLayout','ValidationTextBox','PasswordTextBox','Button'];
+    foreach ([false,true] as $enabled) {
+        $flat=WBM\Schema::defaults(); $flat['WebEnabled']=$enabled; $flat['WebPassword']='test-password-only'; $flat['WebPath']='/hook/garage';
+        $form=WBM\Form::build($flat,[],'');
+        $walk=function(array $items) use (&$walk,$supported): void {
+            foreach ($items as $item) {
+                check(in_array($item['type'],$supported,true),'Nicht unterstützter Formulartyp: '.$item['type']);
+                if (isset($item['items'])) $walk($item['items']);
+            }
+        };
+        $walk($form['elements']); $walk($form['actions']);
+        $buttons=array_values(array_filter($form['actions'],static fn($item)=>($item['caption']??'')==='Webansicht'));
+        check(count($buttons)===1); check($buttons[0]['type']==='Button');
+        check(($buttons[0]['link']??'')==='/hook/garage'); check($buttons[0]['enabled']===$enabled);
+    }
+});

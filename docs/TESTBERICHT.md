@@ -2,10 +2,17 @@
 
 ## Ausgeführt
 
-- **183 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- **184 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
 - **18 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
+- Konfigurationsformular vollständig mit deaktivierter und aktivierter Webansicht
+  geprüft: nur die bekannten unterstützten Formulartypen, einschließlich der
+  verschachtelten Einstellungen und Aktionen. Der neue Webansicht-Eintrag ist ein
+  `Button` mit `link` zum gespeicherten Pfad. Die Regression reproduziert vor der
+  Korrektur den nicht unterstützten Typ `OpenURL`; nach der Korrektur besteht sie.
+  Die tatsächliche Darstellung in einer laufenden Symcon-Konsole bleibt vor Ort
+  zu prüfen.
 - Direkte PV-Netzregelung geprüft: vorzeichenbehaftete Netzleistung plus echte
   Wallbox-Ladeleistung. Wiederholte Zyklen mit 10 kW PV-Angebot bleiben bei sinkender
   Einspeisung und anschließend 0 W stabil. Netzbezug reduziert die Leistung; erneute
