@@ -56,7 +56,7 @@ final class WebView
     /** Addresses, bank data, configuration and embedded PDF bytes are not page telemetry. */
     public static function telemetry(array $source, string $base): array
     {
-        $data = self::take($source, ['manager', 'managerEnabled', 'mode', 'base', 'normalBudget', 'budget', 'pvActive', 'budgetSource',
+        $data = self::take($source, ['manager', 'managerEnabled', 'mode', 'base', 'normalBudget', 'budget', 'pvActive', 'pvNet', 'pvCharging', 'budgetSource',
             'assigned', 'overrun', 'measured', 'energy', 'status', 'errors', 'time', 'simulation', 'strict', 'batteryEnabled', 'batteryConfigured']);
         $data['battery'] = self::take($source['battery'] ?? [], ['confirmed', 'theoretical', 'soc', 'capacity', 'energy', 'commanded', 'measured', 'reason', 'external']);
         $data['boxes'] = [];

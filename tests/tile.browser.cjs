@@ -21,8 +21,8 @@ const data = {
 const template = fs.readFileSync(path.join(root, 'WallboxManager/tile.html'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'WallboxManager/tile.css'), 'utf8');
 const js = fs.readFileSync(path.join(root, 'WallboxManager/tile.js'), 'utf8');
-function html(parameters = '') {
-    const bridge = `window.queryParameters = new URLSearchParams(${JSON.stringify(parameters)});
+function html(parameters = '', standalone = false) {
+    const bridge = (standalone ? 'window.WBM_WEB={};' : '') + `window.queryParameters = new URLSearchParams(${JSON.stringify(parameters)});
         window.actions = []; window.requestAction = (ident, value) => window.actions.push({ident, value});`;
     return template.replace('/*__CSS__*/', () => css)
         .replace('/*__DATA__*/', () => JSON.stringify(data))
@@ -573,6 +573,21 @@ async function palette(page) {
         assert.equal(await perf.evaluate(() => actions.length), 1);
         await perf.close();
         console.log('OK  200 telemetry events coalesce into one parse/render, unchanged DOM stays stable, hover uses one layout read per burst, hidden views pause and cleanup stops work');
+        const webSpeed = await browser.newPage({viewport:{width:800,height:600}});
+        await webSpeed.clock.install({time:fixed}); await webSpeed.clock.pauseAt(fixed);
+        await webSpeed.setContent(html('',true)); await webSpeed.clock.runFor(20);
+        await webSpeed.evaluate(value=>window.handleMessage(value),{...data,measured:1000,energy:3.5});
+        await webSpeed.clock.runFor(979);
+        assert.equal(await webSpeed.locator('#measured').innerText(),'12 kW');
+        await webSpeed.clock.runFor(1);
+        assert.equal(await webSpeed.locator('#measured').innerText(),'1 kW');
+        assert.equal(await webSpeed.locator('#energy').innerText(),'3,50 kWh');
+        await webSpeed.evaluate(value=>window.handleMessage(value),{...data,measured:2000,energy:4.5});
+        await webSpeed.clock.runFor(1000);
+        assert.equal(await webSpeed.locator('#measured').innerText(),'2 kW');
+        assert.equal(await webSpeed.locator('#energy').innerText(),'4,50 kWh');
+        console.log('OK  Standalone web view displays the latest power and energy every 1000 ms; native tile keeps its 2500 ms interval');
+
 
     } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

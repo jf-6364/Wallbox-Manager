@@ -456,8 +456,9 @@ class WallboxManager extends IPSModule
         $budgetUnit = $pvActive ? $g['PVBudgetUnit'] : $g['BudgetUnit'];
         if ($modeError !== '') { $budget = null; $budgetError = $modeError; }
         else {
-            [$budget, , $budgetError] = $this->number($budgetVar, $pvActive ? $g['PVBudgetMaxAge'] : $g['BudgetMaxAge'], $now, false);
-            if ($budgetError) $budgetError = ($pvActive ? 'PV-Überschussbudget: ' : 'Leistungsbudget: ') . $budgetError;
+            [$budget, $budgetTime, $budgetError] = $this->number($budgetVar, $pvActive ? $g['PVBudgetMaxAge'] : $g['BudgetMaxAge'], $now, false);
+            if ($pvActive && $budgetTime > $now + 1) { $budget = null; $budgetError = 'Messzeitpunkt liegt in der Zukunft'; }
+            if ($budgetError) $budgetError = ($pvActive ? 'PV-Netzleistung: ' : 'Leistungsbudget: ') . $budgetError;
         }
         $in = ['manager' => $this->GetValue('ManagerEnabled'), 'mode' => $this->GetValue('DistributionMode'),
             'budget' => $budget === null ? null : Setpoint::watts($budget, $budgetUnit), 'pvActive' => $pvActive,
@@ -473,6 +474,7 @@ class WallboxManager extends IPSModule
                 if (!$heartbeat || $c['MaxAge'] > 0 && $now - $heartbeat['updated'] > $c['MaxAge']) $error = 'Geräte-Heartbeat fehlt / ist veraltet';
                 else $fresh = max($fresh, (float)$heartbeat['updated']);
             }
+            $powerValid = $power !== null && $error === '' && $fresh > 0 && $fresh <= $now + 1;
             if ($this->boolean($c['ErrorVar'], false)) $error = 'Gerätefehler gemeldet';
             if ($this->GetValue('W' . $id . 'Priority') < 1 || $this->GetValue('W' . $id . 'Priority') > 999) $error = 'Laufzeitpriorität muss 1 bis 999 sein';
             $phaseTime = 0.0;
@@ -484,7 +486,8 @@ class WallboxManager extends IPSModule
             }
             $in['boxes'][$id] = ['manual' => $this->GetValue('W' . $id . 'Manual'), 'priority' => $this->GetValue('W' . $id . 'Priority'),
                 'external' => $this->boolean($c['ExternalVar']), 'demand' => $this->boolean($c['DemandVar']), 'phases' => $phases, 'phaseUpdated' => $phaseTime,
-                'power' => $power === null ? null : Setpoint::watts($power, $c['PowerUnit']), 'powerUpdated' => $updated, 'powerFresh' => $fresh, 'error' => $c['Enabled'] ? $error : ''];
+                'power' => $power === null ? null : Setpoint::watts($power, $c['PowerUnit']), 'powerUpdated' => $updated, 'powerFresh' => $fresh,
+                'powerValid' => $powerValid, 'error' => $c['Enabled'] ? $error : ''];
         }
         $b = $cfg['battery'];
         $bat = ['manual' => $this->GetValue('BatteryEnabled'), 'external' => $this->boolean($b['ExternalVar']), 'soc' => null, 'power' => null, 'error' => ''];

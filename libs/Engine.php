@@ -13,6 +13,26 @@ final class Engine
         $errors = $in['errors'] ?? [];
         $manager = ($in['manager'] ?? false) && !$errors;
         $base = $in['budget'] ?? null;
+        $pvNet = $pvActive ? $base : null;
+        $pvCharging = null;
+        if ($pvActive && $base !== null && is_finite($base)) {
+            $pvCharging = 0.0;
+            foreach ($cfg['boxes'] as $id => $c) {
+                if (!$c['Enabled']) continue;
+                $measurement = $in['boxes'][$id] ?? [];
+                $power = $measurement['power'] ?? null;
+                if (($measurement['powerValid'] ?? true) === false || $power === null || !is_finite($power) || $power < 0) {
+                    $errors[] = $c['Name'] . ': gültige Ladeleistungsmessung für PV-Regelung erforderlich';
+                    $base = null;
+                    $pvCharging = null;
+                    break;
+                }
+                $pvCharging += $power;
+            }
+            // The grid measurement already includes the wallbox loads. Reconstruct
+            // available PV power from actual load, never from requested setpoints.
+            if ($base !== null) $base += $pvCharging;
+        }
         if ($base === null || !is_finite($base)) {
             $errors[] = ($pvActive ? 'PV-Budget' : 'Grundbudget') . ' ungültig: alle Wallboxen werden gestoppt';
             $manager = false;
@@ -142,7 +162,8 @@ final class Engine
         }
         unset($row);
         return ['manager' => $manager, 'mode' => $mode, 'base' => $base, 'normalBudget' => $normalBudget, 'budget' => $budget,
-            'pvActive' => $pvActive, 'budgetSource' => $in['budgetSource'] ?? ($pvActive ? 'pv' : 'normal'), 'budgetVariable' => $in['budgetVariable'] ?? 0,
+            'pvActive' => $pvActive, 'pvNet' => $pvNet, 'pvCharging' => $pvCharging,
+            'budgetSource' => $in['budgetSource'] ?? ($pvActive ? 'pv' : 'normal'), 'budgetVariable' => $in['budgetVariable'] ?? 0,
             'assigned' => $sum, 'overrun' => max(0.0, $sum - $normalBudget), 'battery' => $bat + ['requested' => $batteryRequest],
             'boxes' => $rows, 'errors' => array_values(array_unique($errors)), 'time' => $now];
     }

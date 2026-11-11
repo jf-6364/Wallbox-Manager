@@ -180,7 +180,7 @@
             if (results.some(function (result) { return result.status === 'rejected'; })) text('web-archive-status','Detaildaten können gerade nicht aktualisiert werden.');
         }
         loadingDetails = false;
-        if (!disposed && dashboardVisible()) detailTimer = setTimeout(details,15000);
+        if (!disposed && dashboardVisible()) detailTimer = setTimeout(details,1000);
     }
     el('invoice-more').addEventListener('click',function () { loadInvoices(true).catch(function (e) { text('web-archive-status',e.message); }); });
     el('invoice-box').addEventListener('change',function () { invoices=[]; loadInvoices(false,true).catch(function (e) { text('web-archive-status',e.message); }); });
@@ -202,7 +202,7 @@
             }
         } catch (e) { if (!disposed) { text('web-connection',e.message); el('web-connection').dataset.error='true'; } }
         loadingStatus = false;
-        if (!disposed && !document.hidden) statusTimer = setTimeout(poll,2500);
+        if (!disposed && !document.hidden) statusTimer = setTimeout(poll,1000);
     }
     function visibility() { clearTimeout(statusTimer); clearTimeout(detailTimer); if (!document.hidden && !disposed) { poll(); if (dashboardVisible()) details(); } }
     document.addEventListener('visibilitychange',visibility);

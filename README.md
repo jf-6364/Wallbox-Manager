@@ -37,43 +37,62 @@ abwechselndes Laden bei knappem Budget.
 die höchste. Boxen mit gleichem Rang teilen sich die Leistung gleichmäßig.
 Laufzeitbedingungen können den Wechsel beeinflussen.
 
-Das Budget ist die verfügbare Gesamtleistung ohne zusätzliche Speicherunterstützung.
+Das normale Grundbudget ist die verfügbare Gesamtleistung ohne zusätzliche Speicherunterstützung.
 Ein Restüberschuss, der laufende Wallboxen bereits abzieht, muss entsprechend
 aufbereitet werden. Negative Budgetwerte werden als 0 W behandelt; ungültige
 Messwerte führen zum Stopp.
 
 ## PV-Überschuss
 
-Der eigene Bereich **PV-Überschuss** enthält eine optionale Boolvariable
-**„PV-Überschuss aktiv“** und eine zweite numerische Variable
-**„Verfügbares PV-Leistungsbudget“**. Die Einheit ist separat als W oder kW wählbar.
+Der Bereich **PV-Überschuss** verwendet eine optionale Boolvariable
+**„PV-Überschuss aktiv“** und die direkte, vorzeichenbehaftete
+**„Netzleistung (+ Einspeisung / − Bezug)“** in W oder kW.
 
-| Boolvariable | Budget für die Regelung |
+| Boolvariable | Regelung |
 |---|---|
-| Nicht verknüpft oder false | Bisheriges Leistungsbudget unter Allgemein |
-| true | Ausschließlich das PV-Leistungsbudget, beispielsweise 7.000 W |
+| Nicht verknüpft oder false | Normales Leistungsbudget unter Allgemein |
+| true | Direkte Netzregelung mit der verknüpften Netzleistung |
 
-Das PV-Budget **ersetzt** das normale Budget. Es wird weder zum normalen Budget
-addiert noch durch Speicherunterstützung oder erlaubte Überschreitungen erhöht.
-Ein konfigurierter harter Gesamtgrenzwert und die Gerätegrenzen gelten weiterhin.
-Bei 0 W oder einem negativen PV-Budget werden die individuellen Stoppwerte gesendet.
-Reicht das Budget nicht für die Mindestleistung aller Wallboxen, lädt eine passende
-Teilmenge; 7.000 W reichen etwa nicht für zwei dreiphasige Wallboxen mit je 6 A.
+Die Netzvariable zeigt die tatsächliche Leistung am Netzanschluss:
+positive Werte bedeuten Einspeisung, negative Werte Netzbezug. Sie wird direkt
+verknüpft. Das verfügbare PV-Ladebudget berechnet der Manager selbst:
 
-Die PV-Variable beschreibt wie das normale Budget die insgesamt für Wallboxen
-verfügbare Leistung. Ein verbleibender Überschuss, der deren Ladeleistung bereits
-abzieht, muss vor der Verknüpfung entsprechend aufbereitet werden.
+**PV-Ladebudget = gemessene Ladeleistung aller aktiven Wallbox-Plätze + Netzleistung**
 
-Optional lässt sich das Alter des PV-Budgetwerts überwachen. Ist PV aktiv und der
-Wert fehlt, ist veraltet oder ungültig, wird gestoppt; es gibt keinen Rückfall auf
-das normale Budget. Ein ungültiges verknüpftes Boolsignal ist ebenfalls ein Fehler.
-Bei false werden fehlerhafte Werte der inaktiven PV-Budgetquelle nicht verwendet.
-Die Kachel zeigt bei aktiver PV-Regelung **„PV-Budget“**; die Diagnose nennt die
-aktive Quelle und deren Variablen-ID.
+| Netzleistung | Tatsächlich ladende Wallboxen | Verfügbares PV-Ladebudget |
+|---|---|---|
+| +10 kW Einspeisung | 0 kW | 10 kW |
+| 0 kW | 10 kW | 10 kW: Ladung bleibt aktiv |
+| −2 kW Netzbezug | 10 kW | 8 kW: Ladeleistung wird reduziert |
+| +2 kW Einspeisung | 8 kW | 10 kW: Ladeleistung kann steigen |
+
+So führt das Absinken der Einspeisung durch die eigene Ladung nicht zum ständigen
+Ausschalten. Die Berechnung verwendet ausschließlich die gemessene Leistung;
+angeforderte Sollwerte und vorherige Budgets werden nicht als Verbrauch addiert.
+Ein negativer Gesamtbetrag wird auf 0 W begrenzt. Reicht die verfügbare Leistung
+nicht für alle Mindestleistungen, lädt eine passende Teilmenge der Wallboxen.
+Phasen, Raster, Zeitbedingungen und Rückmeldungen gelten weiterhin.
+
+Im PV-Modus wird das normale Grundbudget nicht hinzugerechnet. Der Manager fordert
+keine zusätzliche Speicherentladung an und nutzt keine erlaubte Überschreitung.
+Ein harter Gesamtgrenzwert und die Gerätegrenzen bleiben wirksam. Manuell gestartete
+Ladegänge und ihre Abrechnung bleiben auch bei Ladepausen oder Moduswechseln aktiv.
+
+Die Netzleistungsüberwachung kann veraltete Werte erkennen. Fehlende, ungültige oder
+zukünftige Netz-/Ladeleistungsdaten stoppen die PV-Regelung ohne Rückfall auf das
+normale Budget. Bei false wird die inaktive Netzquelle nicht ausgewertet.
+Die Diagnose enthält `pvNet` (Netzleistung), `pvCharging` (gemessene Wallboxsumme)
+und `base` (berechnetes und begrenztes Ladebudget), jeweils in Watt.
+
+**Ab Version 1.9 erwartet die PV-Verknüpfung die direkte Netzleistung.** Die
+Variablen-ID und die Einstellung W/kW bleiben beim Update erhalten; eine bisher
+verknüpfte, bereits berechnete absolute PV-Budgetvariable durch die Netzvariable
+ersetzen. Ein Wert, der bei Netzbezug auf 0 begrenzt wird, liefert nicht die für
+eine zuverlässige Reduzierung erforderliche Bezugsleistung.
 
 Für die **PV-Abrechnung** kann dieselbe Boolvariable zusätzlich unter
-**Allgemein → Abrechnung → PV-Überschussladen** verknüpft werden. Budgetumschaltung
-und Tarifzuordnung bleiben getrennt einstellbar.
+**Allgemein → Abrechnung → PV-Überschussladen** verknüpft werden. Regelung und
+Tarifzuordnung bleiben getrennt einstellbar.
 
 ## Verknüpfte Variablen
 
@@ -274,7 +293,7 @@ und den Anteilen der einzelnen Wallboxen. Beim Bewegen des Mauszeigers über
 Diagramm, Legende oder Verbrauchsliste werden Wallbox, kWh und Prozentanteil
 hervorgehoben. Auch Berührung und Tastaturbedienung sind möglich.
 
-Die Anzeige übernimmt alle **2,5 Sekunden** den neuesten eingegangenen Stand,
+Die Symcon-Kachel übernimmt alle **2,5 Sekunden** den neuesten eingegangenen Stand,
 auch im geöffneten Dashboard. Unveränderte Werte werden nicht neu gezeichnet;
 Mausbewegungen im Diagramm werden pro Bildaufbau gebündelt. In ausgeblendeten
 Ansichten pausiert die Anzeige und holt beim Öffnen den neuesten Stand nach.
@@ -327,8 +346,9 @@ Browser fragt nach den eingestellten Zugangsdaten. Hell-/Dunkelmodus sind wählb
 die Seite passt sich an die Fenstergröße an. Die Registrierung in Symcons
 WebHook Control erfolgt automatisch.
 
-Livewerte aktualisieren sich alle 2,5 Sekunden; Verlauf und Archiv im geöffneten
-Dashboard alle 15 Sekunden. Der Leistungsverlauf beginnt mit Aktivierung und
+Die Webansicht aktualisiert Livewerte, Anzeigen und das geöffnete Dashboard jede
+Sekunde. Der eigene Button **Webansicht** steht bei **Jetzt regeln**, **Diagnose
+anzeigen** und der Fehlerquittierung und öffnet die Seite auf demselben Symcon-Webserver. Der Leistungsverlauf beginnt mit Aktivierung und
 bewahrt 48 Stunden in Minutenabständen. Vorhandene PDFs bleiben erhalten und
 herunterladbar. [Aufruf, Dashboard und PDF-Archiv](docs/WEBANSICHT.md).
 

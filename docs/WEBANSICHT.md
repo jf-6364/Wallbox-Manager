@@ -17,6 +17,11 @@ Benutzername und ein Passwort mit mindestens acht Zeichen eintragen und
 
     http://DEINE-SYMCON-IP:3777/hook/wallboxen
 
+Nach dem Übernehmen öffnet der Button **Webansicht** direkt bei **Jetzt regeln**,
+**Diagnose anzeigen** und **Gerätefehler nach Prüfung quittieren** die Seite. Der
+Button verwendet den konfigurierten Pfad auf demselben Webserver wie die Konsole;
+bei Zugriff über einen anderen Host kann die vollständige Adresse oben verwendet werden.
+
 Beim ersten Aufruf fragt der Browser nach den eingetragenen Zugangsdaten. Diese
 gelten für die Seite, ihre Daten und die PDF-Downloads. Angemeldete Benutzer können
 die Verteilung ändern und Ladevorgänge starten oder stoppen. Die globale
@@ -87,11 +92,15 @@ erhalten, auch über Modulneustarts hinweg. Fehlende oder ungültige Messungen b
 Lücken. Ältere Leistungswerte werden nicht nachträglich erfunden. Die Verlaufskurven
 zeigen Leistung in kW, keine Tages- oder Monatsenergie.
 
-Livewerte werden alle **2,5 Sekunden** abgefragt. Verlauf und Archiv werden nur im
-geöffneten Dashboard alle **15 Sekunden** aktualisiert. Verdeckte Browserseiten
+Die Webansicht fragt Livewerte jede **Sekunde** ab und übernimmt sie ebenfalls im
+Sekundentakt. Verlauf und Archiv werden im geöffneten Dashboard jede **Sekunde**
+aktualisiert. Unveränderte Werte werden nicht neu gezeichnet; laufende Abfragen
+werden nicht überlappend gestartet. Verdeckte Browserseiten
 pausieren die Abfragen. Seiten- und Datenabrufe lesen gespeicherte Regeldaten und
 lösen selbst keinen Regeldurchlauf aus; Bedienaktionen gelten unmittelbar über
-die vorhandene Modulsteuerung.
+die vorhandene Modulsteuerung. Das eingestellte Regelintervall und die
+Aktualisierungsrate der verknüpften Messvariablen bleiben maßgeblich dafür, wann
+neue Messwerte vorliegen. Die native Symcon-Kachel behält ihre 2,5-Sekunden-Anzeige.
 
 Oben rechts kann zwischen **System**, **Hell** und **Dunkel** gewechselt werden.
 System folgt der Browser-/Betriebssystemeinstellung; eine eigenständige Browserseite

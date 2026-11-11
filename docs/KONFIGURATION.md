@@ -11,17 +11,17 @@ Die Anzahl der konfigurierbaren Wallboxen wird unter Allgemein mit WallboxCount 
 
 Zeitbedingungen stehen zentral unter Allgemein → Zeitbedingungen, Abrechnung und sämtliche Rechnungsdaten unter Allgemein → Abrechnung. Sie gelten für alle Wallboxen, einschließlich gemeinsamem PV-Signal, Preisen und Empfänger. Ladegänge und PDFs bleiben getrennt je Wallbox. Beim ersten Update werden die bisherigen Werte von Wallbox 1 übernommen. SharedDefaults hält diese Registrierungsdefaults dauerhaft stabil; spätere gemeinsame Änderungen bleiben maßgeblich. Die früheren Wn-Zeit-, Abrechnungs- und Empfängereigenschaften bleiben ausschließlich zur Migration registriert und erscheinen nicht mehr im Formular. Alte Configuration-Schnappschüsse behalten ihre ursprünglichen Tarifwerte für den Übernahmezeitpunkt.
 
-Der eigene Bereich PV-Überschuss verwendet PVModeVar (Boolean) und PVBudgetVar (Integer/Float): true wählt ausschließlich das PV-Budget, false oder PVModeVar = 0 das bisherige BudgetVar. PVBudgetUnit und PVBudgetMaxAge gelten nur für die PV-Quelle. Bei aktivem PV-Modus erhöhen weder Speicherunterstützung noch zeitweise Überschreitungen das Budget. Fehlende/ungültige aktive Daten führen zum Stopp ohne Rückfall auf die andere Quelle. Die Telemetrie enthält pvActive, budgetSource (normal/pv/invalid) und budgetVariable. Für die Tarifzuordnung kann dieselbe Boolvariable separat als BillingPVVar verknüpft werden.
+Der Bereich PV-Überschuss verwendet PVModeVar (Boolean) und die direkte Netzleistung PVBudgetVar (Integer/Float): positive Werte bedeuten Einspeisung, negative Netzbezug. true verwendet Netzleistung plus gemessene Ladeleistung aller aktiven Plätze als PV-Ladebudget; false oder PVModeVar = 0 verwendet BudgetVar ohne Addition. PVBudgetUnit und PVBudgetMaxAge gelten für die Netzquelle. Die bisherigen Eigenschaftsnamen bleiben für gespeicherte Verknüpfungen erhalten; seit Version 1.9 wird keine absolute PV-Budgetvariable mehr erwartet. Sollwerte werden nicht als Verbrauch gutgeschrieben. Speicherunterstützung und zeitweise Überschreitungen sind im PV-Modus gesperrt; der harte Grenzwert bleibt wirksam. Fehlende/ungültige aktive Netz- oder Ladeleistungsdaten stoppen ohne Rückfall auf die andere Quelle. Die Telemetrie enthält pvActive, pvNet, pvCharging, budgetSource (normal/pv/invalid) und budgetVariable. Für die Tarifzuordnung kann dieselbe Boolvariable separat als BillingPVVar verknüpft werden.
 
-Die optionale Webansicht wird über WebEnabled, WebPath, WebUser und WebPassword konfiguriert. Der Bereich steht ganz unten im Formular unmittelbar vor den Diagnoseaktionen. Sie verwendet Symcons WebHook Control und benötigt eine eigene Anmeldung. Details: [Webansicht](WEBANSICHT.md).
+Die optionale Webansicht wird über WebEnabled, WebPath, WebUser und WebPassword konfiguriert. Der Bereich steht ganz unten im Formular unmittelbar vor den Diagnoseaktionen. Bei den Aktionen öffnet der zusätzliche Webansicht-Button den konfigurierten Pfad auf demselben Webserver. Sie verwendet Symcons WebHook Control und benötigt eine eigene Anmeldung. Details: [Webansicht](WEBANSICHT.md).
 
 ## Variablenverknüpfungen
 
 | Eigenschaft | Zweck | Datentyp | Einheit | Pflicht | Zugriff |
 |---|---|---|---|---|---|
 | `BudgetVar` | Absolutes Grundbudget ohne Speicher | Integer/Float | W/kW (BudgetUnit) | bei aktivem Manager/Platz | Lesen, nie Gerätebefehl |
-| `PVModeVar` | PV-Überschuss aktiv (true = PV-Budget; optional) | Boolean | – | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
-| `PVBudgetVar` | Verfügbares PV-Leistungsbudget | Integer/Float | W/kW (PVBudgetUnit) | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
+| `PVModeVar` | PV-Überschuss aktiv (optional) | Boolean | – | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
+| `PVBudgetVar` | Netzleistung (+ Einspeisung / − Bezug) | Integer/Float | W/kW (PVBudgetUnit); + Einspeisung / − Bezug | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
 | `BillingPVVar` | PV-Überschussladen (true = PV, false = Normal; optional) | Boolean | – | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
 | `WnExternalVar` | Externe Freigabebedingung (optional) | Boolean | – | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
 | `WnDemandVar` | Fahrzeug verbunden / Ladebedarf (optional) | Boolean | – | optional, 0 = unverbunden | Lesen, nie Gerätebefehl |
@@ -51,10 +51,10 @@ ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilli
 | `WallboxCount` | `4` | Anzahl Wallboxen | Allgemein |
 | `BudgetVar` | `0` | Absolutes Grundbudget ohne Speicher | Allgemein |
 | `BudgetUnit` | `W` | Einheit Grundbudget | Allgemein |
-| `PVModeVar` | `0` | PV-Überschuss aktiv (true = PV-Budget; optional) | PV-Überschuss |
-| `PVBudgetVar` | `0` | Verfügbares PV-Leistungsbudget | PV-Überschuss |
-| `PVBudgetUnit` | `W` | Einheit PV-Leistungsbudget | PV-Überschuss |
-| `PVBudgetMaxAge` | `0` | PV-Budgetüberwachung (s; 0 = aus) | PV-Überschuss |
+| `PVModeVar` | `0` | PV-Überschuss aktiv (optional) | PV-Überschuss |
+| `PVBudgetVar` | `0` | Netzleistung (+ Einspeisung / − Bezug) | PV-Überschuss |
+| `PVBudgetUnit` | `W` | Einheit Netzleistung | PV-Überschuss |
+| `PVBudgetMaxAge` | `0` | Netzleistungsüberwachung (s; 0 = aus) | PV-Überschuss |
 | `Interval` | `5` | Regelintervall (s) | Allgemein |
 | `Hysteresis` | `200` | Globale Hysterese | Allgemein |
 | `HysteresisUnit` | `W` | Einheit Hysterese | Allgemein |
@@ -209,7 +209,7 @@ Alle vier Plätze werden dauerhaft angelegt. Unverknüpfte / ungültige numerisc
 | `TotalPower` | Float | W | nein | Summe gültiger tatsächlicher Ladeleistungen aktiver Plätze |
 | `AssignedPower` | Float | W | nein | Aktuell erfolgreich beauftragte nominelle Ladeleistung |
 | `TotalEnergy` | Float | kWh | nein | Alle Fahrzeugenergien einschließlich archivierter Gerätegenerationen |
-| `BaseBudget` | Float | W | nein | Aktiv ausgewähltes Normal-/PV-Budget, auf 0 / harten Grenzwert begrenzt |
+| `BaseBudget` | Float | W | nein | Normales Grundbudget oder berechnetes PV-Budget (Netzleistung + gemessene Wallboxsumme), auf 0 / harten Grenzwert begrenzt |
 | `OverrunPower` | Float | W | nein | Zuweisung über Grundbudget plus bestätigtem Speicherbetrag |
 | `BatteryAvailable` | Float | W | nein | Theoretisch nutzbare Unterstützung |
 | `BatteryConfirmed` | Float | W | nein | Bestätigte / konservativ freigegebene Unterstützung |

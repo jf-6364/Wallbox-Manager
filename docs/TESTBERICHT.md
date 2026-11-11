@@ -1,11 +1,25 @@
-# Prüfbericht – 09.11.2026
+# Prüfbericht – 11.11.2026
 
 ## Ausgeführt
 
-- **175 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- **183 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
 - **18 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
+- Direkte PV-Netzregelung geprüft: vorzeichenbehaftete Netzleistung plus echte
+  Wallbox-Ladeleistung. Wiederholte Zyklen mit 10 kW PV-Angebot bleiben bei sinkender
+  Einspeisung und anschließend 0 W stabil. Netzbezug reduziert die Leistung; erneute
+  Einspeisung erhöht sie. Sollwerte und vorherige Budgets werden nicht aufaddiert;
+  deaktivierte Plätze bleiben außen vor. Ungültige Messungen, alte oder zukünftige
+  Netz-/Wallboxdaten und veraltete Heartbeats sperren die PV-Regelung ohne Fallback.
+  W/kW, harter Grenzwert, Mindestleistungen und Speichersperre sind abgedeckt.
+  Der native Adapter wurde mit zwei dreiphasigen Mennekes-Wallboxen, 0,5-A-Raster
+  und 1-A-Stopp bei 10 → 6 → 10 kW geprüft: 9,66 → 5,865 → 9,66 kW werden zulässig
+  angefordert. Gestartete Ladegänge bleiben über die Reduzierung hinweg aktiv.
+- Die eigenständige Webansicht zeigt Leistungs- und Energiewerte im kontrollierten
+  Chromium-Uhrtest nach 1.000 ms an; die native Symcon-Kachel behält 2.500 ms.
+  Status, Verlauf und Archiv werden im Browser im Sekundentakt abgefragt, mit
+  vorhandener Begrenzung auf jeweils eine laufende Anfrage und Pausen bei Unsichtbarkeit.
 - Bedienaktionen mit CGI-Header `CONTENT_TYPE`, Symcon-Header `HTTP_CONTENT_TYPE`,
   Parametern wie charset, leerem CGI-Header und vollständig fehlender Typangabe
   geprüft. Start/Stopp und Verteilungswechsel funktionieren über denselben JSON-Weg.

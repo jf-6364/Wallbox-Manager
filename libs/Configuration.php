@@ -140,6 +140,7 @@ final class Form
         $groups['Abrechnung'][] = ['type' => 'Label', 'caption' => 'Ladevorgänge werden je Wallbox mit Start und Stopp in der Visualisierung gesteuert. Ladepausen und Moduswechsel schließen die Abrechnung nicht ab.'];
         $groups['Abrechnung'][] = ['type' => 'ExpansionPanel', 'caption' => 'Rechnung', 'items' => $invoicePanels];
         $groups['Webansicht'][] = ['type' => 'Label', 'caption' => $webInfo ?: 'Optionaler Browserzugriff unter http://<Symcon-IP>:3777/hook/wallboxen. Mit Benutzername und Passwort anmelden. Der Leistungsverlauf beginnt mit der Aktivierung.'];
+        $groups['PV-Überschuss'][] = ['type' => 'Label', 'caption' => 'Direkte Netzleistung verknüpfen: positiv = Einspeisung, negativ = Netzbezug. Der Manager addiert die gemessene Wallbox-Ladeleistung und regelt damit die verfügbare PV-Leistung. Kein absolutes PV-Budget verknüpfen.'];
         $general = $groups['Allgemein'];
         foreach (['Zeitbedingungen', 'Abrechnung'] as $caption) $general[] = ['type' => 'ExpansionPanel', 'caption' => $caption, 'items' => $groups[$caption]];
         $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Allgemein', 'items' => $general];
@@ -166,6 +167,10 @@ final class Form
         $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Batteriespeicher', 'items' => $fields];
         $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Aktuelle Diagnose', 'items' => [['type' => 'Label', 'caption' => $diagnostic ?: 'Noch kein Regeldurchlauf']]];
         $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Webansicht', 'items' => $groups['Webansicht']];
+        array_splice($form['actions'], 3, 0, [[
+            'type' => 'OpenURL', 'caption' => 'Webansicht', 'url' => $flat['WebPath'],
+            'enabled' => $flat['WebEnabled'] && !WebView::errors($flat)
+        ]]);
         return $form;
     }
 

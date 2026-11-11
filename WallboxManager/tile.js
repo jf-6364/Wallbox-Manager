@@ -2,7 +2,7 @@
     'use strict';
     if (typeof window.WBM_TILE_CLEANUP === 'function') window.WBM_TILE_CLEANUP();
     // Keep only the newest SDK snapshot; device control runs independently in PHP.
-    var DISPLAY_INTERVAL = 2500;
+    var DISPLAY_INTERVAL = window.WBM_WEB ? 1000 : 2500;
     var displayTimer = null;
     var pendingMessage = null;
     var pendingAt = 0;
