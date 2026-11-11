@@ -1,7 +1,5 @@
 .web-header { height: 64px; min-height: 64px; flex-shrink: 0; padding: 8px clamp(12px,2vw,32px); display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--card-color,var(--wb-default-surface)); color: var(--content-color,var(--wb-default-text)); }
-.web-brand { display: flex; align-items: center; gap: 16px; font-size: clamp(18px,2.5vw,32px); font-weight: 700; letter-spacing: -.03em; min-width: 0; }
-.web-mark { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 15px; color: #fff; background: var(--accent-color,var(--wb-default-accent)); }
-.web-mark svg { width: 28px; height: 28px; fill: currentColor; }
+.web-brand { display: flex; align-items: center; font-size: clamp(18px,2.5vw,32px); font-weight: 700; letter-spacing: -.03em; min-width: 0; }
 .web-tools { display: flex; align-items: center; gap: 10px; font-size: 13px; }
 .web-tools select, #wbm .web-section select { font: inherit; color: inherit; background: transparent; border: 1px solid color-mix(in srgb,currentColor 20%,transparent); border-radius: 8px; padding: 7px 10px; max-width: 100%; }
 .web-tools option, #wbm .web-section option { background: var(--card-color,var(--wb-default-surface)); color: var(--content-color,var(--wb-default-text)); }
@@ -38,4 +36,4 @@
 #wbm .web-table a:hover { text-decoration: underline; }
 #wbm #web-archive-status { font-size: .8em; }
 @media (max-width: 800px) { #wbm .web-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); } .web-tools label { display: none; } }
-@media (max-width: 480px) { .web-header { height: auto; min-height: 64px; flex-wrap: wrap; padding-bottom: 10px; } .web-brand { font-size: 18px; gap: 10px; } .web-tools { margin-left: auto; font-size: 12px; } .web-mark { width: 36px; height: 36px; } #wbm .web-kpis { gap: 8px; } #wbm .web-kpis > div { padding: 10px; } #wbm .history-chart-wrap { height: 240px; } }
+@media (max-width: 480px) { .web-header { height: auto; min-height: 64px; flex-wrap: wrap; padding-bottom: 10px; } .web-brand { font-size: 18px; } .web-tools { margin-left: auto; font-size: 12px; } #wbm .web-kpis { gap: 8px; } #wbm .web-kpis > div { padding: 10px; } #wbm .history-chart-wrap { height: 240px; } }
