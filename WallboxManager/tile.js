@@ -215,7 +215,7 @@
         var mode = billing.mode === 'pv' ? 'PV-Überschussladen' : (billing.mode === 'unassigned' ? 'Ungeklärt' : 'Normalladen');
         put(fields.billingMode, mode);
         datum(fields.billingMode, 'mode', billing.mode);
-        put(fields.billingRates, 'PV ' + priceFormat.format(billing.pvPrice * 100) + ' ct/kWh · Normal ' + priceFormat.format(billing.normalPrice * 100) + ' ct/kWh');
+        put(fields.billingRates, '2. Tarif ' + priceFormat.format(billing.pvPrice * 100) + ' ct/kWh · Normal ' + priceFormat.format(billing.normalPrice * 100) + ' ct/kWh');
         put(fields.billingCostSummary, session ? (billing.active ? 'Ladevorgang: ' : 'Letzter Ladevorgang: ') + money(session.totalCost) + ' · ' + energy(session.totalEnergy) : 'Noch kein Ladegang erfasst');
         assign(fields.billingUnknown, 'hidden', !(session && session.unassignedEnergy > 0));
         put(fields.billingUnknown, 'Tarif ungeklärt: ' + energy(session && session.unassignedEnergy) + ' – Abrechnung prüfen');
@@ -348,7 +348,7 @@
     }
     function nonnegative(value) { return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0; }
     function dashboardData() {
-        var colors = ['#e4ab00', '#b58b00', '#826800', '#ffbf00'];
+        var colors = ['#e4ab00', '#b58b00', '#826800', '#ffbf00', '#35a79a', '#5080ce', '#b56cba', '#dc7755'];
         var rows = Object.values(latest.boxes).map(function (box) {
             var archived = nonnegative(box.archivedEnergy);
             return {key: String(box.id), name: box.name, value: nonnegative(box.energy) + archived,

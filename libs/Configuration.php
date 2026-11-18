@@ -110,8 +110,8 @@ final class Validation
                 $writes[$id] = $name;
                 if ($v['type'] === 1) {
                     $keys = [];
-                    if (preg_match('/^(W[1-4])SetpointVar$/', $name, $m)) $keys = [$m[1] . 'Step', $m[1] . 'Stop'];
-                    if (preg_match('/^(W[1-4])PhaseCommandVar$/', $name, $m)) $keys = [$m[1] . 'Phase1Command', $m[1] . 'Phase3Command'];
+                    if (preg_match('/^(W[1-8])SetpointVar$/', $name, $m)) $keys = [$m[1] . 'Step', $m[1] . 'Stop'];
+                    if (preg_match('/^(W[1-8])PhaseCommandVar$/', $name, $m)) $keys = [$m[1] . 'Phase1Command', $m[1] . 'Phase3Command'];
                     if ($name === 'BSetpointVar') $keys = ['BStop'];
                     foreach ($keys as $key) if (abs($flat[$key] - round($flat[$key])) > 1e-7) $errors[] = $key . ': Integerziel erfordert ganzzahlige Werte';
                 }
@@ -136,10 +136,9 @@ final class Form
         }
         $invoicePanels = [];
         foreach ($invoice as $caption => $items) $invoicePanels[] = ['type' => 'ExpansionPanel', 'caption' => $caption, 'items' => $items];
-        $invoicePanels[] = ['type' => 'Label', 'caption' => 'PV- und Normalpreise sind Endpreise. Bei Umsatzsteuerausweis wird die enthaltene Steuer herausgerechnet. Rechnungsdaten werden beim Abschluss gespeichert; bestehende PDFs bleiben unverändert.'];
+        $invoicePanels[] = ['type' => 'Label', 'caption' => 'Beide Tarife sind Endpreise. Bei Umsatzsteuerausweis wird die enthaltene Steuer herausgerechnet. Rechnungsdaten werden beim Abschluss gespeichert; bestehende PDFs bleiben unverändert.'];
         $groups['Abrechnung'][] = ['type' => 'Label', 'caption' => 'Ladevorgänge werden je Wallbox mit Start und Stopp in der Visualisierung gesteuert. Ladepausen und Moduswechsel schließen die Abrechnung nicht ab.'];
         $groups['Abrechnung'][] = ['type' => 'ExpansionPanel', 'caption' => 'Rechnung', 'items' => $invoicePanels];
-        $groups['Webansicht'][] = ['type' => 'Label', 'caption' => $webInfo ?: 'Optionaler Browserzugriff unter http://<Symcon-IP>:3777/hook/wallboxen. Mit Benutzername und Passwort anmelden. Der Leistungsverlauf beginnt mit der Aktivierung.'];
         $groups['PV-Überschuss'][] = ['type' => 'Label', 'caption' => 'Direkte Netzleistung verknüpfen: positiv = Einspeisung, negativ = Netzbezug. Der Manager addiert die gemessene Wallbox-Ladeleistung und regelt damit die verfügbare PV-Leistung. Kein absolutes PV-Budget verknüpfen.'];
         $general = $groups['Allgemein'];
         foreach (['Zeitbedingungen', 'Abrechnung'] as $caption) $general[] = ['type' => 'ExpansionPanel', 'caption' => $caption, 'items' => $groups[$caption]];
@@ -148,7 +147,7 @@ final class Form
             if (in_array($caption, ['Allgemein', 'Zeitbedingungen', 'Abrechnung', 'Webansicht'], true)) continue;
             $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => $caption, 'items' => $fields];
         }
-        for ($i = 1; $i <= 4; $i++) {
+        for ($i = 1; $i <= Schema::MAX_WALLBOXES; $i++) {
             $sections = [];
             foreach (Schema::visibleWallbox() as $key => $d) $sections[$d[2]][] = self::field('W' . $i . $key, $d, $flat);
             $fields = [];
@@ -166,18 +165,18 @@ final class Form
         $fields[] = ['type' => 'Label', 'caption' => 'Ohne Leistungsrückmeldung: nur der konfigurierte Anteil nach Anlaufwartezeit; reale Entladung bleibt ungeprüft.'];
         $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Batteriespeicher', 'items' => $fields];
         $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Aktuelle Diagnose', 'items' => [['type' => 'Label', 'caption' => $diagnostic ?: 'Noch kein Regeldurchlauf']]];
-        $form['elements'][] = ['type' => 'ExpansionPanel', 'caption' => 'Webansicht', 'items' => $groups['Webansicht']];
         array_splice($form['actions'], 3, 0, [[
             'type' => 'Button', 'caption' => 'Webansicht', 'link' => $flat['WebPath'],
-            'enabled' => $flat['WebEnabled'] && !WebView::errors($flat)
+            'enabled' => !WebView::errors($flat)
         ]]);
+        if (str_starts_with($webInfo, 'Webansicht:')) $form['actions'][] = ['type' => 'Label', 'caption' => $webInfo];
         return $form;
     }
 
     public static function decimalDigits(string $name, array $flat): int
     {
-        if (preg_match('/^W[1-4](MinA|MaxA)$/', $name)) return 1;
-        if (preg_match('/^(W[1-4])(Step|Stop)$/', $name, $match) && $flat[$match[1] . 'SetpointUnit'] === 'A') return 1;
+        if (preg_match('/^W[1-8](MinA|MaxA)$/', $name)) return 1;
+        if (preg_match('/^(W[1-8])(Step|Stop)$/', $name, $match) && $flat[$match[1] . 'SetpointUnit'] === 'A') return 1;
         return 2;
     }
 

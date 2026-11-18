@@ -2,21 +2,20 @@
 declare(strict_types=1);
 namespace WBM;
 
-/** Optional WebHook transport, isolated from device configuration and allocation. */
+/** Automatically active WebHook transport, isolated from device configuration and allocation. */
 trait WebAccess
 {
     private function webStatus(): string
     {
         $flat = $this->configuration();
-        if (!$flat['WebEnabled']) return 'Webansicht ist ausgeschaltet. Nach Aktivierung: http://<Symcon-IP>:3777' . $flat['WebPath'];
         $error = $this->jsonAttribute('WebHookState')['error'] ?? '';
-        return $error !== '' ? 'Webansicht: ' . $error : 'Webansicht bereit: http://<Symcon-IP>:3777' . $flat['WebPath'] . ' – Anmeldung mit den hier eingestellten Zugangsdaten.';
+        return $error !== '' ? 'Webansicht: ' . $error : 'Webansicht bereit: http://<Symcon-IP>:3777' . $flat['WebPath'] . ' – Anmeldung: admin / admin.';
     }
 
     private function syncWebHook(bool $remove = false): void
     {
         $flat = $this->configuration(); $old = $this->jsonAttribute('WebHookState');
-        $enabled = !$remove && $flat['WebEnabled'];
+        $enabled = !$remove;
         $errors = $enabled ? WebView::errors($flat) : [];
         if ($errors) { $this->WriteAttributeString('WebHookState', $this->encode(array_replace($old, ['error' => implode(' ', $errors)]))); return; }
         if (!IPS_SemaphoreEnter('WBM_WebHooks', 1000)) {
@@ -82,7 +81,6 @@ trait WebAccess
     protected function webResponse(array $server, string $body = ''): array
     {
         $flat = $this->configuration();
-        if (!$flat['WebEnabled']) return WebView::json(404, ['error' => 'Webansicht ausgeschaltet.']);
         if (WebView::errors($flat)) return WebView::json(503, ['error' => 'Webansicht ist noch nicht vollständig konfiguriert.']);
         $base = $flat['WebPath'];
         $path = parse_url($server['REQUEST_URI'] ?? '', PHP_URL_PATH);
@@ -110,7 +108,7 @@ trait WebAccess
                 if (($mediaType !== '' && $mediaType !== 'application/json') || strlen($body) > 4096) return WebView::json(400, ['error' => 'JSON-Bedienaktion erwartet.']);
                 $action = json_decode($body, true, 16, JSON_THROW_ON_ERROR);
                 if (!is_array($action) || !is_string($action['ident'] ?? null) || !array_key_exists('value', $action)
-                    || !preg_match('/^(DistributionMode|BatteryEnabled|W[1-4](Manual|Priority))$/D', $action['ident'])) return WebView::json(400, ['error' => 'Unbekannte Bedienaktion.']);
+                    || !preg_match('/^(DistributionMode|BatteryEnabled|W[1-8](Manual|Priority))$/D', $action['ident'])) return WebView::json(400, ['error' => 'Unbekannte Bedienaktion.']);
                 $this->RequestAction($action['ident'], $action['value']);
                 return WebView::json(200, ['telemetry' => WebView::telemetry($this->jsonAttribute('Telemetry'), $base)]);
             }
@@ -151,7 +149,7 @@ trait WebAccess
 
     private function webDocument(int $box, int $document): ?array
     {
-        if ($box < 1 || $box > 4 || $document <= 0 || !IPS_MediaExists($document)) return null;
+        if ($box < 1 || $box > Schema::MAX_WALLBOXES || $document <= 0 || !IPS_MediaExists($document)) return null;
         $object = IPS_GetObject($document);
         if ($object['ParentID'] <= 0 || $object['ObjectType'] !== 5 || !str_starts_with($object['ObjectIdent'], 'Bill_')) return null;
         $folder = IPS_GetObject($object['ParentID']);
@@ -169,7 +167,7 @@ trait WebAccess
         $out = [];
         foreach (IPS_GetChildrenIDs($this->InstanceID) as $folderID) {
             $folder = IPS_GetObject($folderID);
-            if ($folder['ObjectType'] !== 0 || !preg_match('/^W([1-4])BillingDocuments$/D', $folder['ObjectIdent'], $match)) continue;
+            if ($folder['ObjectType'] !== 0 || !preg_match('/^W([1-8])BillingDocuments$/D', $folder['ObjectIdent'], $match)) continue;
             $box = (int)$match[1];
             foreach (IPS_GetChildrenIDs($folderID) as $mediaID) {
                 $document = $this->webDocument($box, $mediaID);
@@ -199,7 +197,6 @@ trait WebAccess
 
     private function recordWebHistory(array $telemetry): void
     {
-        if (!$this->ReadPropertyBoolean('WebEnabled')) return;
         $now = $telemetry['time']; $last = (float)$this->GetBuffer('WebHistoryLast');
         if ($last && $now - $last < WebView::SAMPLE_SECONDS) return;
         try {

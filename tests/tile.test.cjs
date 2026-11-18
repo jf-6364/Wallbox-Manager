@@ -121,7 +121,7 @@ test('Tarife und Ladegangkosten sind ohne Abrechnungsdetails sichtbar und unters
     data.boxes[1].billing = {enabled: true, mode: 'pv', pvPrice: .10, normalPrice: .32,
         active: {started: 1700000000, totalCost: 1.23, totalEnergy: 4.567}, last: null, pending: 0};
     deliver(data);
-    assert.equal(fields1.billingRates.textContent, 'PV 10 ct/kWh · Normal 32 ct/kWh');
+    assert.equal(fields1.billingRates.textContent, '2. Tarif 10 ct/kWh · Normal 32 ct/kWh');
     assert.equal(fields1.billingMode.textContent, 'PV-Überschussladen');
     assert.equal(fields1.billingCostSummary.textContent, 'Ladevorgang: 1,23 € · 4,57 kWh');
     assert.equal(fields1.billingCostSummary.hidden, false);

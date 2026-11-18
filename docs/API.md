@@ -110,17 +110,17 @@ beim Energiezähler-Reset zurückgesetzt.
 - WBM_ControlTargets ist eine eigene öffentliche Modulfunktion mit automatisch durch Symcon erzeugtem Präfixwrapper. Sie ist keine behauptete Kern-API.
 - Hysterese, Mindestlaufzeit und Nachlauf sind mit der [Energie-Manager-Dokumentation](https://www.symcon.de/de/llms/modules/energy-manager.md) abgeglichen. Budgetkonflikte und Sperren werden gemäß Auftrag explizit strenger aufgelöst.
 
-## Optionale Webansicht
+## Automatische Webansicht
 
 Die Webansicht verwendet die bestehende Symcon-Instanz **WebHook Control**
 (Modul-ID `{015A6EB8-D6E5-4B93-B496-0D3F77AE9FE1}`). Ihre Eigenschaft `Hooks`
 enthält Einträge mit `Hook` und einer ganzzahligen `TargetID`; Ziel ist die Managerinstanz. Änderungen
 verwenden `IPS_GetProperty`, `IPS_SetProperty` und `IPS_ApplyChanges`. Registrierung,
 Umbenennen und Entfernen werden instanzübergreifend mit einer Semaphore geschützt;
-fremde Einträge bleiben erhalten. Das Formular verwendet `PasswordTextBox`. Der zusätzliche Webansicht-Button verwendet den
+fremde Einträge bleiben erhalten. Der zusätzliche Webansicht-Button verwendet den
 unterstützten Formulartyp `Button` mit dem Attribut `link` und öffnet den
 gespeicherten Hook-Pfad auf demselben Webserver wie die Konsole. `OpenURL` ist
-kein verwendbarer Formulartyp und wird ab Build 24 nicht mehr erzeugt. Die Webeinstellungen bleiben speicherbare Konfigurationselemente.
+kein verwendbarer Formulartyp und wird ab Build 24 nicht mehr erzeugt. Die früheren Webeinstellungen sind ausgeblendet. Die Webansicht ist automatisch aktiv; feste Anmeldung admin / admin.
 Die Feldnamen wurden am 09.11.2026 mit dem offiziellen
 [WebHookModule-Beispiel](https://github.com/symcon/SymconMisc/blob/7842e50535d4f7c96d44a18935b019027ae24e12/libs/WebHookModule.php#L53)
 abgeglichen. Build 21 repariert eigene, mit `Target` statt `TargetID` gespeicherte
@@ -143,14 +143,14 @@ PDF-Anfragen. Unter dem konfigurierten Basispfad gelten folgende Routen:
 
 Alle Routen verlangen HTTP-Basic-Anmeldung. GET-Anfragen führen keinen
 Regeldurchlauf aus. POST erlaubt ausschließlich `DistributionMode`,
-`BatteryEnabled` und `W1Manual` bis `W4Manual` bzw. `W1Priority` bis `W4Priority`.
+`BatteryEnabled` und `W1Manual` bis `W8Manual` bzw. `W1Priority` bis `W8Priority`.
 Die Aktionen verwenden die vorhandene `RequestAction`-Validierung des Moduls.
 Ab Build 22 wird die Medientypangabe aus `CONTENT_TYPE` oder, falls diese fehlt
 oder leer ist, aus `HTTP_CONTENT_TYPE` gelesen. Ohne Typangabe bleibt ein gültiger
 JSON-Inhalt erforderlich. Ausdrücklich abweichende Medientypen, ungültige JSON-Daten
 und Inhalte über 4.096 Bytes werden abgelehnt. Anmeldung und CSRF-Prüfung erfolgen
 unabhängig von der Typangabe.
-Ein Passwortwechsel entwertet den seitenspezifischen CSRF-Token. Die HTML-Antwort
+Der CSRF-Token ist an Instanzschlüssel und Hook-Pfad gebunden. Die HTML-Antwort
 verwendet eine Content Security Policy mit zufälliger Script-Nonce. Zugangsdaten,
 Rechnungsadressen und Bankdaten werden nicht in die Seitentelemetrie übernommen;
 PDFs können diese Angaben enthalten und sind ebenfalls anmeldungsgebunden.

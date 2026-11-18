@@ -183,18 +183,18 @@ test('Adapter: vier Geräte funktionieren innerhalb einer Instanz', function () 
     closeTo(\WBM\Energy::meter($s, 'm', 101.0, 1800, 11000, 2, 0.02)['delta'], 0);
 });
 
-test('Wallboxanzahl: Dropdown bietet 1 bis 4 und blendet passende Konfigurationsbereiche ein', function () {
-    foreach ([1, 2, 3, 4] as $count) {
+test('Wallboxanzahl: Dropdown bietet 1 bis 8 und blendet passende Konfigurationsbereiche ein', function () {
+    foreach (range(1,8) as $count) {
         $flat = Schema::defaults(); $flat['WallboxCount'] = $count;
         $form = Form::build($flat, [], ''); $select = null;
         foreach ($form['elements'] as $group) {
             if (($group['caption'] ?? '') !== 'Allgemein') continue;
             foreach ($group['items'] as $field) if (($field['name'] ?? '') === 'WallboxCount') $select = $field;
         }
-        check($select['type'] === 'Select'); check(array_column($select['options'], 'value') === [1, 2, 3, 4]);
+        check($select['type'] === 'Select'); check(array_column($select['options'], 'value') === range(1,8));
         check($select['onChange'] === 'WBM_UpdateWallboxCount($id, $WallboxCount);');
         $panels = array_column(array_filter($form['elements'], fn($item) => str_starts_with($item['name'] ?? '', 'WallboxPanel')), null, 'name');
-        foreach ([1, 2, 3, 4] as $id) check($panels['WallboxPanel' . $id]['visible'] === ($id <= $count));
+        foreach (range(1,8) as $id) check($panels['WallboxPanel' . $id]['visible'] === ($id <= $count));
         // Hidden fields retain their bindings so increasing the count restores previous settings.
         check(str_contains(json_encode($panels['WallboxPanel4']), 'W4SetpointVar'));
     }
@@ -202,11 +202,11 @@ test('Wallboxanzahl: Dropdown bietet 1 bis 4 und blendet passende Konfigurations
 test('Wallboxanzahl: Vorschau verändert nur Sichtbarkeit bis Übernehmen und lehnt ungültige Werte ab', function () {
     [$m] = fixture(2); $m->ApplyChanges(); $before = $m->properties; $commands = count(Kernel::$calls);
     $m->UpdateWallboxCount(1);
-    foreach (array_slice($m->formUpdates, -4) as $i => $update) {
+    foreach (array_slice($m->formUpdates, -8) as $i => $update) {
         check($update === ['field' => 'WallboxPanel' . ($i + 1), 'parameter' => 'visible', 'value' => $i === 0]);
     }
     check($m->properties === $before); check(count(Kernel::$calls) === $commands);
-    foreach ([0, 5] as $bad) {
+    foreach ([0, 9] as $bad) {
         try { $m->UpdateWallboxCount($bad); check(false); } catch (InvalidArgumentException $error) {}
         check(count(\WBM\Validation::properties(array_replace($before, ['WallboxCount' => $bad]))) > 0);
     }
@@ -237,4 +237,34 @@ test('Wallboxanzahl: Reduzieren stoppt Geräte, wartet auf Rückmeldung und bewa
     $m->properties['WallboxCount'] = 2; $m->ApplyChanges();
     check(telemetryOf($m)['boxes'][2]['enabled']); check(in_array($ids[2]['power'], $m->GetReferenceList(), true));
     check(GetValue($ids[2]['setpoint']) > 0);
+});
+
+test('Acht Wallboxen: beide Verteilungsarten, Platz 8 stoppen und Zähler bleiben erhalten', function () {
+    [$m,$ids]=fixture(8,['WallboxCount'=>8]); Kernel::update($ids['budget'],80000.0); $m->ApplyChanges();
+    foreach (range(1,8) as $id) Kernel::update($ids[$id]['power'],0.0,microtime(true)); $m->Control();
+    closeTo(telemetryOf($m)['assigned'],80000);
+    foreach (range(1,8) as $id) closeTo(GetValue($ids[$id]['setpoint']),10000);
+    $m->RequestAction('DistributionMode',1); check(telemetryOf($m)['assigned']<=80000);
+    $m->RequestAction('W8Manual',false); closeTo(GetValue($ids[8]['setpoint']),0); check(!$m->GetValue('W8Manual'));
+    $s=runtimeOf($m); $s['energy'][8]['energy']=3.5; setRuntime($m,$s);
+    $saved=$m->properties['W8SetpointVar']; $m->properties['WallboxCount']=4; $m->ApplyChanges();
+    check(!telemetryOf($m)['boxes'][8]['enabled']); check($m->properties['W8SetpointVar']===$saved); closeTo(runtimeOf($m)['energy'][8]['energy'],3.5);
+    $m->properties['WallboxCount']=8; $m->ApplyChanges(); check(telemetryOf($m)['boxes'][8]['enabled']);
+    check(!$m->GetValue('W8Manual')); closeTo(runtimeOf($m)['energy'][8]['energy'],3.5);
+});
+
+test('Migration von vier auf acht Plätze: alte Konfiguration lädt ohne Warnungen und erhält Energie und Ladegang', function () {
+    [$m,$ids]=fixture(4); $m->ApplyChanges();
+    $state=runtimeOf($m); $state['energy'][1]['energy']=12.5; setRuntime($m,$state);
+    $old=json_decode($m->attributes['Configuration'],true);
+    foreach (array_keys($old) as $key) if (preg_match('/^W[5-8]/',$key)) unset($old[$key]);
+    $m->attributes['Configuration']=json_encode($old,JSON_PRESERVE_ZERO_FRACTION);
+    foreach (array_keys($m->properties) as $key) if (preg_match('/^W[5-8]/',$key)) unset($m->properties[$key]);
+    $m->properties['WebEnabled']=false; $m->properties['WebUser']='previous-user'; $m->properties['WebPassword']='previous-password';
+    set_error_handler(static function($severity,$message,$file,$line){throw new ErrorException($message,0,$severity,$file,$line);});
+    try { $m->Create(); $m->ApplyChanges(); } finally { restore_error_handler(); }
+    check($m->properties['WallboxCount']===4); check($m->GetValue('W1Manual')); check(!$m->GetValue('W8Manual'));
+    check(!$m->properties['W8Enabled']); closeTo(runtimeOf($m)['energy'][1]['energy'],12.5);
+    check(str_contains($m->GetConfigurationForm(),'2. Tarif'));
+    $form=json_decode($m->GetConfigurationForm(),true); foreach ($form['elements'] as $item) check(($item['caption']??'')!=='Webansicht');
 });

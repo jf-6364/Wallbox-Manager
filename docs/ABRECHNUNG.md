@@ -1,6 +1,6 @@
 # Ladeabrechnung
 
-Jede der vier Wallboxen kann ihre Ladegänge getrennt abrechnen. Die Funktion ist
+Jede der acht Wallboxen kann ihre Ladegänge getrennt abrechnen. Die Funktion ist
 standardmäßig deaktiviert. Erfasst wird Energie innerhalb manuell gestarteter Ladevorgänge.
 
 ## Gemeinsame Einstellungen
@@ -11,7 +11,7 @@ Unter **Allgemein → Abrechnung** werden folgende Werte einmal für alle Wallbo
 |---|---|---|
 | Abrechnung aktivieren | Ladegänge und Tarifmengen aufzeichnen | Aus |
 | PV-Überschussladen | Boolvariable: true = PV-Tarif, false = Normaltarif | Ohne Verknüpfung: Normal |
-| PV-Preis | Preis pro kWh im PV-Modus, in EUR | 0,00 |
+| 2. Tarif | Preis pro kWh im PV-Modus, in EUR | 0,00 |
 | Normalpreis | Preis pro kWh im Normalmodus, in EUR | 0,00 |
 | Leistungsschwelle | Nur gemessene Leistung oberhalb dieser Grenze zählt als Laden | 50,00 W |
 

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../libs/bootstrap.php';
 
-use WBM\{Schema, Validation, Form, Setpoint, Engine, PhaseSwitch, Battery, Energy, Billing, BillingPdf, Invoice, WebAccess};
+use WBM\{Schema, Validation, Form, Setpoint, Engine, PhaseSwitch, Battery, Energy, Billing, BillingPdf, Invoice, WebAccess, WebView};
 
 class WallboxManager extends IPSModule
 {
@@ -43,7 +43,7 @@ class WallboxManager extends IPSModule
         $this->variables();
         if (($this->jsonAttribute('SessionControl')['version'] ?? 0) < 1) {
             // Former automatic releases must not start a charging session after this update.
-            for ($id = 1; $id <= 4; $id++) $this->SetValue('W' . $id . 'Manual', false);
+            for ($id = 1; $id <= Schema::MAX_WALLBOXES; $id++) $this->SetValue('W' . $id . 'Manual', false);
             $this->WriteAttributeString('SessionControl', $this->encode(['version' => 1]));
         }
         $this->SetVisualizationType(self::VISUALIZATION_TYPE_HTML);
@@ -84,10 +84,10 @@ class WallboxManager extends IPSModule
             foreach (['Enabled' => 'ManagerEnabled', 'Mode' => 'DistributionMode'] as $prop => $ident) {
                 if (!$previous || $previous[$prop] !== $flat[$prop]) $this->SetValue($ident, $flat[$prop]);
             }
-            for ($i = 1; $i <= 4; $i++) {
-                if (!$previous || $previous['W' . $i . 'Priority'] !== $flat['W' . $i . 'Priority']) $this->SetValue('W' . $i . 'Priority', $flat['W' . $i . 'Priority']);
+            for ($i = 1; $i <= Schema::MAX_WALLBOXES; $i++) {
+                if (!$previous || ($previous['W' . $i . 'Priority'] ?? null) !== $flat['W' . $i . 'Priority']) $this->SetValue('W' . $i . 'Priority', $flat['W' . $i . 'Priority']);
             }
-            for ($i = 1; $i <= 4; $i++) {
+            for ($i = 1; $i <= Schema::MAX_WALLBOXES; $i++) {
                 $c = $cfg['boxes'][$i];
                 $oldC = $old['boxes'][$i] ?? null;
                 $changed = $oldC !== null && $this->deviceIdentity($oldC) !== $this->deviceIdentity($c);
@@ -148,7 +148,7 @@ class WallboxManager extends IPSModule
             // Process every measurement event, including unchanged updates.
             $flat = $this->configuration();
             $isMeasurement = (int)$SenderID === $flat['BillingPVVar'];
-            for ($i = 1; $i <= 4; $i++) {
+            for ($i = 1; $i <= Schema::MAX_WALLBOXES; $i++) {
                 if (in_array((int)$SenderID, [(int)$flat['W' . $i . 'PowerVar'], (int)$flat['W' . $i . 'EnergyVar']], true)) $isMeasurement = true;
             }
             if ($isMeasurement && IPS_SemaphoreEnter($this->lockName(), 0)) {
@@ -169,17 +169,17 @@ class WallboxManager extends IPSModule
             return;
         }
         $bools = ['ManagerEnabled', 'BatteryEnabled'];
-        for ($i = 1; $i <= 4; $i++) $bools[] = 'W' . $i . 'Manual';
+        for ($i = 1; $i <= Schema::MAX_WALLBOXES; $i++) $bools[] = 'W' . $i . 'Manual';
         if (in_array($Ident, $bools, true)) {
             if (!is_bool($Value)) throw new InvalidArgumentException('Freigabe muss boolesch sein');
         } elseif ($Ident === 'DistributionMode') {
             if (!is_int($Value) || !in_array($Value, [0, 1], true)) throw new InvalidArgumentException('Ungültiger Verteilungsmodus');
-        } elseif (preg_match('/^W[1-4]Priority$/', $Ident)) {
+        } elseif (preg_match('/^W[1-8]Priority$/', $Ident)) {
             if (!is_int($Value) || $Value < 1 || $Value > 999) throw new InvalidArgumentException('Priorität muss 1 bis 999 sein');
         } else throw new InvalidArgumentException('Unbekannte Aktion: ' . $Ident);
         if (!IPS_SemaphoreEnter($this->lockName(), 1000)) throw new RuntimeException('Regelung beschäftigt; Aktion erneut ausführen');
         try {
-            if ($Value === true && preg_match('/^W([1-4])Manual$/', $Ident, $match)) {
+            if ($Value === true && preg_match('/^W([1-8])Manual$/', $Ident, $match)) {
                 $cfg = Schema::unpack($this->configuration());
                 if (!$cfg['boxes'][(int)$match[1]]['Enabled']) throw new InvalidArgumentException('Wallbox ist nicht aktiviert');
             }
@@ -264,9 +264,9 @@ class WallboxManager extends IPSModule
 
     public function UpdateWallboxCount(int $Count): void
     {
-        if ($Count < 1 || $Count > 4) throw new InvalidArgumentException('Anzahl Wallboxen muss zwischen 1 und 4 liegen');
+        if ($Count < 1 || $Count > Schema::MAX_WALLBOXES) throw new InvalidArgumentException('Anzahl Wallboxen muss zwischen 1 und 8 liegen');
         // Preview the form only; saving with Übernehmen applies the actual device change.
-        for ($i = 1; $i <= 4; $i++) $this->UpdateFormField('WallboxPanel' . $i, 'visible', $i <= $Count);
+        for ($i = 1; $i <= Schema::MAX_WALLBOXES; $i++) $this->UpdateFormField('WallboxPanel' . $i, 'visible', $i <= $Count);
     }
 
     public function GetVisualizationTile()
@@ -318,14 +318,14 @@ class WallboxManager extends IPSModule
 
     public function GetBillingStatus(int $Wallbox): string
     {
-        if ($Wallbox < 1 || $Wallbox > 4) throw new InvalidArgumentException('Wallbox muss 1 bis 4 sein');
+        if ($Wallbox < 1 || $Wallbox > Schema::MAX_WALLBOXES) throw new InvalidArgumentException('Wallbox muss 1 bis 8 sein');
         return $this->encode(Billing::summary($this->runtime()['billing'][$Wallbox] ?? []));
     }
 
     /** Returns the last completed PDF as base64, also usable from user scripts. */
     public function GetBillingPDF(int $Wallbox): string
     {
-        if ($Wallbox < 1 || $Wallbox > 4) throw new InvalidArgumentException('Wallbox muss 1 bis 4 sein');
+        if ($Wallbox < 1 || $Wallbox > Schema::MAX_WALLBOXES) throw new InvalidArgumentException('Wallbox muss 1 bis 8 sein');
         $last = $this->runtime()['billing'][$Wallbox]['last'] ?? [];
         $media = $last['mediaID'] ?? 0;
         if (!$media || !IPS_MediaExists($media)) return '';
@@ -364,7 +364,7 @@ class WallboxManager extends IPSModule
             $method = 'ReadProperty' . (is_bool($def[0]) ? 'Boolean' : (is_int($def[0]) ? 'Integer' : (is_float($def[0]) ? 'Float' : 'String')));
             $flat[$key] = $this->$method($key);
         }
-        return $flat;
+        return WebView::settings($flat);
     }
 
     private function runtime(): array
@@ -412,7 +412,7 @@ class WallboxManager extends IPSModule
     private function configuredTargets(array $flat): array
     {
         $ids = [$flat['BSetpointVar']];
-        for ($i = 1; $i <= 4; $i++) {
+        for ($i = 1; $i <= Schema::MAX_WALLBOXES; $i++) {
             foreach (['SetpointVar', 'DeviceEnableVar', 'PhaseCommandVar'] as $key) $ids[] = $flat['W' . $i . $key];
         }
         return array_values(array_unique(array_filter($ids, static fn($id) => $id > 0)));
@@ -781,7 +781,7 @@ class WallboxManager extends IPSModule
         $cfg = Schema::unpack($flat);
         foreach ($state['retired'] as $key => $record) {
             $slot = explode('-', $record['key'] ?? '')[0];
-            $c = $slot === 'B' ? $cfg['battery'] : (preg_match('/^W([1-4])$/', $slot, $match) ? $cfg['boxes'][(int)$match[1]] : null);
+            $c = $slot === 'B' ? $cfg['battery'] : (preg_match('/^W([1-8])$/', $slot, $match) ? $cfg['boxes'][(int)$match[1]] : null);
             $matches = $c && $c['SetpointVar'];
             if ($matches) foreach ($this->stopBinding($c, $slot === 'B') as $field => $value) {
                 if (!array_key_exists($field, $record) || $record[$field] != $value) { $matches = false; break; }
@@ -1075,7 +1075,7 @@ class WallboxManager extends IPSModule
             'BatteryState' => [3, 'Speicherzustand', '', false, ''],
             'BatteryExternalLocked' => [0, 'Externe Speichersperre', '~Switch', false, false]
         ];
-        for ($i = 1; $i <= 4; $i++) {
+        for ($i = 1; $i <= Schema::MAX_WALLBOXES; $i++) {
             $name = $this->ReadPropertyString('W' . $i . 'Name');
             $unit = $this->ReadPropertyString('W' . $i . 'SetpointUnit');
             $setpointProfile = 'WBM.Setpoint.' . (in_array($unit, ['A', 'W', 'kW'], true) ? $unit : 'W');

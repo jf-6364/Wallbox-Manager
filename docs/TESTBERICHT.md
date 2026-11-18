@@ -1,8 +1,20 @@
-# Prüfbericht – 11.11.2026
+# Prüfbericht – 18.11.2026
 
 ## Ausgeführt
 
-- **184 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- Acht Plätze geprüft: Auswahl 1–8, Verteilungsarten, Start/Stopp und Priorität
+  für Platz 8, Reduzieren und erneutes Erhöhen der Anzahl bei Erhalt von Energie,
+  Verknüpfungen und PDF-Archiv. Migration alter Vier-Platz-Konfigurationen läuft
+  ohne Warnungen und erhält die bisherigen Freigaben; neue Plätze starten gesperrt.
+- Die Webansicht registriert sich automatisch und verwendet immer admin / admin,
+  auch bei vorher deaktivierter Ansicht oder anderen gespeicherten Zugangsdaten.
+  Der Einstellungsbereich entfällt; der Link-Button bleibt. Authentifizierung,
+  CSRF, PDF-Zugriffsschutz, Wiederholungen und Entfernung beim Destroy sind geprüft.
+- „2. Tarif“ ersetzt die Preisbezeichnung in Konfiguration und Visualisierung;
+  gespeicherte Preise und die bestehende Tarifzuordnung bleiben erhalten.
+
+
+- **187 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
 - **18 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.
@@ -39,15 +51,15 @@
   und ganzzahlige `TargetID`. Das Testdouble lehnt die fehlerhafte Struktur aus
   Build 20 mit der gemeldeten nativen Warnung ab; die Regression schlug vor der
   Korrektur fehl. Reparatur bereits gespeicherter eigener Alteinträge, abweichender
-  neuer Pfad, Abschalten und Destroy erhalten fremde Einträge. Native Warnungen und
+  neuer Pfad und Destroy erhalten fremde Einträge. Native Warnungen und
   false-Rückgaben bleiben lokal und stellen den bisherigen PHP-Fehlerhandler wieder
   her. Erneutes Übernehmen funktioniert auch ohne JSON-Änderung; Umbenennen oder
-  Abschalten nach einer fehlgeschlagenen Übernahme hinterlassen keine alten Pfade.
-- Optionale Webansicht geprüft: eigene WebHook-Registrierung, Umbenennen,
-  Abschalten und Destroy erhalten fremde Einträge; Pfadkonflikte und ungültige
+  Destroy nach einer fehlgeschlagenen Übernahme hinterlassen keine alten Pfade.
+- Optionale Webansicht geprüft: automatische WebHook-Registrierung, Umbenennen
+  und Destroy erhalten fremde Einträge; Pfadkonflikte und ungültige
   Zugangsdaten beeinträchtigen keine Laderegelung. HTML, JSON und PDFs erfordern
   Anmeldung. POST benötigt CSRF, erlaubt nur vorhandene Bedienaktionen und prüft
-  deren Datentypen; GET führt keine Geräteaktion aus. Passwortwechsel entwertet
+  deren Datentypen; GET führt keine Geräteaktion aus. Instanzschlüssel und Pfad binden die
   Tokens. Telemetrie enthält keine Zugangsdaten, Adressen, Bankdaten oder PDF-Bytes.
   PDF-Zugriffe sind auf Rechnungsordner der passenden Instanz und Wallbox begrenzt.
   Alte und neue PDFs, Filter, Pagination und persistente Detaildaten sind geprüft.
@@ -97,7 +109,7 @@
   Einstellungen aus dem Formularentwurf geprüft. Ampereanzeigen besitzen eine,
   andere Dezimalanzeigen höchstens zwei Nachkommastellen; Messwerte bleiben intern
   unverändert präzise.
-- Wallboxanzahl 1–4 geprüft: Dropdown und sofortige Formularvorschau, Speicherung
+- Wallboxanzahl 1–8 geprüft: Dropdown und sofortige Formularvorschau, Speicherung
   erst mit „Übernehmen“, Ausblenden ohne Einstellungsverlust, Stoppen mit
   Rückmeldung beim Reduzieren, erneutes Aktivieren sowie Erhalt von Energie und
   Abrechnungen. Bestehende Konfigurationen behalten standardmäßig vier Plätze.

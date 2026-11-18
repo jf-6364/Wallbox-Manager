@@ -1,11 +1,11 @@
 # Wallbox Manager
 
-Der Wallbox Manager verteilt ein verfügbares Leistungsbudget auf **eine bis vier
+Der Wallbox Manager verteilt ein verfügbares Leistungsbudget auf **eine bis acht
 Wallboxen** in IP-Symcon ab Version 7.1. Er steuert vorhandene Gerätevariablen über
 Symcon-Aktionen und berücksichtigt die tatsächlich gemessene Ladeleistung.
 Optional kann ein Batteriespeicher zusätzliche Leistung bereitstellen.
 
-Unter **Allgemein → Anzahl Wallboxen** sind ein bis vier Plätze
+Unter **Allgemein → Anzahl Wallboxen** sind ein bis acht Plätze
 wählbar. Die passenden Konfigurationsbereiche erscheinen direkt bei der Auswahl.
 Mit „Übernehmen“ wird die Anzahl wirksam: Ausgeblendete Plätze werden gestoppt
 und aus der Regelung genommen. Ihre Einstellungen, Energiezähler und PDFs
@@ -278,7 +278,7 @@ freigegebene Wallboxen einmalig auf „nicht gestartet“ gesetzt. Danach ist je
 Wallbox ein Startklick erforderlich. Vorhandene Energie und PDFs bleiben erhalten;
 ein bisher laufender Abrechnungsvorgang wird mit seiner erfassten Energie abgeschlossen.
 
-Bei aktivierter Abrechnung sind **PV- und Normalpreis in ct/kWh**, der aktuelle
+Bei aktivierter Abrechnung sind **2. Tarif und Normalpreis in ct/kWh**, der aktuelle
 Tarif sowie Energie und Kosten des laufenden oder letzten Ladegangs unmittelbar
 sichtbar. Ohne aktivierte Abrechnung steht „Preise nicht eingerichtet“.
 **„Details & Rechnung“** öffnet eine einzige zusätzliche Ebene mit Energie,
@@ -334,23 +334,21 @@ Die Vorschau stellt die normalerweise von Symcon gelieferte Titelzeile nach.
 
 ## Eigene Webansicht
 
-Die optionale **Webansicht** bietet dieselbe Bedienung und Darstellung direkt im
-Browser: Verteilungswahl, Start/Stopp je Wallbox, Leistungswerte, Tarife und
-Rechnungen. Ihr erweitertes **Energie-Dashboard** ergänzt einen interaktiven
-Leistungsverlauf, Energie und Kosten je Wallbox sowie ein filterbares PDF-Archiv.
+Die Webansicht ist automatisch aktiv und zeigt den Wallbox-Manager direkt im
+Browser: Verteilungswahl, Start/Stopp für bis zu acht Wallboxen, Leistungswerte,
+Tarife und Rechnungen. Das erweiterte Energie-Dashboard ergänzt den interaktiven
+Leistungsverlauf, Energie und Kosten je Wallbox sowie das PDF-Archiv.
 
-Unter **Webansicht** ganz unten bei den Diagnosefunktionen aktivieren, Benutzername
-und Passwort festlegen und übernehmen.
-Die Standardadresse lautet **`http://DEINE-SYMCON-IP:3777/hook/wallboxen`**. Der
-Browser fragt nach den eingestellten Zugangsdaten. Hell-/Dunkelmodus sind wählbar;
-die Seite passt sich an die Fenstergröße an. Die Registrierung in Symcons
-WebHook Control erfolgt automatisch.
+Standardadresse: **`http://DEINE-SYMCON-IP:3777/hook/wallboxen`**.
+Benutzername: **`admin`**, Passwort: **`admin`**. Diese Zugangsdaten sind fest
+vorgegeben, auch nach einem Update mit zuvor anderen Einstellungen. Ein eigener
+Einstellungsbereich für die Webansicht entfällt. Der **Webansicht**-Button bei den
+Diagnoseaktionen öffnet die Seite. Bereits gespeicherte gültige Hook-Pfade bleiben
+erhalten; neue Instanzen verwenden den Standardpfad.
 
-Die Webansicht aktualisiert Livewerte, Anzeigen und das geöffnete Dashboard jede
-Sekunde. Der eigene Button **Webansicht** steht bei **Jetzt regeln**, **Diagnose
-anzeigen** und der Fehlerquittierung und öffnet die Seite auf demselben Symcon-Webserver. Der Leistungsverlauf beginnt mit Aktivierung und
-bewahrt 48 Stunden in Minutenabständen. Vorhandene PDFs bleiben erhalten und
-herunterladbar. [Aufruf, Dashboard und PDF-Archiv](docs/WEBANSICHT.md).
+Die Webansicht aktualisiert sich im Sekundentakt. Der Leistungsverlauf bewahrt
+48 Stunden in Minutenabständen. Hell-/Dunkelmodus und die Anpassung an die
+Fenstergröße bleiben erhalten. [Webansicht und PDF-Archiv](docs/WEBANSICHT.md).
 
 ## Weitere Informationen
 

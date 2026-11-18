@@ -16,21 +16,22 @@ if (is_file($stateFile)) {
     foreach ($saved['module'] as $name=>$value) $m->$name=$value;
     $hooks->properties=$saved['hooks'];
 } else {
-    [$m,$ids,$hooks]=webFixture();
-    foreach ([1,2,3,4] as $id) addWebInvoice($m,$id,1.0+$id/2);
+    $count=(int)(getenv('WBM_WEB_TEST_BOXES') ?: 4);
+    [$m,$ids,$hooks]=webFixture(true,$count);
+    foreach (range(1,$count) as $id) addWebInvoice($m,$id,1.0+$id/2);
     $state=runtimeOf($m); $telemetry=telemetryOf($m); $now=microtime(true);
-    foreach ([1,2,3,4] as $id) {
+    foreach (range(1,$count) as $id) {
         $totals=\WBM\Billing::totals(); $totals['pvEnergy']=$id*1.25; $totals['normalEnergy']=$id*2.0;
         $totals['pvCost']=round($totals['pvEnergy']*.13,2); $totals['normalCost']=round($totals['normalEnergy']*.3,2);
         $totals['totalCost']=$totals['pvCost']+$totals['normalCost']; $totals['sessions']=$id;
         $state['billing'][$id]['totals']=$totals; $telemetry['boxes'][$id]['billing']['totals']=$totals;
         $state['energy'][$id]['energy']=$id*3.5; $telemetry['boxes'][$id]['energy']=$id*3.5;
     }
-    $state['totalEnergy']=35.0; setRuntime($m,$state); $telemetry['energy']=35.0;
+    $state['totalEnergy']=3.5*$count*($count+1)/2; setRuntime($m,$state); $telemetry['energy']=$state['totalEnergy'];
     $m->attributes['Telemetry']=json_encode($telemetry);
     $history=['started'=>$now-7200,'samples'=>[]];
     foreach (range(0,120) as $step) {
-        $powers=[]; foreach ([1,2,3,4] as $id) $powers[$id]=round(max(0,sin(($step+$id*12)/18))*$id*1400,1);
+        $powers=[]; foreach (range(1,$count) as $id) $powers[$id]=round(max(0,sin(($step+$id*12)/18))*$id*1400,1);
         if ($step>30 && $step<36) $powers[2]=null;
         $history['samples'][]=['time'=>$now-7200+$step*60,'boxes'=>$powers];
     }

@@ -5,11 +5,12 @@ namespace WBM;
 /** Single source for properties, forms, validation and documentation. */
 final class Schema
 {
+    public const MAX_WALLBOXES = 8;
     public static function global(): array
     {
         return [
             'Enabled' => [false, 'Manager bei Erstkonfiguration aktivieren', 'Allgemein'],
-            'WallboxCount' => [4, 'Anzahl Wallboxen', 'Allgemein', [1 => '1 Wallbox', 2 => '2 Wallboxen', 3 => '3 Wallboxen', 4 => '4 Wallboxen']],
+            'WallboxCount' => [4, 'Anzahl Wallboxen', 'Allgemein', [1 => '1 Wallbox', 2 => '2 Wallboxen', 3 => '3 Wallboxen', 4 => '4 Wallboxen', 5 => '5 Wallboxen', 6 => '6 Wallboxen', 7 => '7 Wallboxen', 8 => '8 Wallboxen']],
             'BudgetVar' => [0, 'Absolutes Grundbudget ohne Speicher', 'Allgemein', 'read', [1, 2], true],
             'BudgetUnit' => ['W', 'Einheit Grundbudget', 'Allgemein', ['W', 'kW']],
             'PVModeVar' => [0, 'PV-Überschuss aktiv (optional)', 'PV-Überschuss', 'read', [0], false],
@@ -33,10 +34,10 @@ final class Schema
             'EnergyMaxGap' => [120, 'Maximale Integrationslücke (s)', 'Energiezählung'],
             'MeterJumpFactor' => [2.0, 'Plausibilitätsfaktor für Zählersprünge', 'Energiezählung'],
             'MeterJumpSlack' => [0.02, 'Zählersprung-Toleranz (kWh)', 'Energiezählung'],
-            'WebEnabled' => [false, 'Webansicht aktivieren', 'Webansicht'],
+            'WebEnabled' => [true, 'Webansicht aktivieren', 'Webansicht'],
             'WebPath' => ['/hook/wallboxen', 'URL-Pfad', 'Webansicht'],
-            'WebUser' => ['wallbox', 'Benutzername', 'Webansicht'],
-            'WebPassword' => ['', 'Passwort (mindestens 8 Zeichen)', 'Webansicht'],
+            'WebUser' => ['admin', 'Benutzername', 'Webansicht'],
+            'WebPassword' => ['admin', 'Festes Webpasswort (intern)', 'Webansicht'],
             'BillingTimezone' => ['Europe/Berlin', 'Zeitzone der Ladeabrechnungen', 'Abrechnung']
         ] + self::invoice() + self::shared();
     }
@@ -71,7 +72,7 @@ final class Schema
 
     public static function isLegacy(string $name): bool
     {
-        return $name === 'BillingIdleSeconds' || preg_match('/^W[1-4](.+)$/', $name, $match) && in_array($match[1], self::sharedMap(), true);
+        return in_array($name, ['WebEnabled', 'WebPath', 'WebUser', 'WebPassword'], true) || $name === 'BillingIdleSeconds' || preg_match('/^W[1-8](.+)$/', $name, $match) && in_array($match[1], self::sharedMap(), true);
     }
 
     public static function invoice(): array
@@ -142,7 +143,7 @@ final class Schema
             'EnergyUnit' => ['kWh', 'Einheit Geräte-Energiezähler', 'Messwerte', ['Wh', 'kWh']],
             'BillingEnabled' => [false, 'Abrechnung für diese Wallbox aktivieren', 'Abrechnung'],
             'BillingPVVar' => [0, 'PV-Überschussladen (true = PV, false = Normal; optional)', 'Abrechnung', 'read', [0], false],
-            'BillingPVPrice' => [0.0, 'PV-Preis (EUR/kWh)', 'Abrechnung'],
+            'BillingPVPrice' => [0.0, '2. Tarif (EUR/kWh)', 'Abrechnung'],
             'BillingNormalPrice' => [0.0, 'Normalpreis (EUR/kWh)', 'Abrechnung'],
             'BillingIdleSeconds' => [600, 'Ladepause bis zum Abschluss (s)', 'Abrechnung'],
             'BillingMinPowerW' => [50.0, 'Leistungsschwelle für die Abrechnungsenergie (W)', 'Abrechnung'],
@@ -206,7 +207,7 @@ final class Schema
     public static function definitions(): array
     {
         $all = self::global();
-        for ($i = 1; $i <= 4; $i++) {
+        for ($i = 1; $i <= Schema::MAX_WALLBOXES; $i++) {
             foreach (self::wallbox() as $key => $def) {
                 if ($key === 'Name') $def[0] = 'Wallbox ' . $i;
                 if ($key === 'Priority') $def[0] = $i;
@@ -228,7 +229,7 @@ final class Schema
         $flat = array_replace(self::defaults(), $flat);
         $out = ['global' => [], 'boxes' => [], 'battery' => []];
         foreach (self::global() as $key => $_) $out['global'][$key] = $flat[$key];
-        for ($i = 1; $i <= 4; $i++) {
+        for ($i = 1; $i <= Schema::MAX_WALLBOXES; $i++) {
             foreach (self::wallbox() as $key => $_) $out['boxes'][$i][$key] = $flat['W' . $i . $key];
             // Old persisted snapshots retain their original tariffs at the edit boundary.
             foreach (self::sharedMap() as $name => $former) {
@@ -249,7 +250,7 @@ final class Schema
             if (!isset($def[4])) continue;
             $active = true;
             if ($key === 'PVBudgetVar') $active = ($flat['PVModeVar'] ?? 0) > 0;
-            if (preg_match('/^W([1-4])(.+)$/', $key, $m)) {
+            if (preg_match('/^W([1-8])(.+)$/', $key, $m)) {
                 $active = (bool)$flat['W' . $m[1] . 'Enabled'] && (int)$m[1] <= ($flat['WallboxCount'] ?? 4);
                 if (str_starts_with($m[2], 'Phase') && in_array($m[2], ['PhaseCommandVar', 'PhaseFeedbackVar'], true)) {
                     $active = $active && $flat['W' . $m[1] . 'PhaseMode'] === 'dynamic';

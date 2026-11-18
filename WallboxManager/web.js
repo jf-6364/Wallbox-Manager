@@ -8,7 +8,7 @@
     var invoiceRequest = 0, invoiceBusy = false;
     var hiddenSeries = new Set(), graphPoints = [], graphNames = [], graphStart = 0, graphEnd = 1, graphSignature = '';
     var selectedPoint = -1, hoverFrame = 0, hoverClient = null, graphBounds = null;
-    var colors = ['#00a98b','#4188e8','#c18b00','#a66bdd'];
+    var colors = ['#00a98b','#4188e8','#c18b00','#a66bdd','#e45d78','#287c82','#d46c22','#70883b'];
     var number = new Intl.NumberFormat('de-DE',{maximumFractionDigits:2});
     var fixed = new Intl.NumberFormat('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
     var dates = new Map();
@@ -47,7 +47,7 @@
             put(c[1],kwh(n(box.energy) + n(box.archivedEnergy)));
             put(c[2],known ? kwh(t.pvEnergy) : '–'); put(c[3],known ? kwh(t.normalEnergy) : '–');
             put(c[4],known ? kwh(t.unassignedEnergy) : '–'); put(c[5],known ? money(t.totalCost) : '–'); put(c[6],known ? String(n(t.sessions)) : '–');
-            put(c[7],typeof b.pvPrice === 'number' ? 'PV ' + number.format(b.pvPrice * 100) + ' ct/kWh · Normal ' + number.format(b.normalPrice * 100) + ' ct/kWh' : '–');
+            put(c[7],typeof b.pvPrice === 'number' ? '2. Tarif ' + number.format(b.pvPrice * 100) + ' ct/kWh · Normal ' + number.format(b.normalPrice * 100) + ' ct/kWh' : '–');
             var option = el('invoice-box').querySelector('option[value="' + box.id + '"]'); if (option) put(option,box.name);
         });
         var sum = total.pv + total.normal + total.unknown;
@@ -94,7 +94,7 @@
         max = Math.ceil(max / 1000) * 1000;
         text('history-max',number.format(max / 1000) + ' kW'); text('history-mid',number.format(max / 2000) + ' kW');
         text('history-start',date(graphStart)); text('history-end',date(graphEnd));
-        text('web-history-note',history.started ? 'Aufzeichnung seit ' + date(history.started) + ' · Messpunkte im Minutenabstand · Messlücken bleiben leer.' : 'Der Verlauf beginnt mit der Aktivierung der Webansicht.');
+        text('web-history-note',history.started ? 'Aufzeichnung seit ' + date(history.started) + ' · Messpunkte im Minutenabstand · Messlücken bleiben leer.' : 'Der Verlauf beginnt mit dem Modulbetrieb.');
         hide(el('history-empty'),samples.length > 0);
         var keys = new Set(names.map(function (box) { return box.id; }));
         lineNodes.forEach(function (item,key) { if (!keys.has(key)) { item.path.remove(); item.button.remove(); lineNodes.delete(key); } });

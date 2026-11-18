@@ -442,7 +442,7 @@ async function palette(page) {
         billed.boxes[2].billing = {enabled: false};
         await deliver(page, billed);
         assert.equal(await page.locator('.billing-details').last().isVisible(), false);
-        assert.equal(await page.locator('[data-field="billingRates"]').first().innerText(), 'PV 10 ct/kWh · Normal 32 ct/kWh');
+        assert.equal(await page.locator('[data-field="billingRates"]').first().innerText(), '2. Tarif 10 ct/kWh · Normal 32 ct/kWh');
         assert.equal(await page.locator('[data-field="billingCostSummary"]').first().innerText(), 'Ladevorgang: 0,93 € · 3,75 kWh');
         assert.equal(await page.locator('[data-field="billingMode"]').first().innerText(), 'PV-Überschussladen');
         assert.equal(await page.locator('.device-details').first().getAttribute('open'), null);

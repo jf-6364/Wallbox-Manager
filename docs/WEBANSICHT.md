@@ -1,6 +1,6 @@
 # Webansicht und erweitertes Energie-Dashboard
 
-Die optionale Webansicht öffnet den Wallbox-Manager direkt im Browser über den
+Die automatisch aktive Webansicht öffnet den Wallbox-Manager direkt im Browser über den
 vorhandenen Symcon-Webserver. Sie verwendet dieselbe Darstellung, Verteilungswahl,
 Start-/Stopp-Steuerung und Abrechnung wie die Symcon-Kachel. Beide Ansichten zeigen
 denselben Modulzustand; es entsteht keine zweite Regelung.
@@ -10,35 +10,23 @@ Ansichten mit Beispieldaten: [Webansicht](images/webansicht-hell.png) ·
 
 ## Aufrufen
 
-Im Modul ganz unten bei den Diagnosefunktionen den Bereich **Webansicht** öffnen,
-**Webansicht aktivieren** einschalten,
-Benutzername und ein Passwort mit mindestens acht Zeichen eintragen und
-**Übernehmen** anklicken. Der Standardpfad lautet `/hook/wallboxen`:
+Die Webansicht ist ohne Einschalten automatisch aktiv. Sie verwendet den bestehenden
+Symcon-Webserver und ist standardmäßig hier erreichbar:
 
     http://DEINE-SYMCON-IP:3777/hook/wallboxen
 
-Nach dem Übernehmen öffnet der Button **Webansicht** direkt bei **Jetzt regeln**,
-**Diagnose anzeigen** und **Gerätefehler nach Prüfung quittieren** die Seite. Der
-Button verwendet den konfigurierten Pfad auf demselben Webserver wie die Konsole;
-bei Zugriff über einen anderen Host kann die vollständige Adresse oben verwendet werden.
+Die feste Anmeldung lautet **Benutzername `admin`, Passwort `admin`**. Frühere
+Aktivierungs- und Zugangseinstellungen ändern diese Vorgabe nicht. Das gilt für
+Seite, Datenabfragen und PDF-Downloads. Der bisherige Webansicht-Einstellungsbereich
+ist entfernt. Der **Webansicht**-Button bei den Diagnoseaktionen öffnet die Seite.
+Ein bereits gespeicherter gültiger URL-Pfad bleibt erhalten; neue Instanzen verwenden
+`/hook/wallboxen`. Port und HTTPS richten sich nach dem Symcon-Webserver.
 
-Beim ersten Aufruf fragt der Browser nach den eingetragenen Zugangsdaten. Diese
-gelten für die Seite, ihre Daten und die PDF-Downloads. Angemeldete Benutzer können
-die Verteilung ändern und Ladevorgänge starten oder stoppen. Die globale
-Managerfreigabe wird weiterhin in Symcon bedient.
-
-`/hook/` gehört zur nativen Symcon-WebHook-Schnittstelle; die Adresse lautet daher
-nicht nur `/wallboxen`. Port und gegebenenfalls HTTPS richten sich nach dem
-Symcon-Webserver. Für Verbindungen außerhalb des eigenen Netzes eine geschützte
-HTTPS- oder VPN-Verbindung verwenden.
-
-Das Modul trägt den Pfad automatisch in **WebHook Control** ein. Ist diese
-Symcon-Instanz nicht vorhanden oder der Pfad bereits durch eine andere Instanz
-belegt, steht die Ursache im Bereich Webansicht. Bei mehreren Wallbox-Managern
-unterschiedliche Pfade wählen, etwa `/hook/garage` und `/hook/stellplatz`.
-Andere registrierte WebHooks werden nicht verändert. Ausschalten der Webansicht
-entfernt ihre Registrierung und beendet den Browserzugriff; die Laderegelung und
-die gespeicherten Daten bleiben erhalten.
+Angemeldete Benutzer können die Verteilung ändern und Ladevorgänge starten oder
+stoppen. Die globale Managerfreigabe wird weiterhin in Symcon bedient. Das Modul
+registriert seinen Pfad automatisch in WebHook Control und entfernt ihn beim
+Löschen der Instanz. Fremde WebHooks werden nicht überschrieben. Registrierungsfehler
+werden bei den Diagnoseaktionen angezeigt und blockieren keine Laderegelung.
 
 ## Konfiguration öffnet nicht: Nicht unterstützter Typ OpenURL
 
@@ -95,7 +83,7 @@ Ladegänge mit erfasster Energie; laufende Energie und Kosten sind bereits entha
 
 ## Verlauf und Aktualisierung
 
-Der Leistungsverlauf beginnt mit Aktivierung der Webansicht. Im Minutenabstand wird
+Der Leistungsverlauf beginnt automatisch mit dem Modulbetrieb. Im Minutenabstand wird
 ein Messpunkt aus den Regeldaten gespeichert; die letzten **48 Stunden** bleiben
 erhalten, auch über Modulneustarts hinweg. Fehlende oder ungültige Messungen bleiben
 Lücken. Ältere Leistungswerte werden nicht nachträglich erfunden. Die Verlaufskurven

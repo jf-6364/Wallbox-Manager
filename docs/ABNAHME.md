@@ -50,10 +50,10 @@ Umschaltungen hängen von tatsächlichen Rückmeldungen und Geräteabfragezeiten
 
 ## Optionale Webansicht
 
-- [ ] Aktivierung registriert `/hook/wallboxen` in WebHook Control; Aufruf auf dem konfigurierten Symcon-Webserver funktioniert.
-- [ ] Browseranmeldung mit Modulzugangsdaten schützt Seite, JSON und PDF-Downloads.
+- [ ] Instanzbetrieb registriert automatisch `/hook/wallboxen` in WebHook Control; Aufruf auf dem konfigurierten Symcon-Webserver funktioniert.
+- [ ] Browseranmeldung mit admin / admin schützt Seite, JSON und PDF-Downloads.
 - [ ] Start/Stopp und Verteilungswechsel sind in Webansicht und Symcon-Kachel gegenseitig sichtbar.
 - [ ] Leistungs- und Abrechnungsanzeigen stimmen mit den Statusvariablen überein; Seitenaufrufe ändern keine Gerätesollwerte.
 - [ ] Verlauf wächst im Minutenabstand; echte Messausfälle und Neustarts erzeugen keine erfundenen Zwischenwerte.
 - [ ] Neue und vorhandene PDFs sind im Archiv herunterladbar; PDFs fremder Instanzen sind nicht zugänglich.
-- [ ] Pfadänderung und Abschalten entfernen nur den eigenen Eintrag und lassen andere WebHooks nutzbar.
+- [ ] Pfadänderung und Löschen der Instanz entfernen nur den eigenen Eintrag und lassen andere WebHooks nutzbar.

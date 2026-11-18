@@ -14,7 +14,7 @@ $plan = Engine::plan($cfg, $in, $state, $time);
 $plan['managerEnabled'] = true; $plan['measured'] = 0.0; $plan['energy'] = 28.31;
 $plan['status'] = 'Automatische Regelung aktiv'; $plan['strict'] = true; $plan['batteryEnabled'] = true; $plan['batteryConfigured'] = false;
 $plan['battery']['capacity'] = 10.0; $plan['battery']['commanded'] = 4000.0; $plan['simulation'] = true;
-foreach ($plan['boxes'] as $id => &$row) { $row['energy'] = [1 => 7.59, 2 => 3.98, 3 => 6.50, 4 => 10.24][$id]; $row['archivedEnergy'] = 0.0; $row['energyMethod'] = 'berechnet'; $row['gap'] = ''; }
+foreach ($plan['boxes'] as $id => &$row) { $row['energy'] = [1 => 7.59, 2 => 3.98, 3 => 6.50, 4 => 10.24][$id] ?? 0.0; $row['archivedEnergy'] = 0.0; $row['energyMethod'] = 'berechnet'; $row['gap'] = ''; }
 unset($row);
 $previewInvoiceSequence = 0;
 foreach ([1, 2, 3, 4] as $id) {
@@ -46,7 +46,7 @@ window.requestAction = function (ident, value) {
     if (ident === 'ManagerEnabled') window.WBM_INITIAL.managerEnabled = value;
     if (ident === 'DistributionMode') window.WBM_INITIAL.mode = value;
     if (ident === 'BatteryEnabled') window.WBM_INITIAL.batteryEnabled = value;
-    var match = ident.match(/^W([1-4])(Manual|Priority)$/);
+    var match = ident.match(/^W([1-8])(Manual|Priority)$/);
     if (match) window.WBM_INITIAL.boxes[match[1]][match[2] === 'Manual' ? 'manual' : 'priority'] = value;
     if (typeof window.handleMessage === 'function') window.handleMessage(window.WBM_INITIAL);
 };

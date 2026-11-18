@@ -1,19 +1,19 @@
 # Einstellungen und Variablen
 
-Die Definitionen werden aus libs/Schema.php erzeugt. Wn steht für W1 bis W4.
+Die Definitionen werden aus libs/Schema.php erzeugt. Wn steht für W1 bis W8.
 Die Sollwertziele müssen im Normalbetrieb Geräteaktionen besitzen. Alle externen Freigaben sind ausschließlich Lesebedingungen.
 
 Von Gerätemodulen angelegte Sollwertvariablen können als Objekt schreibgeschützt sein und trotzdem eine Geräteaktion besitzen. Dieser Objektschutz muss für die Steuerung nicht entfernt werden. Gesperrte Variablenwerte und fehlende Geräteaktionen werden weiterhin abgelehnt.
 
 Dezimaleinstellungen werden mit Komma eingegeben: Amperewerte mit einer, andere Werte mit höchstens zwei Nachkommastellen. Änderungen werden über „Übernehmen“ gespeichert. Die bisherigen numerischen Eigenschaften bleiben erhalten; Mess- und Rechenwerte werden intern nicht für die Anzeige gerundet.
 
-Die Anzahl der konfigurierbaren Wallboxen wird unter Allgemein mit WallboxCount auf 1 bis 4 begrenzt. Die Formularbereiche werden sofort ein-/ausgeblendet; erst Übernehmen ändert den Betrieb. Höhere Plätze werden gestoppt und deaktiviert, ihre gespeicherten Einstellungen, Variablen und PDFs bleiben erhalten. Innerhalb der gewählten Anzahl gilt weiterhin Platz aktiviert. Standardmäßig bleiben vier Plätze verfügbar, damit bestehende Installationen unverändert weiterarbeiten.
+Die Anzahl der konfigurierbaren Wallboxen wird unter Allgemein mit WallboxCount auf 1 bis 8 begrenzt. Die Formularbereiche werden sofort ein-/ausgeblendet; erst Übernehmen ändert den Betrieb. Höhere Plätze werden gestoppt und deaktiviert, ihre gespeicherten Einstellungen, Variablen und PDFs bleiben erhalten. Innerhalb der gewählten Anzahl gilt weiterhin Platz aktiviert. Standardmäßig bleiben vier Plätze verfügbar, damit bestehende Installationen unverändert weiterarbeiten.
 
 Zeitbedingungen stehen zentral unter Allgemein → Zeitbedingungen, Abrechnung und sämtliche Rechnungsdaten unter Allgemein → Abrechnung. Sie gelten für alle Wallboxen, einschließlich gemeinsamem PV-Signal, Preisen und Empfänger. Ladegänge und PDFs bleiben getrennt je Wallbox. Beim ersten Update werden die bisherigen Werte von Wallbox 1 übernommen. SharedDefaults hält diese Registrierungsdefaults dauerhaft stabil; spätere gemeinsame Änderungen bleiben maßgeblich. Die früheren Wn-Zeit-, Abrechnungs- und Empfängereigenschaften bleiben ausschließlich zur Migration registriert und erscheinen nicht mehr im Formular. Alte Configuration-Schnappschüsse behalten ihre ursprünglichen Tarifwerte für den Übernahmezeitpunkt.
 
 Der Bereich PV-Überschuss verwendet PVModeVar (Boolean) und die direkte Netzleistung PVBudgetVar (Integer/Float): positive Werte bedeuten Einspeisung, negative Netzbezug. true verwendet Netzleistung plus gemessene Ladeleistung aller aktiven Plätze als PV-Ladebudget; false oder PVModeVar = 0 verwendet BudgetVar ohne Addition. PVBudgetUnit und PVBudgetMaxAge gelten für die Netzquelle. Die bisherigen Eigenschaftsnamen bleiben für gespeicherte Verknüpfungen erhalten; seit Version 1.9 wird keine absolute PV-Budgetvariable mehr erwartet. Sollwerte werden nicht als Verbrauch gutgeschrieben. Speicherunterstützung und zeitweise Überschreitungen sind im PV-Modus gesperrt; der harte Grenzwert bleibt wirksam. Fehlende/ungültige aktive Netz- oder Ladeleistungsdaten stoppen ohne Rückfall auf die andere Quelle. Die Telemetrie enthält pvActive, pvNet, pvCharging, budgetSource (normal/pv/invalid) und budgetVariable. Für die Tarifzuordnung kann dieselbe Boolvariable separat als BillingPVVar verknüpft werden.
 
-Die optionale Webansicht wird über WebEnabled, WebPath, WebUser und WebPassword konfiguriert. Der Bereich steht ganz unten im Formular unmittelbar vor den Diagnoseaktionen. Bei den Aktionen öffnet der zusätzliche Webansicht-Button den konfigurierten Pfad auf demselben Webserver. Sie verwendet Symcons WebHook Control und benötigt eine eigene Anmeldung. Details: [Webansicht](WEBANSICHT.md).
+Die Webansicht ist automatisch aktiv. Benutzername und Passwort sind fest admin / admin. Der Webansicht-Button steht bei den Diagnoseaktionen; der bisherige Einstellungsbereich entfällt. WebEnabled, WebUser, WebPassword und WebPath bleiben aus Kompatibilitätsgründen intern registriert, erscheinen aber nicht als Formularfelder. Alte Aktivierungs- und Zugangseinstellungen werden ignoriert. Ein gültiger gespeicherter WebPath bleibt erhalten, ansonsten gilt /hook/wallboxen. Details: [Webansicht](WEBANSICHT.md).
 
 ## Variablenverknüpfungen
 
@@ -72,10 +72,6 @@ ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilli
 | `EnergyMaxGap` | `120` | Maximale Integrationslücke (s) | Energiezählung |
 | `MeterJumpFactor` | `2` | Plausibilitätsfaktor für Zählersprünge | Energiezählung |
 | `MeterJumpSlack` | `0.02` | Zählersprung-Toleranz (kWh) | Energiezählung |
-| `WebEnabled` | `false` | Webansicht aktivieren | Webansicht |
-| `WebPath` | `/hook/wallboxen` | URL-Pfad | Webansicht |
-| `WebUser` | `wallbox` | Benutzername | Webansicht |
-| `WebPassword` | `(leer)` | Passwort (mindestens 8 Zeichen) | Webansicht |
 | `BillingTimezone` | `Europe/Berlin` | Zeitzone der Ladeabrechnungen | Abrechnung |
 | `InvoiceSenderName` | `(leer)` | Name / Firma | Rechnung: Rechnungssteller |
 | `InvoiceSenderStreet` | `(leer)` | Straße / Hausnummer | Rechnung: Rechnungssteller |
@@ -108,7 +104,7 @@ ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilli
 | `WallboxCommandGap` | `0` | Mindestabstand für Erhöhungsbefehle (s) | Zeitbedingungen |
 | `BillingEnabled` | `false` | Ladeabrechnung für alle Wallboxen aktivieren | Abrechnung |
 | `BillingPVVar` | `0` | PV-Überschussladen (true = PV, false = Normal; optional) | Abrechnung |
-| `BillingPVPrice` | `0` | PV-Preis (EUR/kWh) | Abrechnung |
+| `BillingPVPrice` | `0` | 2. Tarif (EUR/kWh) | Abrechnung |
 | `BillingNormalPrice` | `0` | Normalpreis (EUR/kWh) | Abrechnung |
 | `BillingMinPowerW` | `50` | Leistungsschwelle für die Abrechnungsenergie (W) | Abrechnung |
 | `InvoiceRecipientName` | `(leer)` | Rechnungsempfänger: Name / Firma | Rechnung: Empfänger |
@@ -198,7 +194,7 @@ Lastabbau: Eine Reduzierung wird nur durch einen gültigen Leistungswert mit Akt
 
 ## Automatisch erzeugte Status- und Bedienvariablen
 
-Alle vier Plätze werden dauerhaft angelegt. Unverknüpfte / ungültige numerische Messungen erscheinen in numerischen Statusvariablen als 0; die Kachel zeigt stattdessen fehlende Messung und Fehlertexte. Verfügbarer Speicher ist theoretisch; Confirmed ist die tatsächlich zur Planung verwendete Bestätigung.
+Alle acht Plätze werden dauerhaft angelegt. Unverknüpfte / ungültige numerische Messungen erscheinen in numerischen Statusvariablen als 0; die Kachel zeigt stattdessen fehlende Messung und Fehlertexte. Verfügbarer Speicher ist theoretisch; Confirmed ist die tatsächlich zur Planung verwendete Bestätigung.
 
 | Ident | Typ | Einheit | Bedienung | Bedeutung |
 |---|---|---|---|---|
@@ -241,7 +237,7 @@ Alle vier Plätze werden dauerhaft angelegt. Unverknüpfte / ungültige numerisc
 | `WnBillingStatus` | String | – | nein | Abrechnungs- oder PDF-Fehlerstatus |
 | `WnBillingLastPDF` | Integer | Objekt-ID | nein | Medien-ID des letzten abgeschlossenen Ladegangs |
 
-Die 17 Manager-/Speichervariablen und 21 Variablen je Platz ergeben 101 Variablen. Statusvariablen haben keine Geräteaktion. Bedienvariablen verwenden RequestAction und behalten ihre Werte über Neustart / ApplyChanges; geänderte anfängliche Werte im Formular werden bewusst übernommen.
+Die 17 Manager-/Speichervariablen und 21 Variablen je Platz ergeben 185 Variablen. Statusvariablen haben keine Geräteaktion. Bedienvariablen verwenden RequestAction und behalten ihre Werte über Neustart / ApplyChanges; geänderte anfängliche Werte im Formular werden bewusst übernommen.
 
 ## Öffentliche Modulfunktionen
 
@@ -251,7 +247,7 @@ Die 17 Manager-/Speichervariablen und 21 Variablen je Platz ergeben 101 Variable
 | `WBM_Diagnose(int InstanceID)` | JSON mit Konfigurationsfehlern, Budget, Zuteilungen, Zuständen und letzten 40 Befehlen |
 | `WBM_ClearFaults(int InstanceID)` | Befehls-/Phasenfehler nach Ursachenprüfung quittieren |
 | `WBM_ResetEnergy(int InstanceID, string Confirmation)` | Platz-/Gesamtenergie nur bei exakt ENERGIE ZURÜCKSETZEN löschen; Abrechnung bleibt erhalten |
-| `WBM_GetBillingStatus(int InstanceID, int Wallbox)` | JSON mit laufendem/letztem Ladegang, Tarifmengen, Kosten, Summen und PDF-Status (Wallbox 1–4) |
+| `WBM_GetBillingStatus(int InstanceID, int Wallbox)` | JSON mit laufendem/letztem Ladegang, Tarifmengen, Kosten, Summen und PDF-Status (Wallbox 1–8) |
 | `WBM_GetBillingPDF(int InstanceID, int Wallbox)` | Letzte gespeicherte PDF als Base64-String; leer, solange kein Dokument bereitliegt |
 | `WBM_ControlTargets(int InstanceID)` | Internes JSON der beanspruchten Steuerziele; dient Instanzkonfliktprüfung |
 

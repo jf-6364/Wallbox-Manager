@@ -116,7 +116,8 @@ test('Adapter: HTML-Kachel ohne nicht vorhandene SDK-Konstante', function () {
     check($m->visualType === 1);
 });
 test('Adapter: installierbare Metadaten, deutsches Formular und HTML-SDK', function () {
-    [$m] = fixture(); $m->ApplyChanges();
+    [$m,$ids] = fixture(); $m->ApplyChanges();
+    Kernel::update($ids[1]['power'],0.0,microtime(true)); $m->Control();
     check($m->status === 102, $m->GetValue('Status'));
     $form = json_decode($m->GetConfigurationForm(), true, 512, JSON_THROW_ON_ERROR);
     check(count($form['elements']) >= 10);

@@ -6,17 +6,24 @@ namespace WBM;
 final class WebView
 {
     public const HOOK_MODULE = '{015A6EB8-D6E5-4B93-B496-0D3F77AE9FE1}';
+    public const USER = 'admin';
+    public const PASSWORD = 'admin';
+
+    public static function settings(array $flat): array
+    {
+        $flat = array_replace($flat, ['WebEnabled' => true, 'WebUser' => self::USER, 'WebPassword' => self::PASSWORD]);
+        if (self::errors($flat)) $flat['WebPath'] = '/hook/wallboxen';
+        return $flat;
+    }
+
     public const HISTORY_SECONDS = 172800;
     public const SAMPLE_SECONDS = 60;
 
     public static function errors(array $flat): array
     {
-        if (!$flat['WebEnabled']) return [];
         $out = [];
         if (!preg_match('~^/hook/[A-Za-z0-9][A-Za-z0-9_/-]{0,110}$~D', $flat['WebPath'])
             || str_contains($flat['WebPath'], '//') || str_ends_with($flat['WebPath'], '/')) $out[] = 'Pfad muss mit /hook/ beginnen, z. B. /hook/wallboxen; nur Buchstaben, Zahlen, Bindestrich, Unterstrich und Unterpfade.';
-        if (!preg_match('/^[^:\r\n]{1,64}$/uD', $flat['WebUser']) || trim($flat['WebUser']) === '') $out[] = 'Benutzername ist erforderlich (maximal 64 Zeichen, ohne Doppelpunkt).';
-        if (strlen($flat['WebPassword']) < 8 || strlen($flat['WebPassword']) > 256) $out[] = 'Passwort muss 8 bis 256 Zeichen enthalten.';
         return $out;
     }
 
@@ -29,13 +36,13 @@ final class WebView
             if ($decoded === false || !str_contains($decoded, ':')) return false;
             [$user, $password] = explode(':', $decoded, 2);
         }
-        return is_string($user) && is_string($password) && hash_equals($flat['WebUser'], $user)
-            && hash_equals($flat['WebPassword'], $password);
+        return is_string($user) && is_string($password) && hash_equals(self::USER, $user)
+            && hash_equals(self::PASSWORD, $password);
     }
 
     public static function token(array $flat, string $secret, int $instance): string
     {
-        return hash_hmac('sha256', $instance . "\0" . $flat['WebPath'] . "\0" . $flat['WebUser'] . "\0" . $flat['WebPassword'], $secret);
+        return hash_hmac('sha256', $instance . "\0" . $flat['WebPath'] . "\0" . self::USER . "\0" . self::PASSWORD, $secret);
     }
 
     public static function reply(int $status, string $body, string $type = 'application/json; charset=utf-8', array $headers = []): array
