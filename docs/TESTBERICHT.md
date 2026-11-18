@@ -14,7 +14,13 @@
   gespeicherte Preise und die bestehende Tarifzuordnung bleiben erhalten.
 
 
-- **187 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- **190 automatisierte PHP-Tests erfolgreich**, unter PHP **8.2.34**.
+- Meldungsruhe geprüft: 20 unveränderte Regeldurchläufe verursachen keine erneuten
+  Statusschreibvorgänge, Instanzstatusmeldungen oder vollständigen Debug-Ausgaben.
+  Live-Telemetrie wird weiterhin bei jedem Durchlauf aktualisiert. Echte Änderungen
+  einschließlich kleiner Energiedifferenzen behalten ihre volle Genauigkeit;
+  extern veränderte Statuswerte werden korrigiert. Gerätefehler, Befehlsdiagnose
+  und Statuswechsel bei Fehler und Behebung bleiben sichtbar.
 - Darin **1.000 deterministisch erzeugte Verteilungen** mit beiden Modi,
   verschiedenen Rastern, Grenzen, Prioritäten und Laufzuständen.
 - **18 JavaScript-Tests erfolgreich**, tatsächliche tile.js in Node mit DOM-Testdouble.

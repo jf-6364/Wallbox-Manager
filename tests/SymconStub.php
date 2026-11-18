@@ -97,6 +97,7 @@ class IPSModule
     public function UnregisterMessage($id, $message) { unset($this->messages[$id][$message]); }
     public function GetMessageList() { return array_map('array_values', $this->messages); }
     public function SetStatus($status) { $this->status = $status; }
+    public function GetStatus() { return $this->status; }
     public function SendDebug($name, $data, $format) { $this->debug[] = [$name, $data]; }
     public function SetVisualizationType($type) { $this->visualType = $type; }
     public function UpdateFormField($field, $parameter, $value) { $this->formUpdates[] = ['field' => $field, 'parameter' => $parameter, 'value' => $value]; return true; }

@@ -54,6 +54,7 @@ Array-Variablendarstellungen (8.0), IPSModuleStrict (8.1), openObject (8.2) und 
 | `GetValue` | `mixed GetValue(string $Ident)` | 5.0 | [Dokumentation](https://www.symcon.de/de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/module/getvalue/) |
 | `SetValue` | `bool SetValue(string $Ident, mixed $Wert)` | 5.0 | [Dokumentation](https://www.symcon.de/de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/module/setvalue/) |
 | `SetStatus` | `bool SetStatus(int $Statuswert)` | 4.0 | [Dokumentation](https://www.symcon.de/de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/module/setstatus/) |
+| `GetStatus` | `int GetStatus()` | Legacy-`IPSModule`, gegen offizielle SDK-Stubs geprüft | [Offizielle Implementierung](https://github.com/symcon/SymconStubs/blob/be1e9428d8cbc04ceedad9545cda93843bff9978/ModuleStubs.php#L685) |
 | `SendDebug` | `bool SendDebug(string $Meldungsname, string $Daten, int $Format)` | 4.0 | [Dokumentation](https://www.symcon.de/de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/module/senddebug/) |
 | `UpdateVisualizationValue` | `bool UpdateVisualizationValue(mixed $Daten)` | 7.1 | [Dokumentation](https://www.symcon.de/de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/module/updatevisualizationvalue/) |
 | `RegisterPropertyBoolean` | `bool RegisterPropertyBoolean(string $Name, bool $Standardwert)` | 4.0 | [Dokumentation](https://www.symcon.de/de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/module/registerpropertyboolean/) |
@@ -77,6 +78,18 @@ Array-Variablendarstellungen (8.0), IPSModuleStrict (8.1), openObject (8.2) und 
 | `requestAction` | `void requestAction(string Ident, mixed Wert)` | 7.1 | [Dokumentation](https://www.symcon.de/de/service/dokumentation/entwicklerbereich/sdk-tools/sdk-php/html-sdk/requestaction/) |
 
 ## Auslegungsdetails
+
+### Statusmeldungen
+
+Abgeleitete Statusvariablen werden vor `SetValue` mit ihrem tatsächlichen aktuellen
+Wert verglichen, der Instanzstatus vor `SetStatus` mit `GetStatus`. Unveränderte Werte
+werden nicht erneut geschrieben; externe Änderungen werden beim nächsten Durchlauf
+korrigiert. Es gibt keine Rundung oder Drosselung echter Wertänderungen.
+`VariableUpdated` dieser Statusvariablen ist daher kein Regler-Heartbeat. Der
+Zeitstempel `time` der Telemetrie und `UpdateVisualizationValue` werden weiterhin
+bei jedem Durchlauf aktualisiert. Geräteaktionen, deren Watchdog und Rückmeldungen
+sind unabhängig davon. Die periodische vollständige `Regelung`-Debug-Ausgabe
+entfällt; Fehler und die abrufbare Diagnose bleiben erhalten.
 
 ### Dokumentmedien für die Ladeabrechnung
 

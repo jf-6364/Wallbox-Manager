@@ -268,3 +268,52 @@ test('Migration von vier auf acht Plätze: alte Konfiguration lädt ohne Warnung
     check(str_contains($m->GetConfigurationForm(),'2. Tarif'));
     $form=json_decode($m->GetConfigurationForm(),true); foreach ($form['elements'] as $item) check(($item['caption']??'')!=='Webansicht');
 });
+
+class StatusWriteTraceModule extends WallboxManager
+{
+    public array $statusWrites = [];
+    public array $instanceStatuses = [];
+    public function SetValue($ident, $value) { $this->statusWrites[] = [$ident,$value]; return parent::SetValue($ident,$value); }
+    public function SetStatus($status) { $this->instanceStatuses[]=$status; return parent::SetStatus($status); }
+}
+function quietFixture(bool $started = false): array
+{
+    [$m,$ids]=fixture(1,[], $started, StatusWriteTraceModule::class); $m->ApplyChanges();
+    Kernel::update($ids[1]['power'],0.0,microtime(true)); $m->Control();
+    $m->statusWrites=$m->instanceStatuses=$m->debug=$m->visualUpdates=[];
+    return [$m,$ids];
+}
+test('Meldungsruhe: unveränderte Regelzyklen schreiben keine Statuswerte oder vollständigen Debug-Pläne', function () {
+    [$m]=quietFixture(); $before=Kernel::$calls;
+    foreach (range(1,20) as $_) $m->Control();
+    check($m->statusWrites===[],'Unveränderte Statuswerte wurden erneut geschrieben');
+    check($m->instanceStatuses===[],'Unveränderter Instanzstatus wurde erneut gemeldet');
+    check(array_filter($m->debug, static fn($entry)=>$entry[0]==='Regelung')===[]);
+    check(count($m->visualUpdates)===20); check(Kernel::$calls===$before);
+    $diagnosis=json_decode($m->Diagnose(),true); check($diagnosis['telemetry']===telemetryOf($m));
+    check(isset($diagnosis['runtime']['history']));
+});
+test('Meldungsruhe: echte Änderungen bleiben präzise; extern veränderte Statuswerte werden korrigiert', function () {
+    [$m,$ids]=quietFixture();
+    Kernel::update($ids['budget'],8400.0); $m->Control();
+    check(array_column($m->statusWrites,0)===['BaseBudget']); closeTo($m->GetValue('BaseBudget'),8400);
+    $m->statusWrites=[]; Kernel::update($m->idents['TotalPower'],123.0); $m->Control();
+    check(array_column($m->statusWrites,0)===['TotalPower']); closeTo($m->GetValue('TotalPower'),0);
+    foreach ([1.23456789,1.23456790] as $energy) {
+        $state=runtimeOf($m); $state['energy'][1]['energy']=$energy; $state['totalEnergy']=$energy; setRuntime($m,$state);
+        $m->statusWrites=[]; $m->Control();
+        check(in_array('W1Energy',array_column($m->statusWrites,0),true)); check($m->GetValue('W1Energy')===$energy);
+        check($m->GetValue('TotalEnergy')===$energy);
+    }
+    $m->instanceStatuses=[]; $m->status=104; $m->Control(); check($m->instanceStatuses===[102]);
+});
+test('Meldungsruhe: Gerätefehler, Befehlsdiagnose und Statuswechsel bleiben sichtbar', function () {
+    [$m,$ids]=quietFixture(true); Kernel::$failures[$ids[1]['setpoint']]='false';
+    $m->RequestAction('W1Manual',false);
+    check($m->status===201); check(in_array(201,$m->instanceStatuses,true));
+    check(count(array_filter($m->debug,static fn($entry)=>str_starts_with($entry[0],'Befehlsfehler ')))>0);
+    $diagnosis=json_decode($m->Diagnose(),true); check($diagnosis['telemetry']['errors']!==[]);
+    check(count(array_filter($diagnosis['runtime']['history'],static fn($row)=>$row['error']!==''))>0);
+    unset(Kernel::$failures[$ids[1]['setpoint']]); Kernel::update($ids[1]['power'],0.0,microtime(true));
+    $m->ClearFaults(); check($m->status===102); check(end($m->instanceStatuses)===102);
+});

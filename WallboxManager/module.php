@@ -230,8 +230,8 @@ class WallboxManager extends IPSModule
             // An unexpected failure must still attempt explicit configured stops.
             foreach ($cfg['boxes'] as $id => $c) if ($c['Enabled']) $this->writeBox($id, $c, 0, (int)$c['PhaseMode'] === 1 ? 1 : 3, $state, $now, true);
             if ($cfg['battery']['Enabled']) $this->writeBattery($cfg['battery'], 0, $state, $now, true);
-            $this->SetValue('Status', 'Fehler: ' . $e->getMessage());
-            $this->SetStatus(201);
+            $this->setChangedValue('Status', 'Fehler: ' . $e->getMessage());
+            $this->setChangedStatus(201);
             $this->saveRuntime($state);
             $telemetry = $this->jsonAttribute('Telemetry');
             $telemetry['errors'] = ['Regeldurchlauf fehlgeschlagen: ' . $e->getMessage()];
@@ -990,6 +990,22 @@ class WallboxManager extends IPSModule
         return $summary;
     }
 
+    // Only our derived status variables use this path. Device commands and their
+    // watchdog/feedback logic must still run independently of published values.
+    private function setChangedValue(string $ident, $value): void
+    {
+        $current = $this->GetValue($ident);
+        if ($current === $value) return;
+        // Symcon reads float variables as floats even when the new value is 0.
+        if ((is_int($current) || is_float($current)) && (is_int($value) || is_float($value)) && $current == $value) return;
+        $this->SetValue($ident, $value);
+    }
+
+    private function setChangedStatus(int $status): void
+    {
+        if ($this->GetStatus() !== $status) $this->SetStatus($status);
+    }
+
     private function publish(array $cfg, array $in, array $plan, array $state, array $validation): void
     {
         $measured = 0.0;
@@ -1003,17 +1019,17 @@ class WallboxManager extends IPSModule
             $row['billing'] = $this->billingTelemetry($state['billing'][$id] ?? [], $cfg['boxes'][$id]);
             $billingTotals = $row['billing']['totals'];
             foreach (['PVEnergy' => 'pvEnergy', 'NormalEnergy' => 'normalEnergy', 'UnassignedEnergy' => 'unassignedEnergy',
-                'PVCost' => 'pvCost', 'NormalCost' => 'normalCost', 'Cost' => 'totalCost', 'Sessions' => 'sessions'] as $suffix => $key) $this->SetValue('W' . $id . 'Billing' . $suffix, $billingTotals[$key]);
+                'PVCost' => 'pvCost', 'NormalCost' => 'normalCost', 'Cost' => 'totalCost', 'Sessions' => 'sessions'] as $suffix => $key) $this->setChangedValue('W' . $id . 'Billing' . $suffix, $billingTotals[$key]);
             $currentBill = $row['billing']['active'] ?: $row['billing']['last'];
             $billingStatus = ($currentBill['unassignedEnergy'] ?? 0.0) > 0 ? 'Tarif ungeklärt – Abrechnung prüfen' :
                 ($row['billing']['active'] ? 'Ladegang läuft' : ($row['billing']['pending'] ? 'PDF wird erstellt' : ($row['billing']['enabled'] ? 'Bereit' : 'Abrechnung ausgeschaltet')));
-            $this->SetValue('W' . $id . 'BillingStatus', $row['billing']['error'] ?: $billingStatus);
-            $this->SetValue('W' . $id . 'BillingLastPDF', $row['billing']['last']['mediaID'] ?? 0);
+            $this->setChangedValue('W' . $id . 'BillingStatus', $row['billing']['error'] ?: $billingStatus);
+            $this->setChangedValue('W' . $id . 'BillingLastPDF', $row['billing']['last']['mediaID'] ?? 0);
             if ($cfg['boxes'][$id]['Enabled'] && $row['measured'] !== null) $measured += max(0.0, $row['measured']);
             $prefix = 'W' . $id;
             foreach (['Power' => $row['measured'] ?? 0.0, 'Assigned' => $row['power'], 'Setpoint' => $row['command'], 'Phases' => $row['phases'],
                 'Energy' => $row['energy'], 'ExternalLocked' => !$row['external'], 'State' => $row['status'] . ($row['reason'] !== $row['status'] ? ': ' . $row['reason'] : ''),
-                'Remaining' => $row['remaining'], 'EnergyMethod' => $row['energyMethod'], 'MeasurementGap' => $row['gap']] as $key => $value) $this->SetValue($prefix . $key, $value);
+                'Remaining' => $row['remaining'], 'EnergyMethod' => $row['energyMethod'], 'MeasurementGap' => $row['gap']] as $key => $value) $this->setChangedValue($prefix . $key, $value);
         }
         unset($row);
         $plan['measured'] = $measured;
@@ -1029,12 +1045,12 @@ class WallboxManager extends IPSModule
             'BatteryRequested' => $plan['battery']['commanded'] ?? 0.0, 'BatteryMeasured' => max(0.0, $plan['battery']['measured'] ?? 0.0),
             'BatterySoc' => $plan['battery']['soc'] ?? 0.0, 'BatteryEnergy' => $plan['battery']['energy'], 'BatteryState' => $plan['battery']['reason'],
             'BatteryExternalLocked' => !$plan['battery']['external'], 'TotalPower' => $measured, 'AssignedPower' => $plan['assigned'], 'TotalEnergy' => $plan['energy'],
-            'OverrunPower' => $plan['overrun'], 'Status' => $plan['status']] as $key => $value) $this->SetValue($key, $value);
-        $this->SetStatus($validation ? 200 : ($plan['errors'] ? 201 : ($plan['manager'] ? 102 : 104)));
+            'OverrunPower' => $plan['overrun'], 'Status' => $plan['status']] as $key => $value) $this->setChangedValue($key, $value);
+        $this->setChangedStatus($validation ? 200 : ($plan['errors'] ? 201 : ($plan['manager'] ? 102 : 104)));
         $this->recordWebHistory($plan);
-        $this->WriteAttributeString('Telemetry', $this->encode($plan));
-        $this->UpdateVisualizationValue($this->encode($plan));
-        $this->SendDebug('Regelung', $this->encode($plan), 0);
+        $telemetry = $this->encode($plan);
+        $this->WriteAttributeString('Telemetry', $telemetry);
+        $this->UpdateVisualizationValue($telemetry);
     }
 
     private function profiles(): void

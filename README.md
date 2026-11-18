@@ -171,6 +171,12 @@ regelmäßig erneut senden. Die Diagnose zeigt Zustände, Wartegründe und die l
 Befehle. Befehls- und Phasenfehler bleiben bis zur Quittierung nach Ursachenprüfung
 gesperrt. Ein ausgeschalteter Manager ist ein normaler Betriebszustand.
 
+Statusvariablen und Instanzstatus werden nur bei Änderungen geschrieben. Der
+Manager gibt nicht bei jedem Regeldurchlauf den gesamten Zustand als Debug-Meldung
+aus. Fehlerdiagnosen bleiben erhalten; aktuelle Werte und die letzten Befehle sind
+unter „Diagnose anzeigen“ verfügbar. Tatsächliche Variablenänderungen kann Symcon
+weiterhin im Meldungsfenster anzeigen; dessen Filter bestimmen die Anzeige.
+
 ## Phasen und Batteriespeicher
 
 Der Manager unterstützt festen einphasigen oder dreiphasigen Betrieb. Geeignete

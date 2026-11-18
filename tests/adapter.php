@@ -3,10 +3,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/SymconStub.php';
 require_once __DIR__ . '/../WallboxManager/module.php';
 
-function fixture(int $count = 1, array $properties = [], bool $started = true): array
+function fixture(int $count = 1, array $properties = [], bool $started = true, string $moduleClass = WallboxManager::class): array
 {
     Kernel::reset();
-    $m = new WallboxManager(50);
+    $m = new $moduleClass(50);
     $m->Create();
     $budget = Kernel::variable(12000.0);
     $ids = ['budget' => $budget];
