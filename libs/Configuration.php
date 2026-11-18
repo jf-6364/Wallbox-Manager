@@ -193,6 +193,7 @@ final class Form
     private static function field(string $name, array $d, array $flat): array
     {
         $field = ['name' => $name, 'caption' => $d[1]];
+        if ($name === 'WebPath') return $field + ['type' => 'ValidationTextBox', 'validate' => '^(?=.{1,117}$)/hook/[A-Za-z0-9][A-Za-z0-9_-]*(?:/[A-Za-z0-9_-]+)*$'];
         if ($name === 'WebPassword') return $field + ['type' => 'PasswordTextBox'];
         if (isset($d[4])) return $field + ['type' => 'SelectVariable', 'validVariableTypes' => $d[4], 'requiredAction' => $d[3] === 'write' && !$flat['Simulation'] ? 1 : 0];
         if (isset($d[3]) && is_array($d[3])) {

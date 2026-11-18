@@ -35,7 +35,7 @@ final class Schema
             'MeterJumpFactor' => [2.0, 'Plausibilitätsfaktor für Zählersprünge', 'Energiezählung'],
             'MeterJumpSlack' => [0.02, 'Zählersprung-Toleranz (kWh)', 'Energiezählung'],
             'WebEnabled' => [true, 'Webansicht aktivieren', 'Webansicht'],
-            'WebPath' => ['/hook/wallboxen', 'URL-Pfad', 'Webansicht'],
+            'WebPath' => ['/hook/wallboxen', 'Webansicht: URL-Pfad (z. B. /hook/wallbox)', 'Allgemein'],
             'WebUser' => ['admin', 'Benutzername', 'Webansicht'],
             'WebPassword' => ['admin', 'Festes Webpasswort (intern)', 'Webansicht'],
             'BillingTimezone' => ['Europe/Berlin', 'Zeitzone der Ladeabrechnungen', 'Abrechnung']
@@ -72,7 +72,7 @@ final class Schema
 
     public static function isLegacy(string $name): bool
     {
-        return in_array($name, ['WebEnabled', 'WebPath', 'WebUser', 'WebPassword'], true) || $name === 'BillingIdleSeconds' || preg_match('/^W[1-8](.+)$/', $name, $match) && in_array($match[1], self::sharedMap(), true);
+        return in_array($name, ['WebEnabled', 'WebUser', 'WebPassword'], true) || $name === 'BillingIdleSeconds' || preg_match('/^W[1-8](.+)$/', $name, $match) && in_array($match[1], self::sharedMap(), true);
     }
 
     public static function invoice(): array

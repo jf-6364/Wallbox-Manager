@@ -13,7 +13,7 @@ Zeitbedingungen stehen zentral unter Allgemein → Zeitbedingungen, Abrechnung u
 
 Der Bereich PV-Überschuss verwendet PVModeVar (Boolean) und die direkte Netzleistung PVBudgetVar (Integer/Float): positive Werte bedeuten Einspeisung, negative Netzbezug. true verwendet Netzleistung plus gemessene Ladeleistung aller aktiven Plätze als PV-Ladebudget; false oder PVModeVar = 0 verwendet BudgetVar ohne Addition. PVBudgetUnit und PVBudgetMaxAge gelten für die Netzquelle. Die bisherigen Eigenschaftsnamen bleiben für gespeicherte Verknüpfungen erhalten; seit Version 1.9 wird keine absolute PV-Budgetvariable mehr erwartet. Sollwerte werden nicht als Verbrauch gutgeschrieben. Speicherunterstützung und zeitweise Überschreitungen sind im PV-Modus gesperrt; der harte Grenzwert bleibt wirksam. Fehlende/ungültige aktive Netz- oder Ladeleistungsdaten stoppen ohne Rückfall auf die andere Quelle. Die Telemetrie enthält pvActive, pvNet, pvCharging, budgetSource (normal/pv/invalid) und budgetVariable. Für die Tarifzuordnung kann dieselbe Boolvariable separat als BillingPVVar verknüpft werden.
 
-Die Webansicht ist automatisch aktiv. Benutzername und Passwort sind fest admin / admin. Der Webansicht-Button steht bei den Diagnoseaktionen; der bisherige Einstellungsbereich entfällt. WebEnabled, WebUser, WebPassword und WebPath bleiben aus Kompatibilitätsgründen intern registriert, erscheinen aber nicht als Formularfelder. Alte Aktivierungs- und Zugangseinstellungen werden ignoriert. Ein gültiger gespeicherter WebPath bleibt erhalten, ansonsten gilt /hook/wallboxen. Details: [Webansicht](WEBANSICHT.md).
+Die Webansicht ist automatisch aktiv. Benutzername und Passwort sind fest admin / admin. Der Webansicht-Button steht bei den Diagnoseaktionen; der bisherige Einstellungsbereich entfällt. WebPath ist unter Allgemein als frei wählbarer URL-Pfad der Webansicht einstellbar, z. B. /hook/wallbox oder /hook/garage. Übernehmen registriert den neuen Pfad und entfernt den bisherigen eigenen Eintrag. WebEnabled, WebUser und WebPassword bleiben aus Kompatibilitätsgründen intern registriert und erscheinen nicht als Formularfelder. Alte Aktivierungs- und Zugangseinstellungen werden ignoriert. Ein gültiger gespeicherter WebPath bleibt erhalten, ansonsten gilt /hook/wallboxen. Details: [Webansicht](WEBANSICHT.md).
 
 ## Variablenverknüpfungen
 
@@ -72,6 +72,7 @@ ErrorVar: true meldet einen Fehler. DemandVar: true meldet verbundenen/ladewilli
 | `EnergyMaxGap` | `120` | Maximale Integrationslücke (s) | Energiezählung |
 | `MeterJumpFactor` | `2` | Plausibilitätsfaktor für Zählersprünge | Energiezählung |
 | `MeterJumpSlack` | `0.02` | Zählersprung-Toleranz (kWh) | Energiezählung |
+| `WebPath` | `/hook/wallboxen` | Webansicht: URL-Pfad (z. B. /hook/wallbox) | Allgemein |
 | `BillingTimezone` | `Europe/Berlin` | Zeitzone der Ladeabrechnungen | Abrechnung |
 | `InvoiceSenderName` | `(leer)` | Name / Firma | Rechnung: Rechnungssteller |
 | `InvoiceSenderStreet` | `(leer)` | Straße / Hausnummer | Rechnung: Rechnungssteller |

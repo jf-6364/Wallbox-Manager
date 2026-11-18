@@ -341,8 +341,9 @@ Leistungsverlauf, Energie und Kosten je Wallbox sowie das PDF-Archiv.
 
 Standardadresse: **`http://DEINE-SYMCON-IP:3777/hook/wallboxen`**.
 Benutzername: **`admin`**, Passwort: **`admin`**. Diese Zugangsdaten sind fest
-vorgegeben, auch nach einem Update mit zuvor anderen Einstellungen. Ein eigener
-Einstellungsbereich für die Webansicht entfällt. Der **Webansicht**-Button bei den
+vorgegeben, auch nach einem Update mit zuvor anderen Einstellungen. Unter **Allgemein → Webansicht: URL-Pfad** lässt sich der Pfad frei einstellen,
+beispielsweise `/hook/wallbox` oder `/hook/garage`. **Übernehmen** registriert den
+neuen Pfad und entfernt den bisherigen eigenen WebHook-Eintrag. Der **Webansicht**-Button bei den
 Diagnoseaktionen öffnet die Seite. Bereits gespeicherte gültige Hook-Pfade bleiben
 erhalten; neue Instanzen verwenden den Standardpfad.
 

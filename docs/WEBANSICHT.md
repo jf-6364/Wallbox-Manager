@@ -18,7 +18,13 @@ Symcon-Webserver und ist standardmäßig hier erreichbar:
 Die feste Anmeldung lautet **Benutzername `admin`, Passwort `admin`**. Frühere
 Aktivierungs- und Zugangseinstellungen ändern diese Vorgabe nicht. Das gilt für
 Seite, Datenabfragen und PDF-Downloads. Der bisherige Webansicht-Einstellungsbereich
-ist entfernt. Der **Webansicht**-Button bei den Diagnoseaktionen öffnet die Seite.
+ist entfernt. Unter **Allgemein → Webansicht: URL-Pfad** kann der Pfad eingegeben
+werden, etwa `/hook/wallbox` oder `/hook/garage`. Er muss mit `/hook/` beginnen;
+Buchstaben, Zahlen, Bindestriche und Unterstriche sind möglich. Nach **Übernehmen**
+ist die Seite unter dem neuen Pfad erreichbar; der alte eigene Eintrag wird entfernt.
+Bereits von einer anderen Instanz belegte Pfade werden nicht übernommen.
+
+Der **Webansicht**-Button bei den Diagnoseaktionen öffnet die Seite.
 Ein bereits gespeicherter gültiger URL-Pfad bleibt erhalten; neue Instanzen verwenden
 `/hook/wallboxen`. Port und HTTPS richten sich nach dem Symcon-Webserver.
 
